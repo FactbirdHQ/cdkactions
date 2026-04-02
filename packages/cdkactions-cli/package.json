@@ -1,6 +1,6 @@
 {
   "name": "@factbird/cdkactions-cli",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "CDK for GitHub Actions CLI",
   "type": "module",
   "main": "dist/index.js",

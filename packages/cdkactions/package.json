@@ -1,6 +1,6 @@
 {
   "name": "@factbird/cdkactions",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Cloud Development Kit for GitHub Actions",
   "type": "module",
   "main": "dist/index.js",
