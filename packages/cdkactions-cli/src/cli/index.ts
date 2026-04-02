@@ -1,13 +1,7 @@
-import * as yargs from 'yargs';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 
-const args = yargs
-  .commandDir('cmds')
-  .recommendCommands()
-  .wrap(yargs.terminalWidth())
-  .showHelpOnFail(false)
-  .help()
-  .argv;
+import init from './cmds/init.js';
+import synth from './cmds/synth.js';
 
-if (args._.length === 0) {
-  yargs.showHelp();
-}
+yargs(hideBin(process.argv)).command(synth).command(init).demandCommand(1).parse();

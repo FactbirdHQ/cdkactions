@@ -1,20 +1,18 @@
-import { spawn, SpawnOptions } from 'child_process';
-import * as path from 'path';
-
+import { type SpawnOptions, spawn } from 'node:child_process';
+import * as path from 'node:path';
 
 export async function shell(program: string, args: string[] = [], options: SpawnOptions = {}) {
-  const command = `"${program} ${args.join(' ')}" at ${path.resolve(options.cwd ?? '.')}`;
+  const command = `"${program} ${args.join(' ')}" at ${path.resolve((options.cwd as string) ?? '.')}`;
   return new Promise((ok, ko) => {
     const child = spawn(program, args, { stdio: 'inherit', ...options });
-    child.once('error', err => {
+    child.once('error', (err) => {
       throw new Error(`command ${command} failed: ${err}`);
     });
-    child.once('exit', code => {
+    child.once('exit', (code) => {
       if (code === 0) {
-        return ok();
-      } else {
-        return ko(new Error(`command ${command} returned a non-zero exit code ${code}`));
+        return ok(undefined);
       }
+      return ko(new Error(`command ${command} returned a non-zero exit code ${code}`));
     });
   });
 }

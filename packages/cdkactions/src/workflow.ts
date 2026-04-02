@@ -1,337 +1,211 @@
+import assert from 'node:assert';
+
 import { Construct, Node } from 'constructs';
-import { Job } from './job';
-import { StringMap, DefaultsProps } from './types';
-import { renameKeys, camelToSnake } from './utils';
+
+import { Job } from './job.js';
+import type { DefaultsProps, StringMap } from './types.js';
+import { camelToSnake, renameKeys, type Writable } from './utils.js';
 
 /**
  * Configuration for the CheckRun event.
  */
 export interface CheckRunTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'created' | 'rerequested' | 'completed' | 'requested_action'>;
 }
 
-/**
- * Configuration for the CheckSuite event.
- */
 export interface CheckSuiteTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'created' | 'rerequested' | 'requested'>;
 }
 
-/**
- * Configuration for the IssueComment event.
- */
 export interface IssueCommentTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'created' | 'edited' | 'deleted'>;
 }
 
-/**
- * Configuration for the Issues event.
- */
 export interface IssuesTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<
-  | 'opened'
-  | 'edited'
-  | 'deleted'
-  | 'transferred'
-  | 'pinned'
-  | 'unpinned'
-  | 'closed'
-  | 'reopened'
-  | 'assigned'
-  | 'unassigned'
-  | 'labeled'
-  | 'unlabeled'
-  | 'locked'
-  | 'unlocked'
-  | 'milestoned'
-  | 'demilestoned'
+    | 'opened'
+    | 'edited'
+    | 'deleted'
+    | 'transferred'
+    | 'pinned'
+    | 'unpinned'
+    | 'closed'
+    | 'reopened'
+    | 'assigned'
+    | 'unassigned'
+    | 'labeled'
+    | 'unlabeled'
+    | 'locked'
+    | 'unlocked'
+    | 'milestoned'
+    | 'demilestoned'
   >;
 }
 
-/**
- * Configuration for the Label event.
- */
 export interface LabelTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'created' | 'edited' | 'deleted'>;
 }
 
-/**
- * Configuration for the Milestone event.
- */
 export interface MilestoneTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'created' | 'closed' | 'opened' | 'edited' | 'deleted'>;
 }
 
-/**
- * Configuration for the ProjectTypes event.
- */
 export interface ProjectTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'created' | 'updated' | 'closed' | 'reopened' | 'edited' | 'deleted'>;
 }
 
-/**
- * Configuration for the ProjectCard event.
- */
 export interface ProjectCardTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'created' | 'moved' | 'converted' | 'edited' | 'deleted'>;
 }
 
-/**
- * Configuration for the ProjectColumn event.
- */
 export interface ProjectColumnTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'created' | 'updated' | 'moved' | 'deleted'>;
 }
 
-/**
- * Configuration for the PullRequest event.
- */
 export interface PullRequestTypes extends PushTypes {
-  /**
-   * Supported types.
-   */
   readonly types?: Array<
-  | 'assigned'
-  | 'unassigned'
-  | 'labeled'
-  | 'unlabeled'
-  | 'opened'
-  | 'edited'
-  | 'closed'
-  | 'reopened'
-  | 'synchronize'
-  | 'ready_for_review'
-  | 'locked'
-  | 'unlocked'
-  | 'review_requested'
-  | 'review_request_removed'
+    | 'assigned'
+    | 'unassigned'
+    | 'labeled'
+    | 'unlabeled'
+    | 'opened'
+    | 'edited'
+    | 'closed'
+    | 'reopened'
+    | 'synchronize'
+    | 'ready_for_review'
+    | 'locked'
+    | 'unlocked'
+    | 'review_requested'
+    | 'review_request_removed'
+    | 'converted_to_draft'
   >;
 }
 
-/**
- * Configuration for the PullRequestReview event.
- */
 export interface PullRequestReviewTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'submitted' | 'edited' | 'dismissed'>;
 }
 
-/**
- * Configuration for the PullRequestReviewComment event.
- */
 export interface PullRequestReviewCommentTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'created' | 'edited' | 'deleted'>;
 }
 
-/**
- * Configuration for the PullRequestTarget event.
- */
 export interface PullRequestTargetTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<
-  | 'assigned'
-  | 'unassigned'
-  | 'labeled'
-  | 'unlabeled'
-  | 'opened'
-  | 'edited'
-  | 'closed'
-  | 'reopened'
-  | 'synchronize'
-  | 'ready_for_review'
-  | 'locked'
-  | 'unlocked'
-  | 'review_requested'
-  | 'review_request_removed'
+    | 'assigned'
+    | 'unassigned'
+    | 'labeled'
+    | 'unlabeled'
+    | 'opened'
+    | 'edited'
+    | 'closed'
+    | 'reopened'
+    | 'synchronize'
+    | 'ready_for_review'
+    | 'locked'
+    | 'unlocked'
+    | 'review_requested'
+    | 'review_request_removed'
   >;
 }
 
-/**
- * Configuration for the RegistryPackage event.
- */
 export interface RegistryPackageTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'published' | 'updated'>;
 }
 
-/**
- * Configuration for the Release event.
- */
 export interface ReleaseTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'published' | 'unpublished' | 'created' | 'edited' | 'deleted' | 'prereleased' | 'released'>;
 }
 
-/**
- * Configuration for the Watch event.
- */
 export interface WatchTypes {
-  /**
-   * Supported types.
-   */
   readonly types: Array<'started'>;
 }
 
-/**
- * Configuration for the Push event.
- */
 export interface PushTypes {
-  /**
-   * Branches to trigger the workflow on.
-   */
   readonly branches?: string[];
-
-  /**
-   * Branches to ignore when triggering the workflow.
-   */
   readonly branchesIgnore?: string[];
-
-  /**
-   * Tags to trigger the workflow on.
-   */
   readonly tags?: string[];
-
-  /**
-   * Tags to ignore when triggering the workflow.
-   */
   readonly tagsIgnore?: string[];
-
-  /**
-   * Paths to trigger the workflow on.
-   */
   readonly paths?: string[];
-
-  /**
-   * Paths to ignore when triggering the workflow.
-   */
   readonly pathsIgnore?: string[];
 }
 
-/**
- * Configuration for the Schedule event.
- */
+export interface MergeGroupTypes {
+  readonly types?: Array<'checks_requested'>;
+}
+
 export interface ScheduleEvent {
-  /**
-   * A cron schedule to run the workflow on.
-   */
   readonly schedule: [{ cron: string }];
 }
 
-/**
- * Configuration for the WorkflowRun event.
- */
 export interface WorkflowRunEvent {
-  /**
-   * A list of workflows to trigger from.
-   */
-  readonly workflows: string[];
-
-  /**
-   * Branches to trigger this workflow on.
-   */
-  readonly branches?: string[];
-
-  /**
-   * Branches to ignore when triggering this workflow.
-   */
-  readonly branchesIgnore?: string[];
-
-  /**
-   * Supported types.
-   */
-  readonly types?: Array<'completed' | 'requested'>;
+  readonly workflowRun: {
+    readonly workflows?: string[];
+    readonly branches?: string[];
+    readonly branchesIgnore?: string[];
+    readonly types?: Array<'completed' | 'requested'>;
+  };
 }
 
-/**
- * Workflow dispatch input types.
- */
-export enum WorkflowDispatchInputType {
-  CHOICE = 'choice',
-  BOOLEAN = 'boolean',
-  ENVIRONMENT = 'environment',
-  STRING = 'string',
-}
+export const WorkflowDispatchInputType = {
+  CHOICE: 'choice',
+  BOOLEAN: 'boolean',
+  ENVIRONMENT: 'environment',
+  STRING: 'string',
+} as const;
 
-/**
- * Configuration for a manually dispatched workflow input
- */
+export type WorkflowDispatchInputType = typeof WorkflowDispatchInputType;
+
 export interface WorkflowDispatchEventInputProps {
-  /**
-   * The default value for the input if not supplied.
-   */
   readonly default?: string | boolean;
-
-  /**
-   * A description for this particular input.
-   */
   readonly description?: string;
-
-  /**
-   * Whether the input is required.
-   */
   readonly required: boolean;
-
-  /**
-   * The type that identifies this input.
-   */
-  readonly type: WorkflowDispatchInputType;
+  readonly type: WorkflowDispatchInputType[keyof WorkflowDispatchInputType];
 }
 
-/**
- * Configuration for the WorkflowDispatch event properties.
- */
+export interface WorkflowDispatchEventChoiceInputProps extends WorkflowDispatchEventInputProps {
+  readonly type: WorkflowDispatchInputType['CHOICE'];
+  readonly options: string[];
+}
+
+export interface WorkflowDispatchEventBooleanInputProps extends WorkflowDispatchEventInputProps {
+  readonly type: WorkflowDispatchInputType['BOOLEAN'];
+}
+
+export interface WorkflowDispatchEventStringInputProps extends WorkflowDispatchEventInputProps {
+  readonly type: WorkflowDispatchInputType['STRING'];
+}
+
+export interface WorkflowDispatchEventEnvironmentInputProps extends WorkflowDispatchEventInputProps {
+  readonly type: WorkflowDispatchInputType['ENVIRONMENT'];
+}
+
 export interface WorkflowDispatchEventProps {
-  readonly inputs?: Record<string, WorkflowDispatchEventInputProps>;
+  readonly inputs?: Record<
+    string,
+    | WorkflowDispatchEventChoiceInputProps
+    | WorkflowDispatchEventBooleanInputProps
+    | WorkflowDispatchEventStringInputProps
+    | WorkflowDispatchEventEnvironmentInputProps
+  >;
 }
 
-/**
- * Configuration for the WorkflowDispatch event.
- */
 export interface WorkflowDispatchEvent {
-  readonly workflowDispatch: WorkflowDispatchEventProps;
+  readonly workflowDispatch: WorkflowDispatchEventProps | null;
 }
 
-/**
- * Events without additional subtypes.
- */
+export interface MergeGroupEvent {
+  readonly mergeGroup: MergeGroupTypes | null;
+}
+
+export interface WorkflowCallEventProps {
+  readonly inputs?: Record<string, WorkflowDispatchEventBooleanInputProps | WorkflowDispatchEventStringInputProps>;
+}
+
+export interface WorkflowCallEvent {
+  readonly workflowCall: WorkflowCallEventProps | null;
+}
+
 export type EventStrings =
   | 'repositoryDispatch'
   | 'create'
@@ -344,156 +218,114 @@ export type EventStrings =
   | 'public'
   | 'status';
 
-/**
- * Events with additional subtypes.
- */
 export interface EventMap {
-  /**
-   * The checkRun event.
-   */
   readonly checkRun?: CheckRunTypes;
-
-  /**
-   * The checkSuite event.
-   */
   readonly checkSuite?: CheckSuiteTypes;
-
-  /**
-   * The issueComment event.
-   */
   readonly issueComment?: IssueCommentTypes;
-
-  /**
-   * The issues event.
-   */
   readonly issues?: IssuesTypes;
-
-  /**
-   * The label event.
-   */
   readonly label?: LabelTypes;
-
-  /**
-   * The milestone event.
-   */
   readonly milestone?: MilestoneTypes;
-
-  /**
-   * The project event.
-   */
   readonly project?: ProjectTypes;
-
-  /**
-   * The projectCard event.
-   */
   readonly projectCard?: ProjectCardTypes;
-
-  /**
-   * The projectColumn event.
-   */
   readonly projectColumn?: ProjectColumnTypes;
-
-  /**
-   * The pullRequest event.
-   */
-  readonly pullRequest?: PullRequestTypes;
-
-  /**
-   * The pullRequestReview event.
-   */
+  readonly pullRequest?: PullRequestTypes | null;
   readonly pullRequestReview?: PullRequestReviewTypes;
-
-  /**
-   * The pullRequestReviewComment event.
-   */
   readonly pullRequestReviewComment?: PullRequestReviewCommentTypes;
-
-  /**
-   * The pullRequestTarget event.
-   */
   readonly pullRequestTarget?: PullRequestTargetTypes;
-
-  /**
-   * The push event.
-   */
   readonly push?: PushTypes;
-
-  /**
-   * The registryPackage event.
-   */
+  readonly mergeGroup?: MergeGroupTypes | null;
   readonly registryPackage?: RegistryPackageTypes;
-
-  /**
-   * The release event.
-   */
   readonly release?: ReleaseTypes;
-
-  /**
-   * The watch event.
-   */
   readonly watch?: WatchTypes;
+  readonly issue_comment?: { types: ('created' | 'deleted')[] };
 }
 
-/**
- * All the events that can trigger a workflow.
- */
 export type Events = keyof EventMap | EventStrings;
 
-/**
- * Configuration for a single GitHub Action workflow.
- */
+export type TokenPermission = 'read' | 'write' | 'none';
+
 export interface WorkflowProps {
-  /**
-   * Name of the workflow.
-   */
   readonly name: string;
-
-  /**
-   * When to run this workflow.
-   */
-  readonly on: Events | Array<Events> | EventMap | ScheduleEvent | WorkflowRunEvent | WorkflowDispatchEvent;
-
-  /**
-   * A map of environment variables to provide to the job.
-   */
+  readonly on:
+    | Events
+    | Array<Events>
+    | EventMap
+    | ScheduleEvent
+    | WorkflowRunEvent
+    | WorkflowDispatchEvent
+    | MergeGroupEvent
+    | WorkflowCallEvent;
   readonly env?: StringMap;
-
-  /**
-   * A map of default settings to apply to all steps in this job.
-   */
+  readonly concurrency?: {
+    group?: string;
+    'cancel-in-progress'?: boolean;
+    discriminator?: string;
+  };
   readonly defaults?: DefaultsProps;
+  readonly permissions?: {
+    actions?: TokenPermission;
+    attestations?: TokenPermission;
+    checks?: TokenPermission;
+    contents?: TokenPermission;
+    deployments?: TokenPermission;
+    discussions?: TokenPermission;
+    idToken?: TokenPermission;
+    issues?: TokenPermission;
+    packages?: TokenPermission;
+    pages?: TokenPermission;
+    pullRequests?: TokenPermission;
+    repositoryProjects?: TokenPermission;
+    securityEvents?: TokenPermission;
+    statuses?: TokenPermission;
+  };
 }
 
-/**
- * Represents a GH Action workflow.
- */
+function isPushEvent(on: WorkflowProps['on']): on is { push: NonNullable<EventMap['push']> } {
+  if (typeof on !== 'object') return false;
+  if (!('push' in on)) return false;
+  return true;
+}
+
+const excessSpaces = /[\s{2,}]/g;
+const whiteSeparators = /[\n\t]/g;
+
 export class Workflow extends Construct {
-  /**
-   * File to save synthesized workflow manifest in.
-   */
   public readonly outputFile: string;
+  private readonly action: Writable<WorkflowProps>;
 
-  /**
-   * An internal representation of a GH Action workflow.
-   */
-  private readonly action: WorkflowProps;
-
-  /**
-   * Represents a GitHub Actions workflow.
-   * @param scope An ActionsStack instance.
-   * @param id The name of this workflow.
-   * @param action The configuration for this workflow.
-   */
   public constructor(scope: Construct, id: string, config: WorkflowProps) {
+    const sanitizedId = id.replace(excessSpaces, '-').replace(whiteSeparators, '').trim().toLowerCase();
     super(scope, id);
     this.action = config;
-    this.outputFile = `cdkactions_${id}.yaml`;
+    this.outputFile = `cdkactions_${sanitizedId}.yaml`;
   }
 
-  /**
-   * Converts the workflow's configuration into a format that is GitHub Actions compatible.
-   */
+  public addDependency(dependee: Workflow) {
+    if (Array.isArray(this.action.on)) throw new Error();
+    if (typeof this.action.on === 'string') throw new Error();
+
+    this.action.on =
+      'workflowRun' in this.action.on
+        ? { ...this.action.on, workflowRun: { ...this.action.on.workflowRun } }
+        : { workflowRun: { workflows: [] } };
+
+    this.action.on.workflowRun.workflows ||= [];
+    this.action.on.workflowRun.workflows.push(dependee.action.name);
+
+    return this;
+  }
+
   public toGHAction(): any {
+    if (isPushEvent(this.action.on)) {
+      if (this.action.on.push.paths) {
+        this.action.on.push.paths.unshift(`.github/workflows/${this.outputFile}`);
+      }
+    }
+
+    if (typeof this.action.on !== 'string' && 'workflowRun' in this.action.on) {
+      assert(this.action.on.workflowRun.workflows?.length, `${this.action.name} must specify workflows it depends on`);
+    }
+
     const workflow = renameKeys(this.action, {
       branchesIgnore: 'branches-ignore',
       tagsIgnore: 'tags-ignore',
@@ -501,6 +333,7 @@ export class Workflow extends Construct {
       checkRun: 'check_run',
       checkSuite: 'check_suite',
       issueComment: 'issue_comment',
+      mergeGroup: 'merge_group',
       projectCard: 'project_card',
       projectColumn: 'project_column',
       pullRequest: 'pull_request',
@@ -510,17 +343,25 @@ export class Workflow extends Construct {
       registryPackage: 'registry_package',
       workingDirectory: 'working-directory',
       workflowDispatch: 'workflow_dispatch',
+      workflowRun: 'workflow_run',
+      workflowCall: 'workflow_call',
+      securityEvents: 'security-events',
+      repositoryProjects: 'repository-projects',
+      pullRequests: 'pull-requests',
+      idToken: 'id-token',
     });
-    if (typeof workflow.on == 'string') {
+
+    if (typeof workflow.on === 'string') {
       workflow.on = camelToSnake(workflow.on);
     }
+
     if (Array.isArray(workflow.on)) {
       workflow.on = workflow.on.map(camelToSnake);
     }
+
     const ghaction: any = { ...workflow, jobs: {} };
     for (const child of Node.of(this).children) {
       if (child instanceof Job) {
-        // AWS constructs ensure children of constructs must have unique ids.
         ghaction.jobs[child.id] = child.toGHAction();
       }
     }

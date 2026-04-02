@@ -1,21 +1,15 @@
 import { Construct } from 'constructs';
-import { StringMap, RunProps, DefaultsProps } from './types';
-import { renameKeys } from './utils';
-import { Workflow } from './workflow';
+import { match, P } from 'ts-pattern';
 
+import type { DefaultsProps, RunProps, StringMap } from './types.js';
+import { renameKeys, type Writable } from './utils.js';
+import type { Workflow } from './workflow.js';
 
 /**
  * Credentials to connect to a Docker registry with.
  */
 export interface CredentialsProps {
-  /**
-   * Username to connect with.
-   */
   readonly username: string;
-
-  /**
-   * Password to connect with.
-   */
   readonly password: string;
 }
 
@@ -23,34 +17,11 @@ export interface CredentialsProps {
  * Generic Docker configuration.
  */
 export interface DockerProps {
-  /**
-   * Image to use.
-   */
   readonly image: string;
-
-  /**
-   * Credential configuration.
-   */
   readonly credentials?: CredentialsProps;
-
-  /**
-   * Additional environment variables.
-   */
   readonly env?: StringMap;
-
-  /**
-   * Ports to map.
-   */
   readonly ports?: string[];
-
-  /**
-   * Volumes to map.
-   */
   readonly volumes?: string[];
-
-  /**
-   * Additional Docker options.
-   */
   readonly options?: string;
 }
 
@@ -58,49 +29,14 @@ export interface DockerProps {
  * Propsuration for a single GitHub Action step.
  */
 export interface StepsProps extends RunProps {
-  /**
-   * A unique identifier.
-   */
   readonly id?: string;
-
-  /**
-   * When to run this step.
-   */
   readonly if?: string;
-
-  /**
-   * A name to display when running this action.
-   */
   readonly name?: string;
-
-  /**
-   * Use an external action.
-   */
   readonly uses?: string;
-
-  /**
-   * Commands to run.
-   */
   readonly run?: string;
-
-  /**
-   * A map of parameters for an external action.
-   */
   readonly with?: { [key: string]: string | number | boolean };
-
-  /**
-   * Additional environment variables.
-   */
   readonly env?: StringMap;
-
-  /**
-   * Continue job if step fails.
-   */
   readonly continueOnError?: boolean;
-
-  /**
-   * Maximum time before killing the step.
-   */
   readonly timeoutMinutes?: number;
 }
 
@@ -108,130 +44,201 @@ export interface StepsProps extends RunProps {
  * Strategy configuration block.
  */
 export interface StrategyProps {
-  /**
-   * A matrix to run jobs on.
-   */
   readonly matrix?: { [key: string]: Array<any> };
-
-
-  /**
-   * Stop jobs when a single job fails.
-   */
   readonly fastFail?: boolean;
-
-  /**
-   * Maximum parallel jobs.
-   */
   readonly maxParallel?: number;
 }
+
+/**
+ * Represents a conditional expression that can be composed with nested and recursive
+ * statements using `||` and `&&` operators.
+ */
+export class Condition {
+  private expression: ConditionExpression;
+
+  constructor(expression: ConditionExpression) {
+    this.expression = expression;
+  }
+
+  static from(condition: string | undefined | null): Condition {
+    if (!condition || condition.trim() === '') {
+      return new Condition('');
+    }
+    return new Condition(condition);
+  }
+
+  static and(left: Condition | string | undefined, right: Condition | string | undefined): Condition {
+    const leftCondition = typeof left === 'string' ? Condition.from(left) : left || Condition.from('');
+    const rightCondition = typeof right === 'string' ? Condition.from(right) : right || Condition.from('');
+    return leftCondition.and(rightCondition);
+  }
+
+  static or(left: Condition | string | undefined, right: Condition | string | undefined): Condition {
+    const leftCondition = typeof left === 'string' ? Condition.from(left) : left || Condition.from('');
+    const rightCondition = typeof right === 'string' ? Condition.from(right) : right || Condition.from('');
+    return leftCondition.or(rightCondition);
+  }
+
+  and(other: Condition | string): Condition {
+    const otherExpr = typeof other === 'string' ? other : other.expression;
+    const thisConditions = this.extractAndConditions(this.expression);
+    const otherConditions = this.extractAndConditions(otherExpr);
+    return new Condition({
+      and: [...thisConditions, ...otherConditions],
+    });
+  }
+
+  or(other: Condition | string): Condition {
+    const otherExpr = typeof other === 'string' ? other : other.expression;
+    const thisConditions = this.extractOrConditions(this.expression);
+    const otherConditions = this.extractOrConditions(otherExpr);
+    return new Condition({
+      or: [...thisConditions, ...otherConditions],
+    });
+  }
+
+  toString(): string {
+    return this.evaluateExpression(this.expression);
+  }
+
+  private evaluateExpression(expr: ConditionExpression): string {
+    if (typeof expr === 'string') {
+      return expr;
+    }
+
+    return match(expr)
+      .with({ or: P.select() }, (conditions) => {
+        const evaluatedConditions = conditions
+          .map((condition) => this.evaluateExpression(condition))
+          .filter((cond) => cond.trim() !== '');
+
+        if (evaluatedConditions.length === 0) return '';
+        if (evaluatedConditions.length === 1) return evaluatedConditions[0];
+        return `(${evaluatedConditions.join(' || ')})`;
+      })
+      .with({ and: P.select() }, (conditions) => {
+        const evaluatedConditions = conditions
+          .map((condition) => this.evaluateExpression(condition))
+          .filter((cond) => cond.trim() !== '');
+
+        if (evaluatedConditions.length === 0) return '';
+        if (evaluatedConditions.length === 1) return evaluatedConditions[0];
+        return `(${evaluatedConditions.join(' && ')})`;
+      })
+      .exhaustive();
+  }
+
+  private extractOrConditions(expr: ConditionExpression): ConditionExpression[] {
+    if (typeof expr === 'string') return [expr];
+    if ('or' in expr) return expr.or.flatMap((condition) => this.extractOrConditions(condition));
+    return [expr];
+  }
+
+  private extractAndConditions(expr: ConditionExpression): ConditionExpression[] {
+    if (typeof expr === 'string') return [expr];
+    if ('and' in expr) return expr.and.flatMap((condition) => this.extractAndConditions(condition));
+    return [expr];
+  }
+}
+
+type ConditionExpression =
+  | string
+  | { or: Array<ConditionExpression> }
+  | { and: Array<ConditionExpression> };
 
 /**
  * Configuration for a single GitHub Action job.
  */
 export interface JobProps {
-  /**
-   * Displayed name of the job.
-   */
   readonly name?: string;
-
-  /**
-   * A job or list of jobs that must successfully complete before running this one.
-   */
   readonly needs?: string | string[];
-
-  /**
-   * The type of machine to run on.
-   */
-  readonly runsOn: string | string[];
-
-  /**
-   * A map of outputs for this job.
-   */
+  readonly runsOn?: string | string[];
   readonly outputs?: StringMap;
-
-  /**
-   * A map of environment variables to provide to the job.
-   */
   readonly env?: StringMap;
-
-  /**
-   * A map of default settings to apply to all steps in this job.
-   */
   readonly defaults?: DefaultsProps;
-
-  /**
-   * When to run this job.
-   */
-  readonly if?: string;
-
-  /**
-   * A list of steps to run.
-   */
-  readonly steps: StepsProps[];
-
-  /**
-   * Maximum time before killing the job.
-   */
+  readonly if?: string | Condition;
+  readonly steps?: StepsProps[];
+  readonly secrets?: string;
   readonly timeoutMinutes?: number;
-
-  /**
-   * A strategy configuration block.
-   */
   readonly strategy?: StrategyProps;
-
-  /**
-   * Continue workflow if job fails.
-   */
   readonly continueOnError?: boolean;
-
-  /**
-   * A container to run the job in.
-   */
   readonly container?: DockerProps;
-
-  /**
-   * Additional Docker services provided to the job.
-   */
   readonly services?: { [key: string]: DockerProps };
+  readonly permissions?: { contents?: 'write' };
+  readonly environment?: string;
+  readonly uses?: Workflow;
+  readonly with?: { [key: string]: string | number | boolean };
 }
 
 /**
  * Represents a GH Actions job.
  */
 export class Job extends Construct {
-  /**
-   * An internal representation of a GH Action job
-   */
-  private readonly action: JobProps;
-
-  /**
-   * A unique identifier
-   */
+  protected readonly action: Writable<JobProps>;
   public readonly id: string;
+  public if?: Condition;
 
-  /**
-   * Defines a GitHub Actions job.
-   * @param scope Workflow to run within.
-   * @param id A unique identifier.
-   * @param config The configuration of the job.
-   */
   public constructor(scope: Workflow, id: string, config: JobProps) {
     super(scope, id);
     this.id = id;
     this.action = config;
   }
 
-  /**
-   * Converts the job's configuration into a format that is GitHub Actions compatible.
-   */
+  get env(): JobProps['env'] {
+    return this.action.env;
+  }
+
+  get runsOn(): JobProps['runsOn'] {
+    return this.action.runsOn;
+  }
+
+  get name(): string {
+    if (!this.action.name) {
+      throw new Error(`Job '${this.id}' is missing a 'name' property.`);
+    }
+    return this.action.name;
+  }
+
+  get steps(): StepsProps[] {
+    return this.action.steps || [];
+  }
+
   public toGHAction(): any {
-    return renameKeys(this.action, {
-      runsOn: 'runs-on',
-      continueOnError: 'continue-on-error',
-      timeoutMinutes: 'timeout-minutes',
-      fastFail: 'fail-fast',
-      maxParallel: 'max-parallel',
-      workingDirectory: 'working-directory',
-    });
+    const { uses, ...actionWithoutUses } = this.action;
+
+    const _if = this.if?.toString() || this.action.if;
+
+    return {
+      ...renameKeys(actionWithoutUses, {
+        runsOn: 'runs-on',
+        continueOnError: 'continue-on-error',
+        timeoutMinutes: 'timeout-minutes',
+        fastFail: 'fail-fast',
+        maxParallel: 'max-parallel',
+        workingDirectory: 'working-directory',
+      }),
+      uses: uses ? `./.github/workflows/${uses.outputFile}` : undefined,
+      if: _if,
+    };
+  }
+
+  public addDependency(dependee: Job) {
+    const needs = Array.isArray(this.action.needs) ? this.action.needs : [];
+    if (typeof this.action.needs === 'string') {
+      needs.push(this.action.needs);
+    }
+    needs.push(dependee.id);
+    this.action.needs = needs;
+    return this;
+  }
+
+  public addDependencyById(dependeeId: string) {
+    const needs = Array.isArray(this.action.needs) ? this.action.needs : [];
+    if (typeof this.action.needs === 'string') {
+      needs.push(this.action.needs);
+    }
+    needs.push(dependeeId);
+    this.action.needs = needs;
+    return this;
   }
 }

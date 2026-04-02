@@ -1,9 +1,9 @@
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import * as yaml from 'yaml';
 
 const CONFIG_FILE = 'cdkactions.yaml';
 
-export interface Config {
+interface Config {
   readonly app?: string;
   readonly output: string;
 }

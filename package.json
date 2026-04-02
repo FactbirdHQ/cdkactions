@@ -1,62 +1,21 @@
 {
-  "name": "root",
+  "name": "cdkactions",
   "version": "0.0.0",
   "private": true,
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/BlackbirdHQ/cdkactions.git"
+    "url": "https://github.com/FactbirdHQ/cdkactions.git"
   },
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "build": "lerna run build",
-    "test": "lerna run test",
-    "projen": "lerna run projen",
-    "package": "tools/pack.sh && tools/collect-dist.sh",
-    "integration": "tests/run-against-dist tests/test-all.sh",
-    "integration:update": "UPDATE_SNAPSHOTS=1 yarn integration"
+    "build": "yarn workspaces foreach -A --topological run build",
+    "clean": "yarn workspaces foreach -A run clean"
   },
-  "workspaces": {
-    "packages": [
-      "packages/*",
-      "examples/**/*"
-    ],
-    "nohoist": [
-      "cdkactions/ts-dedent",
-      "cdkactions/ts-dedent/**",
-      "cdkactions/js-yaml",
-      "cdkactions/js-yaml/**",
-      "cdkactions/yaml",
-      "cdkactions/yaml/**"
-    ]
-  },
-  "devDependencies": {
-    "changelog-parser": "^2.8.0",
-    "codecov": "^3.8.1",
-    "jsii-release": "^0.2.3",
-    "lerna": "^3.22.1",
-    "semver": "7.3.2",
-    "standard-version": "^9.0.0"
-  },
-  "jest": {
-    "clearMocks": true,
-    "collectCoverage": true,
-    "coveragePathIgnorePatterns": [
-      "/node_modules/"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/"
-    ],
-    "preset": "ts-jest",
-    "testMatch": [
-      "**/__tests__/**/*.ts?(x)",
-      "**/?(*.)+(spec|test).ts?(x)"
-    ],
-    "globals": {
-      "ts-jest": {
-        "tsConfig": "tsconfig.jest.json"
-      }
-    }
+  "packageManager": "yarn@4.6.0",
+  "engines": {
+    "node": ">= 20"
   }
 }

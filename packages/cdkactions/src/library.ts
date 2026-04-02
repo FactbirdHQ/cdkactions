@@ -1,18 +1,14 @@
-import { Construct } from 'constructs';
-import dedent from 'ts-dedent';
-import { Job, JobProps, StepsProps } from './job';
-import { Stack } from './stack';
-import { Workflow } from './workflow';
+import type { Construct } from 'constructs';
+import { dedent } from 'ts-dedent';
 
+import { Job, type JobProps, type StepsProps } from './job.js';
+import { Stack } from './stack.js';
+import { Workflow } from './workflow.js';
 
 /**
  * Configuration for a CDKActionsStack instance.
  */
 export interface CDKActionsProps {
-  /**
-   * Push updated manifests if they are out of date.
-   * @default - false
-   */
   readonly pushUpdatedManifests?: boolean;
 }
 
@@ -32,7 +28,7 @@ export class CDKActionsStack extends Stack {
       runsOn: 'ubuntu-latest',
       steps: [
         {
-          uses: 'actions/checkout@v2',
+          uses: 'actions/checkout@v4',
           with: {
             token: `\${{ ${token} }}`,
           },
@@ -65,7 +61,7 @@ export class CDKActionsStack extends Stack {
  */
 export class CheckoutJob extends Job {
   public constructor(scope: Workflow, id: string, config: JobProps) {
-    const steps: StepsProps[] = ([{ uses: 'actions/checkout@v2' }] as StepsProps[]).concat(config.steps);
+    const steps: StepsProps[] = ([{ uses: 'actions/checkout@v4' }] as StepsProps[]).concat(config.steps || []);
     super(scope, id, { ...config, steps });
   }
 }

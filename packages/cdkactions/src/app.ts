@@ -1,6 +1,9 @@
-import * as fs from 'fs';
+import * as fs from 'node:fs';
+
 import { Construct, Node } from 'constructs';
-import { CDKActionsStack } from './library';
+
+import { CDKActionsStack } from './library.js';
+import { Stack } from './stack.js';
 
 /**
  * Configuration for a cdkactions app.
@@ -40,7 +43,6 @@ export class App extends Construct {
    * @param options Configuration options.
    */
   constructor(options?: AppProps) {
-    // We unfortunately can't use Partial<AppProps> as a type for options due to JSII limitations.
     const config: AppProps = {
       createValidateWorkflow: true,
       pushUpdatedManifests: false,
@@ -62,8 +64,10 @@ export class App extends Construct {
       fs.mkdirSync(this.outdir);
     }
 
-    Node.of(this).synthesize({
-      outdir: this.outdir,
-    });
+    for (const child of Node.of(this).children) {
+      if (child instanceof Stack) {
+        child.synthesize(this.outdir);
+      }
+    }
   }
 }
