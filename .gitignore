@@ -9,3 +9,4 @@ coverage/
 !.yarn/sdks
 !.yarn/versions
 *.tsbuildinfo
+.direnv/
