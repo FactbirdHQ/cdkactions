@@ -7,32 +7,25 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: npm
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
       - name: Enable Corepack
         run: corepack enable
       - name: Install dependencies
         run: yarn install --immutable
       - name: Build
         run: yarn build
-      - name: Publish cdkactions
-        working-directory: packages/cdkactions
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish cdkactions-cli
-        working-directory: packages/cdkactions-cli
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish packages
+        run: yarn workspaces foreach -A --no-private npm publish --access public --tolerate-republish
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
