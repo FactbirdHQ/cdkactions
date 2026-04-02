@@ -1,7 +1,3 @@
-⚠️ ARCHIVED - We have merged this into https://github.com/BlackbirdHQ/cloud-services
-
----
-
 # cdkactions
 
 ![Release](https://github.com/ArmaanT/cdkactions/workflows/Release/badge.svg)
