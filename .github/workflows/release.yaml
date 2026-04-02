@@ -25,7 +25,7 @@ jobs:
       - name: Set version from tag
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          yarn workspaces foreach -A --no-private exec npm version "$VERSION" --no-git-tag-version
+          yarn workspaces foreach -A --no-private version "$VERSION"
       - name: Build
         run: yarn build
       - name: Publish packages
