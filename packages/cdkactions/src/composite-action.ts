@@ -44,7 +44,7 @@ export interface CompositeActionOutputProps {
 /**
  * Configuration for a GitHub composite action.
  */
-export interface CompositeActionProps<TInputs extends Record<string, CompositeActionInputProps>> {
+export interface CompositeActionProps<TInputs extends Record<string, CompositeActionInputProps>, TOutputs extends Record<string, CompositeActionOutputProps> = Record<never, never>> {
   /**
    * Name of the composite action.
    */
@@ -63,7 +63,7 @@ export interface CompositeActionProps<TInputs extends Record<string, CompositeAc
   /**
    * Output parameters for the composite action.
    */
-  readonly outputs?: Record<string, CompositeActionOutputProps>;
+  readonly outputs?: TOutputs;
 
   /**
    * Steps to run in the composite action.
@@ -85,12 +85,15 @@ type CompositeActionWith<T extends Record<string, CompositeActionInputProps>> = 
   readonly [K in OptionalInputKeys<T>]?: string | number | boolean;
 };
 
-type AsStepOptions<T extends Record<string, CompositeActionInputProps>> = {
+type AsStepOptions<T extends Record<string, CompositeActionInputProps>, TOutputs extends Record<string, CompositeActionOutputProps> = Record<never, never>> = {
   env?: StringMap;
   name?: string;
   if?: string;
-  id?: string;
-} & ([RequiredInputKeys<T>] extends [never] ? { with?: CompositeActionWith<T> } : { with: CompositeActionWith<T> });
+} & ([keyof TOutputs] extends [never] ? { id?: string } : { id: string }) & ([RequiredInputKeys<T>] extends [never] ? { with?: CompositeActionWith<T> } : { with: CompositeActionWith<T> });
+
+type CompositeActionStepRef<TOutputs extends Record<string, CompositeActionOutputProps>> = StepsProps & {
+  output<K extends keyof TOutputs & string>(key: K): string;
+};
 
 /**
  * Represents a GitHub composite action that produces an action.yml file.
@@ -101,15 +104,15 @@ type AsStepOptions<T extends Record<string, CompositeActionInputProps>> = {
  *
  * @typeParam TInputs - The shape of the action's inputs, inferred from the constructor.
  */
-export class CompositeAction<const TInputs extends Record<string, CompositeActionInputProps> = Record<never, never>> {
+export class CompositeAction<const TInputs extends Record<string, CompositeActionInputProps> = Record<never, never>, const TOutputs extends Record<string, CompositeActionOutputProps> = Record<never, never>> {
   /**
    * Directory name for this composite action under .github/actions/.
    */
   public readonly actionDirectory: string;
 
-  private readonly config: CompositeActionProps<TInputs>;
+  private readonly config: CompositeActionProps<TInputs, TOutputs>;
 
-  public constructor(id: string, config: CompositeActionProps<TInputs>) {
+  public constructor(id: string, config: CompositeActionProps<TInputs, TOutputs>) {
     this.actionDirectory = id;
     this.config = config;
   }
@@ -129,17 +132,23 @@ export class CompositeAction<const TInputs extends Record<string, CompositeActio
   public asStep(
     scope: Construct,
     ...args: [RequiredInputKeys<TInputs>] extends [never]
-      ? [options?: AsStepOptions<TInputs>]
-      : [options: AsStepOptions<TInputs>]
-  ): StepsProps {
+      ? [options?: AsStepOptions<TInputs, TOutputs>]
+      : [options: AsStepOptions<TInputs, TOutputs>]
+  ): CompositeActionStepRef<TOutputs> {
     Stack.of(scope).registerCompositeAction(this);
 
     const options = args[0];
+    const id = options?.id;
 
-    return {
+    const step: CompositeActionStepRef<TOutputs> = {
       ...options,
       uses: this.usesPath,
+      output(key) {
+        return `\${{ steps.${id}.outputs.${key} }}`;
+      },
     };
+
+    return step;
   }
 
   /**
