@@ -92,7 +92,7 @@ type AsStepOptions<T extends Record<string, CompositeActionInputProps>, TOutputs
 } & ([keyof TOutputs] extends [never] ? { id?: string } : { id: string }) & ([RequiredInputKeys<T>] extends [never] ? { with?: CompositeActionWith<T> } : { with: CompositeActionWith<T> });
 
 type CompositeActionStepRef<TOutputs extends Record<string, CompositeActionOutputProps>> = StepsProps & {
-  readonly outputs: { readonly [K in keyof TOutputs & string]: string };
+  output<K extends keyof TOutputs & string>(key: K): string;
 };
 
 /**
@@ -138,19 +138,15 @@ export class CompositeAction<const TInputs extends Record<string, CompositeActio
     Stack.of(scope).registerCompositeAction(this);
 
     const options = args[0];
+    const id = options?.id;
 
-    const step: any = {
+    const step: CompositeActionStepRef<TOutputs> = {
       ...options,
       uses: this.usesPath,
+      output(key) {
+        return `\${{ steps.${id}.outputs.${key} }}`;
+      },
     };
-
-    if (this.config.outputs && options?.id) {
-      const outputs: Record<string, string> = {};
-      for (const key of Object.keys(this.config.outputs)) {
-        outputs[key] = `\${{ steps.${options.id}.outputs.${key} }}`;
-      }
-      Object.defineProperty(step, 'outputs', { value: Object.freeze(outputs), enumerable: false });
-    }
 
     return step;
   }
