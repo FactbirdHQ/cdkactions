@@ -140,15 +140,16 @@ export class CompositeAction<const TInputs extends Record<string, CompositeActio
     const options = args[0];
     const id = options?.id;
 
-    const step: CompositeActionStepRef<TOutputs> = {
+    const step: StepsProps = {
       ...options,
       uses: this.usesPath,
-      output(key) {
-        return `\${{ steps.${id}.outputs.${key} }}`;
-      },
     };
+    Object.defineProperty(step, 'output', {
+      value: (key: string) => `\${{ steps.${id}.outputs.${key} }}`,
+      enumerable: false,
+    });
 
-    return step;
+    return step as CompositeActionStepRef<TOutputs>;
   }
 
   /**
