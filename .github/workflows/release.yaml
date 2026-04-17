@@ -15,26 +15,33 @@ jobs:
     environment: npm
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Enable Corepack
-        run: corepack enable
+      - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
-        run: yarn install --immutable
+        run: bun install --frozen-lockfile
       - name: Set version from tag
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          yarn workspaces foreach -A --no-private exec node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '${VERSION}';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
+          for pkg in packages/*/package.json; do
+            bun -e "
+              const fs = require('fs');
+              const pkg = JSON.parse(fs.readFileSync('${pkg}', 'utf8'));
+              if (!pkg.private) {
+                pkg.version = '${VERSION}';
+                fs.writeFileSync('${pkg}', JSON.stringify(pkg, null, 2) + '\n');
+              }
+            "
+          done
       - name: Build
-        run: yarn build
+        run: bun run build
       - name: Publish packages
-        run: yarn workspaces foreach -A --no-private npm publish --access public --tolerate-republish
+        run: |
+          for pkg in packages/*/; do
+            if ! bun -e "const p = require('./${pkg}package.json'); process.exit(p.private ? 0 : 1)" 2>/dev/null; then
+              cd "$pkg"
+              bunx npm publish --access public --tolerate-republish
+              cd ../..
+            fi
+          done
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:

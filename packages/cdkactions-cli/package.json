@@ -33,9 +33,6 @@
     "constructs",
     "github"
   ],
-  "engines": {
-    "node": ">= 20"
-  },
   "dependencies": {
     "@factbird/cdkactions": "workspace:^",
     "constructs": "^10.4.2",

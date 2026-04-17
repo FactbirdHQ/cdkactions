@@ -29,9 +29,6 @@
     "constructs",
     "github"
   ],
-  "engines": {
-    "node": ">= 20"
-  },
   "peerDependencies": {
     "constructs": "^10.4.2"
   },
