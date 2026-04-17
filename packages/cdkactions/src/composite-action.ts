@@ -141,6 +141,7 @@ export class CompositeAction<const TInputs extends Record<string, CompositeActio
     const id = options?.id;
 
     const step: StepsProps = {
+      name: this.config.name,
       ...options,
       uses: this.usesPath,
     };
