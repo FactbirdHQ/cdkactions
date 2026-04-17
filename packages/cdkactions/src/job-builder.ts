@@ -39,10 +39,12 @@ type NewStep<UsedIds extends string> =
  */
 export class JobStepBuilder<UsedIds extends string = never> {
   private readonly steps: StepsProps[];
+  private readonly usedIds: Set<string>;
 
   /** @internal */
-  constructor(steps: StepsProps[] = []) {
+  constructor(steps: StepsProps[] = [], usedIds: Set<string> = new Set()) {
     this.steps = steps;
+    this.usedIds = usedIds;
   }
 
   /**
@@ -56,7 +58,15 @@ export class JobStepBuilder<UsedIds extends string = never> {
     step: IdentifiedStep<Id extends UsedIds ? never : Id>,
   ): JobStepBuilder<UsedIds | Id>;
   step(step: StepsProps): JobStepBuilder<any> {
-    return new JobStepBuilder([...this.steps, step]);
+    if (step.id !== undefined) {
+      if (this.usedIds.has(step.id)) {
+        throw new Error(`Duplicate step id "${step.id}"`);
+      }
+      const nextIds = new Set(this.usedIds);
+      nextIds.add(step.id);
+      return new JobStepBuilder([...this.steps, step], nextIds);
+    }
+    return new JobStepBuilder([...this.steps, step], this.usedIds);
   }
 
   /**
