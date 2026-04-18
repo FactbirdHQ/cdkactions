@@ -145,6 +145,8 @@ Synthesis must be fast (< 100ms for 200 jobs). Key constraints:
 - `ts-dedent` ^2.2.0 — template literal dedentation
 - `ts-pattern` ^5.7.0 — exhaustive pattern matching (used in Condition class)
 - TypeScript 5.8+, Node 20+
+- Package manager: **Bun** — use `bun install`, `bun run`, `bun test`, etc.
+- **treefmt** — unified formatter orchestrator (configured in `devenv.nix`). Runs Biome (JS/TS/JSON/CSS), Alejandra (Nix), and yamlfmt (YAML). Run `treefmt` to format the entire project.
 
 ## Development Environment
 

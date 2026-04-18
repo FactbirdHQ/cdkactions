@@ -1,10 +1,4 @@
-import {
-  RunnerLabel,
-  Shell,
-  JobResult,
-  StepConclusion,
-} from '#@/index.js';
-
+import { JobResult, RunnerLabel, Shell, StepConclusion } from '#@/index.js';
 
 test('RunnerLabel predefined constants have correct string values', () => {
   expect(String(RunnerLabel.UBUNTU_LATEST)).toBe('ubuntu-latest');
@@ -25,7 +19,6 @@ test('RunnerLabel.custom() creates a RunnerLabel from arbitrary string', () => {
   expect(String(custom)).toBe('my-custom-runner');
 });
 
-
 test('Shell predefined constants have correct string values', () => {
   expect(String(Shell.BASH)).toBe('bash');
   expect(String(Shell.PWSH)).toBe('pwsh');
@@ -40,14 +33,12 @@ test('Shell.custom() creates a Shell from arbitrary string', () => {
   expect(String(custom)).toBe('perl {0}');
 });
 
-
 test('JobResult constants have correct string values', () => {
   expect(String(JobResult.SUCCESS)).toBe('success');
   expect(String(JobResult.FAILURE)).toBe('failure');
   expect(String(JobResult.CANCELLED)).toBe('cancelled');
   expect(String(JobResult.SKIPPED)).toBe('skipped');
 });
-
 
 test('StepConclusion constants have correct string values', () => {
   expect(String(StepConclusion.SUCCESS)).toBe('success');
