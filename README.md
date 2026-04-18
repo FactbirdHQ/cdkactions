@@ -11,7 +11,7 @@ GitHub Actions workflows are YAML files with no type checking, no IDE support be
 
 - **Branded nominal types** prevent passing a bare string where a `RunnerLabel`, `Shell`, or `TokenPermission` is expected
 - **Typed expressions** (`Expression<T>`) give you autocomplete on `github.ref`, `runner.os`, and all 11 context objects — with compile-time errors for typos
-- **`ActionRef<TInputs, TOutputs>`** makes third-party action usage type-safe: required inputs are enforced, unknown inputs are rejected, and `.output()` only accepts declared output keys
+- **`Action<TInputs, TOutputs>`** makes third-party action usage type-safe: required inputs are enforced, unknown inputs are rejected, and `.output()` only accepts declared output keys
 - **Construct-based composition** lets you publish reusable stacks, workflows, and jobs as npm packages — not fragile YAML templates
 
 ## Quick Start
@@ -58,7 +58,7 @@ Run `npx ts-node main.ts` (or `bun run main.ts`) to produce `.github/workflows/c
 | Typed expressions | `github.*`, `runner.*`, comparison operators, built-in functions | [09-expressions-conditions.ts](packages/cdkactions/examples/09-expressions-conditions.ts) |
 | Full permissions | All 16 scopes with restricted subtypes (`idToken: 'write'\|'none'`) | [11-permissions-concurrency.ts](packages/cdkactions/examples/11-permissions-concurrency.ts) |
 | Runner groups | `RunnerGroupConfig`, custom labels, runner registry pattern | [12-multi-platform-runner-groups.ts](packages/cdkactions/examples/12-multi-platform-runner-groups.ts) |
-| Typed action refs | `ActionRef<TInputs, TOutputs>` with compile-time input/output checks | [16-typed-action-refs.ts](packages/cdkactions/examples/16-typed-action-refs.ts) |
+| Typed action refs | `Action<TInputs, TOutputs>` with compile-time input/output checks | [16-typed-action-refs.ts](packages/cdkactions/examples/16-typed-action-refs.ts) |
 | Validation | Synth-time checks: step mutual exclusion, cron syntax, matrix size | Built-in via `Node.addValidation()` |
 
 See all 17 examples in [`packages/cdkactions/examples/`](packages/cdkactions/examples/).
