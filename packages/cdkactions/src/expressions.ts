@@ -8,8 +8,6 @@
 
 import { camelToSnake } from '#@/utils.js';
 
-// ─── Core Expression Type ──────────────────────────────────────────────────────
-
 declare const ExpressionBrand: unique symbol;
 
 /**
@@ -32,15 +30,6 @@ function expr<T = unknown>(value: string): Expression<T> {
   return value as Expression<T>;
 }
 
-// ─── Context Accessor Factory ───────────────────────────────────────────────────
-
-/**
- * Creates a Proxy-based context accessor that returns Expression-typed
- * values for property access. Each property access returns a string of
- * the form `<contextName>.<property>`.
- *
- * At build time the Proxy returns the string; TypeScript sees the interface.
- */
 /**
  * Creates a Proxy-based context accessor that returns Expression-typed
  * values for property access. Each property access returns a string of
@@ -59,8 +48,6 @@ function createContextProxy<T extends object>(contextName: string, rename = fals
     },
   });
 }
-
-// ─── Context Interfaces ─────────────────────────────────────────────────────────
 
 export interface GitHubContext {
   readonly action: Expression<string>;
@@ -171,8 +158,6 @@ export interface StrategyContext {
   readonly maxParallel: Expression<number>;
 }
 
-// ─── Context Instances ──────────────────────────────────────────────────────────
-
 /** GitHub context — properties of the workflow run and triggering event. */
 export const github: GitHubContext = createContextProxy<GitHubContext>('github', true);
 
@@ -205,8 +190,6 @@ export const job: JobContext = createContextProxy<JobContext>('job');
 
 /** Strategy context — matrix strategy metadata. */
 export const strategy: StrategyContext = createContextProxy<StrategyContext>('strategy', true);
-
-// ─── Comparison Operators ───────────────────────────────────────────────────────
 
 /** Equality: produces `<left> == <right>`. */
 export function eq<T>(left: Expression<T>, right: Expression<T> | T): Expression<boolean> {
@@ -244,8 +227,6 @@ export function lte(left: Expression<number>, right: Expression<number> | number
 export function not(expression: Expression<boolean>): Expression<boolean> {
   return expr(`!${expression}`);
 }
-
-// ─── Built-in Functions ─────────────────────────────────────────────────────────
 
 /** Produces `contains(<search>, <item>)`. */
 export function contains(
@@ -300,8 +281,6 @@ export function hashFiles(...patterns: string[]): Expression<string> {
   const args = patterns.map((p) => `'${p}'`).join(', ');
   return expr(`hashFiles(${args})`);
 }
-
-// ─── Status Check Functions ─────────────────────────────────────────────────────
 
 /** Produces `success()` — true when none of the previous steps have failed or been cancelled. */
 export function success(): Expression<boolean> {
