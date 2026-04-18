@@ -168,6 +168,9 @@ To enter the dev shell, either:
 - All imports require `.js` extension: `from '#@/job.js'`, `from '#$/utils.js'`
 - `#@/*` resolves to `src/*` (TypeScript) and `dist/*` (Node runtime) via conditional imports in package.json
 - `#$/*` resolves to `test/*` (no conditional, development-only)
+- **Import path rules:**
+  - `index.ts` (barrel) files must use relative paths: `from './file.js'`
+  - All other (non-index) files must use subpath imports: `from '#@/file.js'` or `from '#$/file.js'`
 - Single `index.ts` barrel export — all public API exported from here
 - No default exports
 - Source in `src/`, tests in `test/`, examples in `examples/`
