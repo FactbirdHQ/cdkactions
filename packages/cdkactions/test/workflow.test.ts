@@ -16,7 +16,7 @@ import type {
   WorkflowProps,
   PermissionsMap,
   Permissions,
-} from '#@/index.js.js';
+} from '#@/index.js';
 import { TestingWorkflow } from '#$/utils.js';
 
 test('toGHAction', () => {
