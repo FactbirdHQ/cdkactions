@@ -257,28 +257,19 @@ export function contains(
 }
 
 /** Produces `startsWith(<str>, <value>)`. */
-export function startsWith(
-  str: Expression<string>,
-  value: string | Expression<string>,
-): Expression<boolean> {
+export function startsWith(str: Expression<string>, value: string | Expression<string>): Expression<boolean> {
   const v = typeof value === 'string' && !(value as string).includes('.') ? `'${value}'` : String(value);
   return expr(`startsWith(${str}, ${v})`);
 }
 
 /** Produces `endsWith(<str>, <value>)`. */
-export function endsWith(
-  str: Expression<string>,
-  value: string | Expression<string>,
-): Expression<boolean> {
+export function endsWith(str: Expression<string>, value: string | Expression<string>): Expression<boolean> {
   const v = typeof value === 'string' && !(value as string).includes('.') ? `'${value}'` : String(value);
   return expr(`endsWith(${str}, ${v})`);
 }
 
 /** Produces `format(<template>, <args...>)`. */
-export function format(
-  template: string,
-  ...args: Array<string | Expression>
-): Expression<string> {
+export function format(template: string, ...args: Array<string | Expression>): Expression<string> {
   const allArgs = [
     `'${template}'`,
     ...args.map((a) => (typeof a === 'string' && !(a as string).includes('.') ? `'${a}'` : String(a))),
@@ -287,10 +278,7 @@ export function format(
 }
 
 /** Produces `join(<array>, <separator>)`. */
-export function join(
-  array: Expression<string[]>,
-  separator?: string,
-): Expression<string> {
+export function join(array: Expression<string[]>, separator?: string): Expression<string> {
   if (separator !== undefined) {
     return expr(`join(${array}, '${separator}')`);
   }

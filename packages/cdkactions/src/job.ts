@@ -6,8 +6,7 @@ import type { RunnerLabel, Shell } from '#@/nominal.js';
 import type { DefaultsProps, StringMap } from '#@/types.js';
 import { renameKeys, type Writable } from '#@/utils.js';
 import { addJobValidation } from '#@/validation.js';
-import type { Permissions } from '#@/workflow.js';
-import type { Workflow } from '#@/workflow.js';
+import type { Permissions, Workflow } from '#@/workflow.js';
 
 /**
  * Credentials to connect to a Docker registry with.
@@ -91,9 +90,7 @@ type MatrixProxy<TMatrix extends MatrixDefinition> = {
   readonly [K in keyof TMatrix]: Expression<TMatrix[K][number]>;
 };
 
-export function createMatrixProxy<TMatrix extends MatrixDefinition>(
-  _matrix: TMatrix,
-): MatrixProxy<TMatrix> {
+export function createMatrixProxy<TMatrix extends MatrixDefinition>(_matrix: TMatrix): MatrixProxy<TMatrix> {
   return new Proxy({} as MatrixProxy<TMatrix>, {
     get(_target, prop: string) {
       return `\${{ matrix.${prop} }}` as Expression<unknown>;
@@ -203,10 +200,7 @@ export class Condition {
   }
 }
 
-type ConditionExpression =
-  | string
-  | { or: Array<ConditionExpression> }
-  | { and: Array<ConditionExpression> };
+type ConditionExpression = string | { or: Array<ConditionExpression> } | { and: Array<ConditionExpression> };
 
 /**
  * Configuration for a single GitHub Action job.
@@ -284,15 +278,24 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
   public toGHAction(): any {
     const { uses, runsOn, steps, strategy, ...rest } = this.action;
 
-    const propsIf = this.action.if instanceof Condition ? this.action.if.toString() : (this.action.if ? String(this.action.if) : undefined);
+    const propsIf =
+      this.action.if instanceof Condition
+        ? this.action.if.toString()
+        : this.action.if
+          ? String(this.action.if)
+          : undefined;
     const instanceIf = this.if?.toString();
-    const _if = instanceIf && propsIf
-      ? Condition.from(instanceIf).and(Condition.from(propsIf)).toString()
-      : instanceIf || propsIf || undefined;
+    const _if =
+      instanceIf && propsIf
+        ? Condition.from(instanceIf).and(Condition.from(propsIf)).toString()
+        : instanceIf || propsIf || undefined;
 
     let serializedRunsOn: unknown = runsOn;
     if (runsOn && typeof runsOn === 'object' && 'group' in runsOn) {
-      serializedRunsOn = { group: runsOn.group, ...(runsOn.labels ? { labels: runsOn.labels } : {}) };
+      serializedRunsOn = {
+        group: runsOn.group,
+        ...(runsOn.labels ? { labels: runsOn.labels } : {}),
+      };
     }
 
     let serializedUses: string | undefined;
@@ -330,13 +333,15 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
       const { matrix, include, exclude, ...strategyRest } = strategy;
       serializedStrategy = {
         ...renameKeys(strategyRest, keyMap),
-        ...(matrix || include || exclude ? {
-          matrix: {
-            ...matrix,
-            ...(include?.length ? { include } : {}),
-            ...(exclude?.length ? { exclude } : {}),
-          },
-        } : {}),
+        ...(matrix || include || exclude
+          ? {
+              matrix: {
+                ...matrix,
+                ...(include?.length ? { include } : {}),
+                ...(exclude?.length ? { exclude } : {}),
+              },
+            }
+          : {}),
       };
     }
 
@@ -350,9 +355,12 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     };
   }
 
-  public addDependency(dependee: Job, options?: {
-    condition?: 'success' | 'failure' | 'always' | 'completed';
-  }): this {
+  public addDependency(
+    dependee: Job,
+    options?: {
+      condition?: 'success' | 'failure' | 'always' | 'completed';
+    },
+  ): this {
     const needs = Array.isArray(this.action.needs) ? this.action.needs : [];
     if (typeof this.action.needs === 'string') {
       needs.push(this.action.needs);
@@ -361,11 +369,12 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     this.action.needs = needs;
 
     if (options?.condition) {
-      const conditionExpr = (options.condition === 'always' || options.condition === 'completed')
-        ? 'always()'
-        : options.condition === 'failure'
-          ? 'failure()'
-          : 'success()';
+      const conditionExpr =
+        options.condition === 'always' || options.condition === 'completed'
+          ? 'always()'
+          : options.condition === 'failure'
+            ? 'failure()'
+            : 'success()';
 
       const newCondition = Condition.from(conditionExpr);
       this.if = this.if ? this.if.and(newCondition) : newCondition;

@@ -1,4 +1,4 @@
-import { ActionRef, Condition, type TypedUsesStep, type Expression } from '#@/index.js';
+import { ActionRef, Condition, type Expression, type TypedUsesStep } from '#@/index.js';
 
 const allOptionalAction = ActionRef.fromReference<
   {
@@ -37,10 +37,9 @@ const setupAction = ActionRef.fromReference<
 
 const emptyAction = ActionRef.fromReference('actions/empty@v1');
 
-const noOutputAction = ActionRef.fromReference<
-  { inputA: { required: true } },
-  Record<never, never>
->('actions/no-output@v1');
+const noOutputAction = ActionRef.fromReference<{ inputA: { required: true } }, Record<never, never>>(
+  'actions/no-output@v1',
+);
 
 function test(name: string, fn: () => void) {
   try {
@@ -100,7 +99,10 @@ test('call() sets if when provided', () => {
 });
 
 test('call() sets env when provided', () => {
-  const step = allOptionalAction.call({ id: 'co', env: { NODE_ENV: 'production' } });
+  const step = allOptionalAction.call({
+    id: 'co',
+    env: { NODE_ENV: 'production' },
+  });
   expect(step.env).toEqual({ NODE_ENV: 'production' });
 });
 
@@ -133,7 +135,11 @@ test('call() with required + optional inputs', () => {
     id: 'upload',
     with: { name: 'dist', path: 'dist/', ifNoFilesFound: 'error' },
   });
-  expect(step.with).toEqual({ name: 'dist', path: 'dist/', 'if-no-files-found': 'error' });
+  expect(step.with).toEqual({
+    name: 'dist',
+    path: 'dist/',
+    'if-no-files-found': 'error',
+  });
 });
 
 test('call() with bare-required input (no default, no required:true)', () => {
@@ -161,7 +167,11 @@ test('multi-word camelCase keys convert correctly', () => {
     id: 'upload',
     with: { name: 'dist', path: 'dist/', compressionLevel: '6' },
   });
-  expect(step.with).toEqual({ name: 'dist', path: 'dist/', 'compression-level': '6' });
+  expect(step.with).toEqual({
+    name: 'dist',
+    path: 'dist/',
+    'compression-level': '6',
+  });
 });
 
 test('output() returns expression string for known output key', () => {
@@ -177,7 +187,10 @@ test('output() returns expression for another known output key', () => {
 });
 
 test('output() on uploadArtifact returns correct expression', () => {
-  const step = uploadArtifactV4.call({ id: 'upload', with: { name: 'dist', path: 'dist/' } });
+  const step = uploadArtifactV4.call({
+    id: 'upload',
+    with: { name: 'dist', path: 'dist/' },
+  });
   expect(step.output('artifactId') as string).toBe('steps.upload.outputs.artifactId');
   expect(step.output('artifactUrl') as string).toBe('steps.upload.outputs.artifactUrl');
 });
@@ -201,7 +214,10 @@ uploadArtifactV4.call({ id: 'upload', with: { path: 'dist/' } });
 uploadArtifactV4.call({ id: 'upload', with: { name: 'dist' } });
 
 // @ts-expect-error — 'unknownInput' is not a valid input
-uploadArtifactV4.call({ id: 'upload', with: { name: 'dist', path: 'dist/', unknownInput: 'bad' } });
+uploadArtifactV4.call({
+  id: 'upload',
+  with: { name: 'dist', path: 'dist/', unknownInput: 'bad' },
+});
 
 // @ts-expect-error — 'nodeVersion' (bare required) is missing
 setupAction.call({ id: 'setup' });
