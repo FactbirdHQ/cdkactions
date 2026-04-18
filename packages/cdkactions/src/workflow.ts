@@ -2,6 +2,7 @@ import assert from 'node:assert';
 
 import { Construct, Node } from 'constructs';
 
+import type { Expression } from './expressions.js';
 import { Job } from './job.js';
 import type { DefaultsProps, StringMap } from './types.js';
 import { camelToSnake, renameKeys, type Writable } from './utils.js';
@@ -178,8 +179,13 @@ export interface MergeGroupTypes {
   readonly types?: Array<'checks_requested'>;
 }
 
+export interface ScheduleEntry {
+  readonly cron: string;
+  readonly timezone?: string;
+}
+
 export interface ScheduleEvent {
-  readonly schedule: [{ cron: string }];
+  readonly schedule: ScheduleEntry[];
 }
 
 export interface WorkflowRunEvent {
@@ -196,6 +202,7 @@ export const WorkflowDispatchInputType = {
   BOOLEAN: 'boolean',
   ENVIRONMENT: 'environment',
   STRING: 'string',
+  NUMBER: 'number',
 } as const;
 
 export type WorkflowDispatchInputType = typeof WorkflowDispatchInputType;
@@ -224,6 +231,10 @@ export interface WorkflowDispatchEventEnvironmentInputProps extends WorkflowDisp
   readonly type: WorkflowDispatchInputType['ENVIRONMENT'];
 }
 
+export interface WorkflowDispatchEventNumberInputProps extends WorkflowDispatchEventInputProps {
+  readonly type: WorkflowDispatchInputType['NUMBER'];
+}
+
 export interface WorkflowDispatchEventProps {
   readonly inputs?: Record<
     string,
@@ -231,6 +242,7 @@ export interface WorkflowDispatchEventProps {
     | WorkflowDispatchEventBooleanInputProps
     | WorkflowDispatchEventStringInputProps
     | WorkflowDispatchEventEnvironmentInputProps
+    | WorkflowDispatchEventNumberInputProps
   >;
 }
 
@@ -242,8 +254,25 @@ export interface MergeGroupEvent {
   readonly mergeGroup: MergeGroupTypes | null;
 }
 
+export type WorkflowCallInputProps =
+  | WorkflowDispatchEventBooleanInputProps
+  | WorkflowDispatchEventStringInputProps
+  | WorkflowDispatchEventNumberInputProps;
+
+export interface WorkflowCallSecretProps {
+  readonly description?: string;
+  readonly required: boolean;
+}
+
+export interface WorkflowCallOutputProps {
+  readonly description: string;
+  readonly value: string;
+}
+
 export interface WorkflowCallEventProps {
-  readonly inputs?: Record<string, WorkflowDispatchEventBooleanInputProps | WorkflowDispatchEventStringInputProps>;
+  readonly inputs?: Record<string, WorkflowCallInputProps>;
+  readonly outputs?: Record<string, WorkflowCallOutputProps>;
+  readonly secrets?: Record<string, WorkflowCallSecretProps>;
 }
 
 export interface WorkflowCallEvent {
@@ -293,6 +322,7 @@ export type TokenPermission = 'read' | 'write' | 'none';
 
 export interface WorkflowProps {
   readonly name: string;
+  readonly runName?: string | Expression<string>;
   readonly on:
     | Events
     | Array<Events>
@@ -374,6 +404,7 @@ export class Workflow extends Construct {
     }
 
     const workflow = renameKeys(this.action, {
+      runName: 'run-name',
       branchesIgnore: 'branches-ignore',
       tagsIgnore: 'tags-ignore',
       pathsIgnore: 'paths-ignore',
