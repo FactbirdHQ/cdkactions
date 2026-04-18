@@ -5,7 +5,7 @@ import { CheckoutJob } from '#@/library.js';
 import { RunnerLabel } from '#@/nominal.js';
 import { Stack } from '#@/stack.js';
 import { Workflow } from '#@/workflow.js';
-import { TestingApp } from '#$/utils.js';
+import { TestingApp } from './utils.js';
 
 
 test('complicated stack', () => {
@@ -89,7 +89,7 @@ test('complicated stack', () => {
   new MyStack(app, 'abc');
 
   app.synth();
-  expect(fs.readdirSync(app.outdir)).toEqual([
+  expect(fs.readdirSync(app.outdir).sort()).toEqual([
     'cdkactions_build.yaml',
     'cdkactions_deploy.yaml',
     'cdkactions_schedule.yaml',

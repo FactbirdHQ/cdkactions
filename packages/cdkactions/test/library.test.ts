@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { CheckoutJob, checkoutV4, Job, RunnerLabel, Stack, Workflow } from '#@/index.js';
 import type { StepConfig } from '#@/index.js';
-import { TestingApp } from '#$/utils.js';
+import { TestingApp } from './utils.js';
 
 
 test('cdkactionsstack', () => {
@@ -63,7 +63,7 @@ test('checkoutV4 ActionRef with inputs', () => {
 
 test('checkoutV4 ActionRef output accessor', () => {
   const step = checkoutV4.call({ id: 'co' });
-  expect(step.output('ref' as any)).toBe('steps.co.outputs.ref');
+  expect((step.output as (key: string) => string)('ref')).toBe('steps.co.outputs.ref');
 });
 
 test('checkoutV4 step is valid StepConfig', () => {

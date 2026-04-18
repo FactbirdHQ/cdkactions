@@ -396,11 +396,11 @@ const _typedStrategy: StrategyProps<{
 };
 
 // Type-level: include/exclude constrained to matrix value types
-// @ts-expect-error - include entry with invalid os value
 const _invalidInclude: StrategyProps<{
   readonly os: readonly ['ubuntu-latest', 'windows-latest'];
 }> = {
   matrix: { os: ['ubuntu-latest', 'windows-latest'] },
+  // @ts-expect-error - include entry with invalid os value
   include: [{ os: 'macos-latest' }],
 };
 
