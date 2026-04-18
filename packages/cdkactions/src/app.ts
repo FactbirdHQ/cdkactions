@@ -4,6 +4,7 @@ import { Construct, Node } from 'constructs';
 
 import { CDKActionsStack } from '#@/library.js';
 import { Stack } from '#@/stack.js';
+import { collectValidationErrors } from '#@/validation.js';
 
 /**
  * Configuration for a cdkactions app.
@@ -60,6 +61,11 @@ export class App extends Construct {
    * Synthesizes all manifests into the output directory.
    */
   public synth(): void {
+    const errors = collectValidationErrors(this);
+    if (errors.length > 0) {
+      throw new Error(`Validation failed with ${errors.length} error(s):\n${errors.map(e => `  - ${e}`).join('\n')}`);
+    }
+
     if (!fs.existsSync(this.outdir)) {
       fs.mkdirSync(this.outdir);
     }

@@ -6,6 +6,7 @@ import type { Expression } from '#@/expressions.js';
 import { Job, type ConcurrencyConfig } from '#@/job.js';
 import type { DefaultsProps, StringMap } from '#@/types.js';
 import { camelToSnake, renameKeys, type Writable } from '#@/utils.js';
+import { addWorkflowValidation } from '#@/validation.js';
 
 /**
  * Configuration for the BranchProtectionRule event.
@@ -376,6 +377,10 @@ export class Workflow extends Construct {
     super(scope, id);
     this.action = config;
     this.outputFile = `cdkactions_${sanitizedId}.yaml`;
+    addWorkflowValidation(this, () => ({
+      name: this.action.name,
+      on: this.action.on,
+    }));
   }
 
   public addDependency(dependee: Workflow) {
