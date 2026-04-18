@@ -1,4 +1,4 @@
-import { ActionRef, type TypedUsesStep, type Expression } from '#@/index.js.js';
+import { ActionRef, type TypedUsesStep, type Expression } from '#@/index.js';
 
 const allOptionalAction = ActionRef.fromReference<
   {

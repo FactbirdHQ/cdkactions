@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { Construct } from 'constructs';
-import { Stack, Workflow } from '#@/index.js.js';
+import { Stack, Workflow } from '#@/index.js';
 import { TestingApp } from '#$/utils.js';
 
 
