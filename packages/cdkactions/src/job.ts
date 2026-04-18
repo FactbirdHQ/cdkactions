@@ -5,6 +5,7 @@ import type { Expression } from '#@/expressions.js';
 import type { RunnerLabel, Shell } from '#@/nominal.js';
 import type { DefaultsProps, StringMap } from '#@/types.js';
 import { renameKeys, type Writable } from '#@/utils.js';
+import { addJobValidation } from '#@/validation.js';
 import type { Permissions } from '#@/workflow.js';
 import type { Workflow } from '#@/workflow.js';
 
@@ -246,6 +247,13 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     this.id = id;
     this.action = config as Writable<JobProps<TMatrix>>;
     this.matrix = createMatrixProxy((config.strategy?.matrix ?? {}) as TMatrix);
+    addJobValidation(this, () => ({
+      id: this.id,
+      steps: this.steps,
+      runsOn: this.action.runsOn,
+      uses: this.action.uses,
+      matrix: this.action.strategy?.matrix as Record<string, ReadonlyArray<unknown>> | undefined,
+    }));
   }
 
   get env(): JobProps['env'] {

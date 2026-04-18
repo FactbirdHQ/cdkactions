@@ -6,6 +6,7 @@ import type { Expression } from '#@/expressions.js';
 import { Job, type ConcurrencyConfig } from '#@/job.js';
 import type { DefaultsProps, StringMap } from '#@/types.js';
 import { camelToSnake, renameKeys, type Writable } from '#@/utils.js';
+import { CronExpression, addWorkflowValidation } from '#@/validation.js';
 
 /**
  * Configuration for the BranchProtectionRule event.
@@ -180,7 +181,7 @@ export interface MergeGroupTypes {
 }
 
 export interface ScheduleEntry {
-  readonly cron: string;
+  readonly cron: string | CronExpression;
   readonly timezone?: string;
 }
 
@@ -376,6 +377,10 @@ export class Workflow extends Construct {
     super(scope, id);
     this.action = config;
     this.outputFile = `cdkactions_${sanitizedId}.yaml`;
+    addWorkflowValidation(this, () => ({
+      name: this.action.name,
+      on: this.action.on,
+    }));
   }
 
   public addDependency(dependee: Workflow) {
@@ -402,6 +407,13 @@ export class Workflow extends Construct {
 
     if (typeof this.action.on !== 'string' && 'workflowRun' in this.action.on) {
       assert(this.action.on.workflowRun.workflows?.length, `${this.action.name} must specify workflows it depends on`);
+    }
+
+    if (typeof this.action.on === 'object' && !Array.isArray(this.action.on) && 'schedule' in this.action.on) {
+      this.action.on.schedule = this.action.on.schedule.map((entry) => ({
+        ...entry,
+        cron: entry.cron instanceof CronExpression ? entry.cron.toString() : entry.cron,
+      }));
     }
 
     const workflow = renameKeys(this.action, {
