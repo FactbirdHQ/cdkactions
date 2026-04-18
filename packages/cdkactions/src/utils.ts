@@ -1,6 +1,6 @@
 import type { StringMap } from '#@/types.js';
 
-export type Writable<T> = T extends object ? { -readonly [K in keyof T]: Writable<T[K]> } : T;
+export type Writable<T> = T extends Function ? T : T extends object ? { -readonly [K in keyof T]: Writable<T[K]> } : T;
 
 /**
  * A helper function to recursively rename keys within an object
