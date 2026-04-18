@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { TestingApp } from './utils';
+import { TestingApp } from '#$/utils.js';
 
 
 test('cdkactionsstack', () => {
