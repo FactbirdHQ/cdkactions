@@ -1,5 +1,5 @@
 import {
-  App, Stack, Workflow, Job, RunnerLabel,
+  App, Stack, Workflow, Job, RunnerLabel, Shell,
   CompositeAction,
 } from '#@/index.js';
 import { TestingApp } from '../test/utils.js';
@@ -24,7 +24,7 @@ export function create(app?: App) {
         uses: 'actions/cache@v4',
         with: { path: 'node_modules', key: 'deps-${{ hashFiles("package-lock.json") }}' },
       },
-      { name: 'Install', run: 'npm ci', shell: 'bash' as any },
+      { name: 'Install', run: 'npm ci', shell: Shell.BASH },
     ],
   } as const);
 
