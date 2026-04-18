@@ -154,6 +154,14 @@ To enter the dev shell, either:
 - **direnv** — install [nix-direnv](https://github.com/nix-community/nix-direnv) and allow the `.envrc` (`direnv allow`). The shell activates automatically when you `cd` into the project.
 - **`nix develop`** — run `nix develop --no-pure-eval` to start a shell manually.
 
+## Comments
+
+- Never add excessive code comments for trivial code steps when functionality is easily interpreted from the code.
+- Prefer descriptive function names and logical variables in branch conditions over comments that can be inferred from the name.
+- Remove comments that merely restate what the code does — comments should explain "why", not "what".
+- Safety guards should be documented to explain the "why" not just the "what".
+- Do not use section separator comments (e.g., `// ─── SectionName ───`). If logical sections are needed, split into separate files instead.
+
 ## File Conventions
 
 - ESM modules (`.js` extensions in imports)
