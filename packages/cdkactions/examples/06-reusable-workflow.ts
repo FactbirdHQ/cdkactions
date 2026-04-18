@@ -2,6 +2,7 @@ import {
   App, Stack, Workflow, Job, RunnerLabel,
   WorkflowDispatchInputType,
 } from '#@/index.js';
+import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -41,7 +42,7 @@ export function create(app?: App) {
   new Job(reusable, 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
-      { uses: 'actions/checkout@v4' },
+      checkoutV4.call({}),
       { name: 'Build', run: 'npm run build' },
     ],
   });

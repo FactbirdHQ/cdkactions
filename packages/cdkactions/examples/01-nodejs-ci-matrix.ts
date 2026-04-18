@@ -1,6 +1,7 @@
 import {
   App, Stack, Workflow, Job, RunnerLabel,
 } from '#@/index.js';
+import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -23,7 +24,7 @@ export function create(app?: App) {
       failFast: false,
     },
     steps: [
-      { uses: 'actions/checkout@v4' },
+      checkoutV4.call({}),
       {
         name: 'Setup Node.js',
         uses: 'actions/setup-node@v4',
