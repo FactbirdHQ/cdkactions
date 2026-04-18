@@ -396,13 +396,13 @@ function _cronTypeTests() {
 }
 void _cronTypeTests;
 
-test('CronExpression.from: creates instance from dynamic string', () => {
-  const dynamic = '0 0 * * *';
-  const cron = CronExpression.from(dynamic);
+test('CronExpression constructor: creates instance from dynamic string', () => {
+  const dynamic = '0 0 * * *' as string;
+  const cron = new CronExpression(dynamic);
   expect(cron).toBeInstanceOf(CronExpression);
   expect(cron.toString()).toBe('0 0 * * *');
 });
 
-test('CronExpression.from: throws on invalid dynamic string', () => {
-  expect(() => CronExpression.from('0 25 * * *')).toThrow('hour');
+test('CronExpression constructor: throws on invalid dynamic string', () => {
+  expect(() => new CronExpression('0 25 * * *' as string)).toThrow('hour');
 });
