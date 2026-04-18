@@ -134,8 +134,8 @@ nix develop --no-pure-eval
 # or with direnv: direnv allow
 
 # Install and build
-corepack yarn install --immutable
-corepack yarn build
+bun install
+bun run build
 
 # Run tests
 bun test
