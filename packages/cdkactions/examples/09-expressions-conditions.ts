@@ -4,10 +4,9 @@ import {
   success, failure, always, cancelled,
   Condition,
 } from '#@/index.js';
-import { TestingApp } from '../test/utils.js';
 
 export function create(app?: App) {
-  const _app = app ?? TestingApp({ createValidateWorkflow: false });
+  const _app = app ?? new App();
   const stack = new Stack(_app, 'expressions');
 
   const workflow = new Workflow(stack, 'expressions', {

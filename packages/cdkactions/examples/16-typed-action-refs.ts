@@ -2,7 +2,6 @@ import {
   App, Stack, Workflow, Job, RunnerLabel,
   Action,
 } from '#@/index.js';
-import { TestingApp } from '../test/utils.js';
 
 const checkoutV4 = Action.fromReference<
   {
@@ -54,7 +53,7 @@ const uploadArtifactV4 = Action.fromReference<
 >('actions/upload-artifact@v4');
 
 export function create(app?: App) {
-  const _app = app ?? TestingApp({ createValidateWorkflow: false });
+  const _app = app ?? new App();
   const stack = new Stack(_app, 'action-refs');
 
   const workflow = new Workflow(stack, 'build', {
