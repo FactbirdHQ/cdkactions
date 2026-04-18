@@ -130,16 +130,6 @@ export class CronExpression<S extends string = string> {
     this.expression = expression as S;
   }
 
-  static from(expression: string): CronExpression {
-    const errors = validateCronString(expression);
-    if (errors.length > 0) {
-      throw new Error(errors.join('; '));
-    }
-    const instance = Object.create(CronExpression.prototype) as CronExpression;
-    (instance as { expression: string }).expression = expression;
-    return instance;
-  }
-
   toString(): string {
     return this.expression;
   }
