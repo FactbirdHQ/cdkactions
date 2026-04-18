@@ -7,6 +7,13 @@ import type { DefaultsProps, StringMap } from './types.js';
 import { camelToSnake, renameKeys, type Writable } from './utils.js';
 
 /**
+ * Configuration for the BranchProtectionRule event.
+ */
+export interface BranchProtectionRuleTypes {
+  readonly types: Array<'created' | 'edited' | 'deleted'>;
+}
+
+/**
  * Configuration for the CheckRun event.
  */
 export interface CheckRunTypes {
@@ -14,7 +21,29 @@ export interface CheckRunTypes {
 }
 
 export interface CheckSuiteTypes {
-  readonly types: Array<'created' | 'rerequested' | 'requested'>;
+  readonly types: Array<'completed'>;
+}
+
+export interface DiscussionTypes {
+  readonly types: Array<
+    | 'created'
+    | 'edited'
+    | 'deleted'
+    | 'transferred'
+    | 'pinned'
+    | 'unpinned'
+    | 'labeled'
+    | 'unlabeled'
+    | 'locked'
+    | 'unlocked'
+    | 'category_changed'
+    | 'answered'
+    | 'unanswered'
+  >;
+}
+
+export interface DiscussionCommentTypes {
+  readonly types: Array<'created' | 'edited' | 'deleted'>;
 }
 
 export interface IssueCommentTypes {
@@ -39,6 +68,8 @@ export interface IssuesTypes {
     | 'unlocked'
     | 'milestoned'
     | 'demilestoned'
+    | 'typed'
+    | 'untyped'
   >;
 }
 
@@ -79,6 +110,12 @@ export interface PullRequestTypes extends PushTypes {
     | 'review_requested'
     | 'review_request_removed'
     | 'converted_to_draft'
+    | 'enqueued'
+    | 'dequeued'
+    | 'milestoned'
+    | 'demilestoned'
+    | 'auto_merge_enabled'
+    | 'auto_merge_disabled'
   >;
 }
 
@@ -106,6 +143,13 @@ export interface PullRequestTargetTypes {
     | 'unlocked'
     | 'review_requested'
     | 'review_request_removed'
+    | 'converted_to_draft'
+    | 'enqueued'
+    | 'dequeued'
+    | 'milestoned'
+    | 'demilestoned'
+    | 'auto_merge_enabled'
+    | 'auto_merge_disabled'
   >;
 }
 
@@ -143,7 +187,7 @@ export interface WorkflowRunEvent {
     readonly workflows?: string[];
     readonly branches?: string[];
     readonly branchesIgnore?: string[];
-    readonly types?: Array<'completed' | 'requested'>;
+    readonly types?: Array<'completed' | 'requested' | 'in_progress'>;
   };
 }
 
@@ -219,8 +263,11 @@ export type EventStrings =
   | 'status';
 
 export interface EventMap {
+  readonly branchProtectionRule?: BranchProtectionRuleTypes;
   readonly checkRun?: CheckRunTypes;
   readonly checkSuite?: CheckSuiteTypes;
+  readonly discussion?: DiscussionTypes;
+  readonly discussionComment?: DiscussionCommentTypes;
   readonly issueComment?: IssueCommentTypes;
   readonly issues?: IssuesTypes;
   readonly label?: LabelTypes;
@@ -330,8 +377,10 @@ export class Workflow extends Construct {
       branchesIgnore: 'branches-ignore',
       tagsIgnore: 'tags-ignore',
       pathsIgnore: 'paths-ignore',
+      branchProtectionRule: 'branch_protection_rule',
       checkRun: 'check_run',
       checkSuite: 'check_suite',
+      discussionComment: 'discussion_comment',
       issueComment: 'issue_comment',
       mergeGroup: 'merge_group',
       projectCard: 'project_card',

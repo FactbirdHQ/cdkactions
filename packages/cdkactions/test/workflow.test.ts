@@ -1,5 +1,14 @@
 import { Construct } from 'constructs';
 import { Job, WorkflowDispatchInputType } from '../src';
+import type {
+  BranchProtectionRuleTypes,
+  DiscussionTypes,
+  DiscussionCommentTypes,
+  PullRequestTypes,
+  PullRequestTargetTypes,
+  CheckSuiteTypes,
+  IssuesTypes,
+} from '../src';
 import { TestingWorkflow } from './utils';
 
 test('toGHAction', () => {
@@ -96,3 +105,115 @@ test('manual workflow dispatch', () => {
   });
   expect(workflow.toGHAction()).toMatchSnapshot();
 });
+
+test('branch_protection_rule event', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      branchProtectionRule: { types: ['created', 'edited', 'deleted'] },
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on).toEqual({
+    branch_protection_rule: { types: ['created', 'edited', 'deleted'] },
+  });
+});
+
+test('discussion event with all 13 activity types', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      discussion: {
+        types: [
+          'created', 'edited', 'deleted', 'transferred',
+          'pinned', 'unpinned', 'labeled', 'unlabeled',
+          'locked', 'unlocked', 'category_changed', 'answered', 'unanswered',
+        ],
+      },
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on.discussion.types).toHaveLength(13);
+  expect(ghAction.on.discussion.types).toContain('category_changed');
+});
+
+test('discussion_comment event', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      discussionComment: { types: ['created', 'edited', 'deleted'] },
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on).toEqual({
+    discussion_comment: { types: ['created', 'edited', 'deleted'] },
+  });
+});
+
+test('pull_request new activity types', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      pullRequest: {
+        types: ['enqueued', 'dequeued', 'milestoned', 'demilestoned', 'auto_merge_enabled', 'auto_merge_disabled'],
+      },
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on.pull_request.types).toEqual([
+    'enqueued', 'dequeued', 'milestoned', 'demilestoned', 'auto_merge_enabled', 'auto_merge_disabled',
+  ]);
+});
+
+test('pull_request_target new activity types', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      pullRequestTarget: {
+        types: ['converted_to_draft', 'enqueued', 'dequeued', 'milestoned', 'demilestoned', 'auto_merge_enabled', 'auto_merge_disabled'],
+      },
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on.pull_request_target.types).toEqual([
+    'converted_to_draft', 'enqueued', 'dequeued', 'milestoned', 'demilestoned', 'auto_merge_enabled', 'auto_merge_disabled',
+  ]);
+});
+
+test('check_suite only allows completed', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      checkSuite: { types: ['completed'] },
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on.check_suite.types).toEqual(['completed']);
+});
+
+test('workflow_run includes in_progress type', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      workflowRun: {
+        types: ['completed', 'requested', 'in_progress'],
+      },
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on.workflow_run.types).toEqual(['completed', 'requested', 'in_progress']);
+});
+
+test('issues includes typed and untyped activity types', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      issues: {
+        types: ['opened', 'typed', 'untyped'],
+      },
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on.issues.types).toEqual(['opened', 'typed', 'untyped']);
+});
+
+// Type-level tests: verify CheckSuiteTypes only accepts 'completed'
+// @ts-expect-error - CheckSuiteTypes should not accept 'created'
+const _invalidCheckSuite: CheckSuiteTypes = { types: ['created'] };
+
+// Type-level tests: verify new events exist on EventMap
+const _branchProtection: BranchProtectionRuleTypes = { types: ['created'] };
+const _discussion: DiscussionTypes = { types: ['created', 'answered'] };
+const _discussionComment: DiscussionCommentTypes = { types: ['created'] };
