@@ -77,8 +77,8 @@ test('complicated stack', () => {
           matrix: {
             os: ['macos-latest', 'windows-latest', 'ubuntu-latest'],
             node: [4, 6, 8, 10],
-            include: [{ os: 'windows-latest', node: 4, npm: 2 }],
-          },
+          } as const,
+          include: [{ os: 'windows-latest', node: 4 }],
         },
         steps: [],
       });
