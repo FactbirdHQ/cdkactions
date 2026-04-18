@@ -1,4 +1,4 @@
-import { Condition, Job, RunnerLabel, createMatrixProxy } from '#@/index.js';
+import { Condition, Job, RunnerLabel, createMatrixProxy, eq, github, always, failure } from '#@/index.js';
 import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, RunStep, UsesStep, StepConfig, Expression, StrategyProps, MatrixDefinition, ServiceProps } from '#@/index.js';
 
 test('toGHAction', () => {
@@ -471,3 +471,193 @@ const _serviceWithExtras: ServiceProps = {
   entrypoint: '/entrypoint.sh',
 };
 const _serviceWithoutExtras: ServiceProps = { image: 'redis:7' };
+
+test('Condition.from accepts Expression<boolean>', () => {
+  const expr = eq(github.ref, 'refs/heads/main');
+  const condition = Condition.from(expr);
+  expect(condition.toString()).toBe("github.ref == 'refs/heads/main'");
+});
+
+test('Condition.fromExpr creates condition from expression', () => {
+  const expr = eq(github.ref, 'refs/heads/main');
+  const condition = Condition.fromExpr(expr);
+  expect(condition.toString()).toBe("github.ref == 'refs/heads/main'");
+});
+
+test('Condition.toExpression wraps in ${{ }}', () => {
+  const condition = Condition.from("github.ref == 'refs/heads/main'");
+  expect(condition.toExpression()).toBe("${{ github.ref == 'refs/heads/main' }}");
+});
+
+test('Condition.toExpression returns empty string for empty condition', () => {
+  const condition = Condition.from('');
+  expect(condition.toExpression()).toBe('');
+});
+
+test('job if with Expression<boolean> serializes without ${{ }}', () => {
+  const expr = eq(github.ref, 'refs/heads/main');
+  const job = new Job(undefined as any, 'deploy', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    if: expr,
+    steps: [{ run: 'deploy.sh' }],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.if).toBe("github.ref == 'refs/heads/main'");
+});
+
+test('job if with Condition serializes without ${{ }}', () => {
+  const condition = Condition.from("github.ref == 'refs/heads/main'");
+  const job = new Job(undefined as any, 'deploy', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    if: condition,
+    steps: [{ run: 'deploy.sh' }],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.if).toBe("github.ref == 'refs/heads/main'");
+});
+
+test('addDependency with condition: always augments if with always()', () => {
+  const build = new Job(undefined as any, 'build', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'build.sh' }],
+  });
+  const notify = new Job(undefined as any, 'notify', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'notify.sh' }],
+  });
+  notify.addDependency(build, { condition: 'always' });
+
+  const ghAction = notify.toGHAction();
+  expect(ghAction.needs).toEqual(['build']);
+  expect(ghAction.if).toBe('always()');
+});
+
+test('addDependency with condition: failure augments if with failure()', () => {
+  const build = new Job(undefined as any, 'build', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'build.sh' }],
+  });
+  const rollback = new Job(undefined as any, 'rollback', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'rollback.sh' }],
+  });
+  rollback.addDependency(build, { condition: 'failure' });
+
+  const ghAction = rollback.toGHAction();
+  expect(ghAction.needs).toEqual(['build']);
+  expect(ghAction.if).toBe('failure()');
+});
+
+test('addDependency with condition: completed augments if with always()', () => {
+  const build = new Job(undefined as any, 'build', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'build.sh' }],
+  });
+  const cleanup = new Job(undefined as any, 'cleanup', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'cleanup.sh' }],
+  });
+  cleanup.addDependency(build, { condition: 'completed' });
+
+  const ghAction = cleanup.toGHAction();
+  expect(ghAction.if).toBe('always()');
+});
+
+test('addDependency with condition: success augments if with success()', () => {
+  const build = new Job(undefined as any, 'build', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'build.sh' }],
+  });
+  const deploy = new Job(undefined as any, 'deploy', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'deploy.sh' }],
+  });
+  deploy.addDependency(build, { condition: 'success' });
+
+  const ghAction = deploy.toGHAction();
+  expect(ghAction.if).toBe('success()');
+});
+
+test('addDependency without condition does not set if', () => {
+  const build = new Job(undefined as any, 'build', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'build.sh' }],
+  });
+  const test = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'test.sh' }],
+  });
+  test.addDependency(build);
+
+  const ghAction = test.toGHAction();
+  expect(ghAction.needs).toEqual(['build']);
+  expect(ghAction.if).toBeUndefined();
+});
+
+test('multiple addDependency with conditions composes if with &&', () => {
+  const build = new Job(undefined as any, 'build', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'build.sh' }],
+  });
+  const test = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'test.sh' }],
+  });
+  const notify = new Job(undefined as any, 'notify', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'notify.sh' }],
+  });
+  notify.addDependency(build, { condition: 'always' });
+  notify.addDependency(test, { condition: 'always' });
+
+  const ghAction = notify.toGHAction();
+  expect(ghAction.needs).toEqual(['build', 'test']);
+  expect(ghAction.if).toBe('(always() && always())');
+});
+
+test('job if from props merges with addDependency condition', () => {
+  const build = new Job(undefined as any, 'build', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'build.sh' }],
+  });
+  const deploy = new Job(undefined as any, 'deploy', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    if: eq(github.ref, 'refs/heads/main'),
+    steps: [{ run: 'deploy.sh' }],
+  });
+  deploy.addDependency(build, { condition: 'success' });
+
+  const ghAction = deploy.toGHAction();
+  expect(ghAction.if).toBe("(success() && github.ref == 'refs/heads/main')");
+});
+
+test('Condition composed with Expression via and/or', () => {
+  const cond = Condition.fromExpr(eq(github.ref, 'refs/heads/main'));
+  const alwaysCond = Condition.from('always()');
+  const combined = alwaysCond.and(cond);
+  expect(combined.toString()).toBe("(always() && github.ref == 'refs/heads/main')");
+});
+
+test('step if with Expression emits without ${{ }} wrapping', () => {
+  const expr = eq(github.eventName, 'push');
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{
+      name: 'Push only',
+      run: 'echo push',
+      if: expr,
+    }],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");
+});
+
+// Type-level: JobProps.if accepts Condition
+const _jobIfCondition: Pick<JobProps, 'if'> = { if: Condition.from('true') };
+
+// Type-level: JobProps.if accepts Expression<boolean>
+const _jobIfExpr: Pick<JobProps, 'if'> = { if: 'true' as Expression<boolean> };
+
+// Type-level: JobProps.if rejects raw string
+// @ts-expect-error - raw string should not be assignable to Condition | Expression<boolean>
+const _jobIfString: Pick<JobProps, 'if'> = { if: 'raw string' };
