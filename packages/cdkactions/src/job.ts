@@ -1,6 +1,8 @@
 import { Construct } from 'constructs';
 import { match, P } from 'ts-pattern';
 
+import type { Expression } from '#@/expressions.js';
+import type { RunnerLabel } from '#@/nominal.js';
 import type { DefaultsProps, RunProps, StringMap } from '#@/types.js';
 import { renameKeys, type Writable } from '#@/utils.js';
 import type { Permissions } from '#@/workflow.js';
@@ -24,6 +26,15 @@ export interface DockerProps {
   readonly ports?: string[];
   readonly volumes?: string[];
   readonly options?: string;
+}
+
+export type EnvironmentConfig = string | { readonly name: string; readonly url?: string };
+
+export type ConcurrencyConfig = string | { readonly group: string; readonly cancelInProgress?: boolean };
+
+export interface RunnerGroupConfig {
+  readonly group: string;
+  readonly labels?: RunnerLabel[];
 }
 
 /**
@@ -153,21 +164,22 @@ type ConditionExpression =
 export interface JobProps {
   readonly name?: string;
   readonly needs?: string | string[];
-  readonly runsOn?: string | string[];
+  readonly runsOn?: RunnerLabel | RunnerLabel[] | RunnerGroupConfig | Expression<string>;
   readonly outputs?: StringMap;
   readonly env?: StringMap;
   readonly defaults?: DefaultsProps;
   readonly if?: string | Condition;
   readonly steps?: StepsProps[];
-  readonly secrets?: string;
+  readonly secrets?: Record<string, string | Expression<string>> | 'inherit';
   readonly timeoutMinutes?: number;
   readonly strategy?: StrategyProps;
   readonly continueOnError?: boolean;
   readonly container?: DockerProps;
   readonly services?: { [key: string]: DockerProps };
   readonly permissions?: Permissions;
-  readonly environment?: string;
-  readonly uses?: Workflow;
+  readonly environment?: EnvironmentConfig;
+  readonly concurrency?: ConcurrencyConfig;
+  readonly uses?: Workflow | string;
   readonly with?: { [key: string]: string | number | boolean };
 }
 
@@ -190,7 +202,7 @@ export class Job extends Construct {
   }
 
   get runsOn(): JobProps['runsOn'] {
-    return this.action.runsOn;
+    return this.action.runsOn as JobProps['runsOn'];
   }
 
   get name(): string {
@@ -205,25 +217,39 @@ export class Job extends Construct {
   }
 
   public toGHAction(): any {
-    const { uses, ...actionWithoutUses } = this.action;
+    const { uses, runsOn, ...rest } = this.action;
 
     const _if = this.if?.toString() || this.action.if;
 
+    let serializedRunsOn: unknown = runsOn;
+    if (runsOn && typeof runsOn === 'object' && 'group' in runsOn) {
+      serializedRunsOn = { group: runsOn.group, ...(runsOn.labels ? { labels: runsOn.labels } : {}) };
+    }
+
+    let serializedUses: string | undefined;
+    if (typeof uses === 'string') {
+      serializedUses = uses;
+    } else if (uses) {
+      serializedUses = `./.github/workflows/${uses.outputFile}`;
+    }
+
     return {
-      ...renameKeys(actionWithoutUses, {
+      ...renameKeys(rest, {
         runsOn: 'runs-on',
         continueOnError: 'continue-on-error',
         timeoutMinutes: 'timeout-minutes',
         fastFail: 'fail-fast',
         maxParallel: 'max-parallel',
         workingDirectory: 'working-directory',
+        cancelInProgress: 'cancel-in-progress',
         artifactMetadata: 'artifact-metadata',
         securityEvents: 'security-events',
         repositoryProjects: 'repository-projects',
         pullRequests: 'pull-requests',
         idToken: 'id-token',
       }),
-      uses: uses ? `./.github/workflows/${uses.outputFile}` : undefined,
+      'runs-on': serializedRunsOn,
+      uses: serializedUses,
       if: _if,
     };
   }

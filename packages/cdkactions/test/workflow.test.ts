@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { Job, WorkflowDispatchInputType } from '#@/index.js';
+import { Job, RunnerLabel, WorkflowDispatchInputType } from '#@/index.js';
 import type {
   BranchProtectionRuleTypes,
   DiscussionTypes,
@@ -55,13 +55,13 @@ test('on: string[] snake conversion', () => {
 test('2 jobs with same key -> error', () => {
   const workflow = TestingWorkflow();
   new Job(workflow, 'job', {
-    runsOn: 'ubuntu-latest',
+    runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [],
   });
   expect(
     () =>
       new Job(workflow, 'job', {
-        runsOn: 'ubuntu-latest',
+        runsOn: RunnerLabel.UBUNTU_LATEST,
         steps: [],
       }),
   ).toThrowError("There is already a Construct with name 'job' in Workflow [test]");
@@ -73,15 +73,15 @@ test('jobs kept in insertion order', () => {
   const job_two = 'job_two';
   const job_three = 'job_three';
   new Job(workflow, job_one, {
-    runsOn: 'ubuntu-latest',
+    runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [],
   });
   new Job(workflow, job_two, {
-    runsOn: 'ubuntu-latest',
+    runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [],
   });
   new Job(workflow, job_three, {
-    runsOn: 'ubuntu-latest',
+    runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [],
   });
   const jobs = Object.keys(workflow.toGHAction().jobs);
@@ -420,3 +420,24 @@ const _invalidModels: PermissionsMap = { models: 'write' };
 const _readAll: Permissions = 'read-all';
 const _writeAll: Permissions = 'write-all';
 const _mapPerms: Permissions = { contents: 'read' };
+
+test('workflow concurrency string form', () => {
+  const workflow = TestingWorkflow({
+    on: 'push',
+    concurrency: 'deploy-group',
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.concurrency).toBe('deploy-group');
+});
+
+test('workflow concurrency object with cancelInProgress', () => {
+  const workflow = TestingWorkflow({
+    on: 'push',
+    concurrency: { group: 'ci-${{ github.ref }}', cancelInProgress: true },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.concurrency).toEqual({
+    group: 'ci-${{ github.ref }}',
+    'cancel-in-progress': true,
+  });
+});

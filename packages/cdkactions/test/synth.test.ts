@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import { Construct } from 'constructs';
+import type { Expression } from '#@/expressions.js';
 import { CheckoutJob } from '#@/library.js';
+import { RunnerLabel } from '#@/nominal.js';
 import { Stack } from '#@/stack.js';
 import { Workflow } from '#@/workflow.js';
 import { TestingApp } from '#$/utils.js';
@@ -25,7 +27,7 @@ test('complicated stack', () => {
       },
       );
       new CheckoutJob(build, 'build', {
-        runsOn: 'ubuntu-latest',
+        runsOn: RunnerLabel.UBUNTU_LATEST,
         steps: [
           {
             name: 'Cache',
@@ -70,7 +72,7 @@ test('complicated stack', () => {
         },
       });
       new CheckoutJob(schedule, 'matrix', {
-        runsOn: '${{ matrix.os }}',
+        runsOn: '${{ matrix.os }}' as Expression<string>,
         strategy: {
           matrix: {
             os: ['macos-latest', 'windows-latest', 'ubuntu-latest'],
