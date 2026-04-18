@@ -76,7 +76,7 @@ export class ActionRef<
       : undefined;
 
     const stepId = id;
-    const step = {
+    const step: TypedUsesStep<TOutputs> = {
       ...(stepId !== undefined && { id: stepId }),
       ...(name !== undefined && { name }),
       ...(ifProp !== undefined && { if: ifProp }),
@@ -85,17 +85,15 @@ export class ActionRef<
       ...(env !== undefined && { env }),
       ...(continueOnError !== undefined && { continueOnError }),
       ...(timeoutMinutes !== undefined && { timeoutMinutes }),
-    };
-    Object.defineProperty(step, 'output', {
-      value: <K extends keyof TOutputs & string>(key: K): Expression<string> => {
+      output<K extends keyof TOutputs & string>(key: K): Expression<string> {
         if (!stepId) {
           throw new Error('Cannot access outputs on a step without an id');
         }
         return `steps.${stepId}.outputs.${key}` as Expression<string>;
       },
-      enumerable: false,
-    });
+    };
+    Object.defineProperty(step, 'output', { enumerable: false });
 
-    return step as TypedUsesStep<TOutputs>;
+    return step;
   }
 }
