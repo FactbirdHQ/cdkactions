@@ -27,3 +27,5 @@ export const renameKeys = (obj: any, newKeys: StringMap) => {
 };
 
 export const camelToSnake = (str: string) => str.replace(/[A-Z]/g, (group) => `_${group.toLowerCase()}`);
+
+export const camelToKebab = (str: string) => str.replace(/[A-Z]/g, (group) => `-${group.toLowerCase()}`);
