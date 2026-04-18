@@ -26,9 +26,9 @@ export type Expression<T = unknown> = string & {
 };
 
 /**
- * Create an Expression from a raw string. Internal use only.
+ * Create an Expression from a raw string.
  */
-function expr<T = unknown>(value: string): Expression<T> {
+export function expr<T = unknown>(value: string): Expression<T> {
   return value as Expression<T>;
 }
 
