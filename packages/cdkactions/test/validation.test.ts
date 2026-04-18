@@ -2,7 +2,7 @@ import { Node } from 'constructs';
 
 import { App, Stack, Workflow, Job, RunnerLabel, CronExpression, validateCronExpression, collectValidationErrors } from '#@/index.js';
 import type { StepConfig, ScheduleEvent, WorkflowProps } from '#@/index.js';
-import { checkoutV4 } from '../src/actions.js';
+import { checkoutV4 } from '#@/actions.js';
 import { TestingApp } from './utils.js';
 
 function createTestApp(options: { createValidateWorkflow?: boolean } = {}) {
@@ -398,12 +398,13 @@ function _cronTypeTests() {
 void _cronTypeTests;
 
 test('CronExpression constructor: creates instance from dynamic string', () => {
-  const dynamic = '0 0 * * *' as string;
+  const dynamic: string = '0 0 * * *';
   const cron = new CronExpression(dynamic);
   expect(cron).toBeInstanceOf(CronExpression);
   expect(cron.toString()).toBe('0 0 * * *');
 });
 
 test('CronExpression constructor: throws on invalid dynamic string', () => {
-  expect(() => new CronExpression('0 25 * * *' as string)).toThrow('hour');
+  const invalid: string = '0 25 * * *';
+  expect(() => new CronExpression(invalid)).toThrow('hour');
 });

@@ -30,12 +30,7 @@ export class CDKActionsStack extends Stack {
       name: 'Validate cdkactions manifests',
       runsOn: RunnerLabel.UBUNTU_LATEST,
       steps: [
-        {
-          uses: 'actions/checkout@v4',
-          with: {
-            token: `\${{ ${token} }}`,
-          },
-        },
+        checkoutV4.call({ with: { token: `\${{ ${token} }}` } }),
         {
           name: 'Validate manifests',
           run: dedent`cd .github/cdk

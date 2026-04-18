@@ -1,9 +1,10 @@
 import { Condition, Job, RunnerLabel, createMatrixProxy, eq, github, always, failure } from '#@/index.js';
 import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, RunStep, UsesStep, StepConfig, Expression, StrategyProps, MatrixDefinition, ServiceProps } from '#@/index.js';
-import { checkoutV2, checkoutV4 } from '../src/actions.js';
+import { checkoutV2, checkoutV4 } from '#@/actions.js';
+import { TestingWorkflow } from './utils.js';
 
 test('toGHAction', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     continueOnError: true,
     timeoutMinutes: 10,
@@ -32,7 +33,7 @@ test('toGHAction', () => {
 });
 
 test('job permissions with full PermissionsMap', () => {
-  const job = new Job(undefined as any, 'deploy', {
+  const job = new Job(TestingWorkflow(), 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [],
     permissions: {
@@ -58,7 +59,7 @@ test('job permissions with full PermissionsMap', () => {
 });
 
 test('job permissions with read-all shorthand', () => {
-  const job = new Job(undefined as any, 'readonly', {
+  const job = new Job(TestingWorkflow(), 'readonly', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [],
     permissions: 'read-all',
@@ -68,7 +69,7 @@ test('job permissions with read-all shorthand', () => {
 });
 
 test('environment string form', () => {
-  const job = new Job(undefined as any, 'deploy', {
+  const job = new Job(TestingWorkflow(), 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [],
     environment: 'production',
@@ -78,7 +79,7 @@ test('environment string form', () => {
 });
 
 test('environment object form', () => {
-  const job = new Job(undefined as any, 'deploy', {
+  const job = new Job(TestingWorkflow(), 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [],
     environment: { name: 'production', url: 'https://prod.example.com' },
@@ -88,7 +89,7 @@ test('environment object form', () => {
 });
 
 test('concurrency string form', () => {
-  const job = new Job(undefined as any, 'deploy', {
+  const job = new Job(TestingWorkflow(), 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [],
     concurrency: 'deploy-group',
@@ -98,7 +99,7 @@ test('concurrency string form', () => {
 });
 
 test('concurrency object form with cancelInProgress', () => {
-  const job = new Job(undefined as any, 'deploy', {
+  const job = new Job(TestingWorkflow(), 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [],
     concurrency: { group: 'deploy-${{ github.ref }}', cancelInProgress: true },
@@ -111,7 +112,7 @@ test('concurrency object form with cancelInProgress', () => {
 });
 
 test('secrets inherit', () => {
-  const job = new Job(undefined as any, 'reusable', {
+  const job = new Job(TestingWorkflow(), 'reusable', {
     uses: 'org/repo/.github/workflows/deploy.yml@main',
     secrets: 'inherit',
   });
@@ -121,7 +122,7 @@ test('secrets inherit', () => {
 });
 
 test('secrets as record', () => {
-  const job = new Job(undefined as any, 'reusable', {
+  const job = new Job(TestingWorkflow(), 'reusable', {
     uses: 'org/repo/.github/workflows/deploy.yml@main',
     secrets: {
       token: '${{ secrets.DEPLOY_TOKEN }}' as Expression<string>,
@@ -136,7 +137,7 @@ test('secrets as record', () => {
 });
 
 test('external uses as string', () => {
-  const job = new Job(undefined as any, 'reusable', {
+  const job = new Job(TestingWorkflow(), 'reusable', {
     uses: 'org/repo/.github/workflows/build.yml@v1',
   });
   const ghAction = job.toGHAction();
@@ -144,7 +145,7 @@ test('external uses as string', () => {
 });
 
 test('runner group config', () => {
-  const job = new Job(undefined as any, 'deploy', {
+  const job = new Job(TestingWorkflow(), 'deploy', {
     runsOn: { group: 'large-runners', labels: [RunnerLabel.UBUNTU_LATEST, RunnerLabel.custom('gpu')] },
     steps: [],
   });
@@ -156,7 +157,7 @@ test('runner group config', () => {
 });
 
 test('runsOn with RunnerLabel array', () => {
-  const job = new Job(undefined as any, 'build', {
+  const job = new Job(TestingWorkflow(), 'build', {
     runsOn: [RunnerLabel.SELF_HOSTED, RunnerLabel.custom('linux')],
     steps: [],
   });
@@ -165,7 +166,7 @@ test('runsOn with RunnerLabel array', () => {
 });
 
 test('runsOn with Expression<string>', () => {
-  const job = new Job(undefined as any, 'matrix', {
+  const job = new Job(TestingWorkflow(), 'matrix', {
     runsOn: '${{ matrix.os }}' as Expression<string>,
     steps: [],
   });
@@ -197,7 +198,7 @@ const _concObject: ConcurrencyConfig = { group: 'deploy', cancelInProgress: true
 const _runnerGroup: RunnerGroupConfig = { group: 'large', labels: [RunnerLabel.UBUNTU_LATEST] };
 
 test('RunStep serialization', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{
       name: 'Run tests',
@@ -214,7 +215,7 @@ test('RunStep serialization', () => {
 });
 
 test('UsesStep serialization', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{
       name: 'Checkout',
@@ -231,7 +232,7 @@ test('UsesStep serialization', () => {
 });
 
 test('step if with Condition', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{
       name: 'Deploy',
@@ -245,7 +246,7 @@ test('step if with Condition', () => {
 
 test('step if with Expression<boolean>', () => {
   const expr = "github.event_name == 'push'" as Expression<boolean>;
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{
       name: 'Push only',
@@ -258,7 +259,7 @@ test('step if with Expression<boolean>', () => {
 });
 
 test('step continueOnError and timeoutMinutes serialization', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{
       name: 'Flaky step',
@@ -273,7 +274,7 @@ test('step continueOnError and timeoutMinutes serialization', () => {
 });
 
 test('mixed RunStep and UsesStep in same job', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
       checkoutV4.call({}),
@@ -318,7 +319,7 @@ const _stepWithCondition: StepConfig = { run: 'echo', if: Condition.from('true')
 const _stepWithExpr: StepConfig = { run: 'echo', if: 'true' as Expression<boolean> };
 
 test('generic matrix strategy serialization', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     strategy: {
       matrix: {
@@ -346,7 +347,7 @@ test('generic matrix strategy serialization', () => {
 });
 
 test('typed matrix accessor returns expression strings', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     strategy: {
       matrix: {
@@ -370,7 +371,7 @@ test('createMatrixProxy produces correct expression strings', () => {
 });
 
 test('failFast serializes as fail-fast', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     strategy: {
       failFast: true,
@@ -416,7 +417,7 @@ const _invalidInclude: StrategyProps<{
 }
 
 test('service with command and entrypoint', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'echo hello' }],
     services: {
@@ -450,7 +451,7 @@ test('service with command and entrypoint', () => {
 });
 
 test('service without command and entrypoint', () => {
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'echo hello' }],
     services: {
@@ -497,7 +498,7 @@ test('Condition.toExpression returns empty string for empty condition', () => {
 
 test('job if with Expression<boolean> serializes without ${{ }}', () => {
   const expr = eq(github.ref, 'refs/heads/main');
-  const job = new Job(undefined as any, 'deploy', {
+  const job = new Job(TestingWorkflow(), 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     if: expr,
     steps: [{ run: 'deploy.sh' }],
@@ -508,7 +509,7 @@ test('job if with Expression<boolean> serializes without ${{ }}', () => {
 
 test('job if with Condition serializes without ${{ }}', () => {
   const condition = Condition.from("github.ref == 'refs/heads/main'");
-  const job = new Job(undefined as any, 'deploy', {
+  const job = new Job(TestingWorkflow(), 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     if: condition,
     steps: [{ run: 'deploy.sh' }],
@@ -518,11 +519,11 @@ test('job if with Condition serializes without ${{ }}', () => {
 });
 
 test('addDependency with condition: always augments if with always()', () => {
-  const build = new Job(undefined as any, 'build', {
+  const build = new Job(TestingWorkflow(), 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'build.sh' }],
   });
-  const notify = new Job(undefined as any, 'notify', {
+  const notify = new Job(TestingWorkflow(), 'notify', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'notify.sh' }],
   });
@@ -534,11 +535,11 @@ test('addDependency with condition: always augments if with always()', () => {
 });
 
 test('addDependency with condition: failure augments if with failure()', () => {
-  const build = new Job(undefined as any, 'build', {
+  const build = new Job(TestingWorkflow(), 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'build.sh' }],
   });
-  const rollback = new Job(undefined as any, 'rollback', {
+  const rollback = new Job(TestingWorkflow(), 'rollback', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'rollback.sh' }],
   });
@@ -550,11 +551,11 @@ test('addDependency with condition: failure augments if with failure()', () => {
 });
 
 test('addDependency with condition: completed augments if with always()', () => {
-  const build = new Job(undefined as any, 'build', {
+  const build = new Job(TestingWorkflow(), 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'build.sh' }],
   });
-  const cleanup = new Job(undefined as any, 'cleanup', {
+  const cleanup = new Job(TestingWorkflow(), 'cleanup', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'cleanup.sh' }],
   });
@@ -565,11 +566,11 @@ test('addDependency with condition: completed augments if with always()', () => 
 });
 
 test('addDependency with condition: success augments if with success()', () => {
-  const build = new Job(undefined as any, 'build', {
+  const build = new Job(TestingWorkflow(), 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'build.sh' }],
   });
-  const deploy = new Job(undefined as any, 'deploy', {
+  const deploy = new Job(TestingWorkflow(), 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'deploy.sh' }],
   });
@@ -580,11 +581,11 @@ test('addDependency with condition: success augments if with success()', () => {
 });
 
 test('addDependency without condition does not set if', () => {
-  const build = new Job(undefined as any, 'build', {
+  const build = new Job(TestingWorkflow(), 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'build.sh' }],
   });
-  const test = new Job(undefined as any, 'test', {
+  const test = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'test.sh' }],
   });
@@ -596,15 +597,15 @@ test('addDependency without condition does not set if', () => {
 });
 
 test('multiple addDependency with conditions composes if with &&', () => {
-  const build = new Job(undefined as any, 'build', {
+  const build = new Job(TestingWorkflow(), 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'build.sh' }],
   });
-  const test = new Job(undefined as any, 'test', {
+  const test = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'test.sh' }],
   });
-  const notify = new Job(undefined as any, 'notify', {
+  const notify = new Job(TestingWorkflow(), 'notify', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'notify.sh' }],
   });
@@ -617,11 +618,11 @@ test('multiple addDependency with conditions composes if with &&', () => {
 });
 
 test('job if from props merges with addDependency condition', () => {
-  const build = new Job(undefined as any, 'build', {
+  const build = new Job(TestingWorkflow(), 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{ run: 'build.sh' }],
   });
-  const deploy = new Job(undefined as any, 'deploy', {
+  const deploy = new Job(TestingWorkflow(), 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     if: eq(github.ref, 'refs/heads/main'),
     steps: [{ run: 'deploy.sh' }],
@@ -641,7 +642,7 @@ test('Condition composed with Expression via and/or', () => {
 
 test('step if with Expression emits without ${{ }} wrapping', () => {
   const expr = eq(github.eventName, 'push');
-  const job = new Job(undefined as any, 'test', {
+  const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [{
       name: 'Push only',
