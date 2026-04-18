@@ -7,8 +7,6 @@
  * constructors or predefined constants.
  */
 
-// ─── RunnerLabel ────────────────────────────────────────────────────────────────
-
 declare const RunnerLabelBrand: unique symbol;
 
 /**
@@ -42,8 +40,6 @@ export namespace RunnerLabel {
   }
 }
 
-// ─── Shell ──────────────────────────────────────────────────────────────────────
-
 declare const ShellBrand: unique symbol;
 
 /**
@@ -72,8 +68,6 @@ export namespace Shell {
   }
 }
 
-// ─── JobResult ──────────────────────────────────────────────────────────────────
-
 declare const JobResultBrand: unique symbol;
 
 /**
@@ -93,8 +87,6 @@ export namespace JobResult {
   export const CANCELLED = jobResult('cancelled');
   export const SKIPPED = jobResult('skipped');
 }
-
-// ─── StepConclusion ─────────────────────────────────────────────────────────────
 
 declare const StepConclusionBrand: unique symbol;
 
