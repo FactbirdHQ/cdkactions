@@ -1,10 +1,10 @@
 import { Construct } from 'constructs';
 import { match, P } from 'ts-pattern';
 
-import type { DefaultsProps, RunProps, StringMap } from './types.js';
-import { renameKeys, type Writable } from './utils.js';
-import type { Permissions } from './workflow.js';
-import type { Workflow } from './workflow.js';
+import type { DefaultsProps, RunProps, StringMap } from '#@/types.js';
+import { renameKeys, type Writable } from '#@/utils.js';
+import type { Permissions } from '#@/workflow.js';
+import type { Workflow } from '#@/workflow.js';
 
 /**
  * Credentials to connect to a Docker registry with.

@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import { Construct } from 'constructs';
-import { CheckoutJob } from '../src/library';
-import { Stack } from '../src/stack';
-import { Workflow } from '../src/workflow';
-import { TestingApp } from './utils';
+import { CheckoutJob } from '#@/library.js';
+import { Stack } from '#@/stack.js';
+import { Workflow } from '#@/workflow.js';
+import { TestingApp } from '#$/utils.js';
 
 
 test('complicated stack', () => {

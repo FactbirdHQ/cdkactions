@@ -1,5 +1,5 @@
-import { Job } from '../src';
-import type { JobProps } from '../src';
+import { Job } from '#@/index.js.js';
+import type { JobProps } from '#@/index.js.js';
 
 test('toGHAction', () => {
   const job = new Job(undefined as any, 'test', {

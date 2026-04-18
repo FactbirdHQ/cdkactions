@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { Job, WorkflowDispatchInputType } from '../src';
+import { Job, WorkflowDispatchInputType } from '#@/index.js.js';
 import type {
   BranchProtectionRuleTypes,
   DiscussionTypes,
@@ -16,8 +16,8 @@ import type {
   WorkflowProps,
   PermissionsMap,
   Permissions,
-} from '../src';
-import { TestingWorkflow } from './utils';
+} from '#@/index.js.js';
+import { TestingWorkflow } from '#$/utils.js';
 
 test('toGHAction', () => {
   const workflow = TestingWorkflow({
