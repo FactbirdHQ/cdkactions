@@ -111,11 +111,15 @@ export class Condition {
     this.expression = expression;
   }
 
-  static from(condition: string | undefined | null): Condition {
-    if (!condition || condition.trim() === '') {
+  static from(condition: string | Expression<boolean> | undefined | null): Condition {
+    if (!condition || (typeof condition === 'string' && condition.trim() === '')) {
       return new Condition('');
     }
-    return new Condition(condition);
+    return new Condition(String(condition));
+  }
+
+  static fromExpr(expr: Expression<boolean>): Condition {
+    return new Condition(String(expr));
   }
 
   static and(left: Condition | string | undefined, right: Condition | string | undefined): Condition {
@@ -150,6 +154,12 @@ export class Condition {
 
   toString(): string {
     return this.evaluateExpression(this.expression);
+  }
+
+  toExpression(): string {
+    const str = this.toString();
+    if (!str) return '';
+    return `\${{ ${str} }}`;
   }
 
   private evaluateExpression(expr: ConditionExpression): string {
@@ -207,7 +217,7 @@ export interface JobProps<TMatrix extends MatrixDefinition = MatrixDefinition> {
   readonly outputs?: StringMap;
   readonly env?: StringMap;
   readonly defaults?: DefaultsProps;
-  readonly if?: string | Condition;
+  readonly if?: Condition | Expression<boolean>;
   readonly steps?: StepConfig[];
   readonly secrets?: Record<string, string | Expression<string>> | 'inherit';
   readonly timeoutMinutes?: number;
@@ -266,7 +276,11 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
   public toGHAction(): any {
     const { uses, runsOn, steps, strategy, ...rest } = this.action;
 
-    const _if = this.if?.toString() || (this.action.if instanceof Condition ? this.action.if.toString() : this.action.if);
+    const propsIf = this.action.if instanceof Condition ? this.action.if.toString() : (this.action.if ? String(this.action.if) : undefined);
+    const instanceIf = this.if?.toString();
+    const _if = instanceIf && propsIf
+      ? Condition.from(instanceIf).and(Condition.from(propsIf)).toString()
+      : instanceIf || propsIf || undefined;
 
     let serializedRunsOn: unknown = runsOn;
     if (runsOn && typeof runsOn === 'object' && 'group' in runsOn) {
@@ -328,13 +342,27 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     };
   }
 
-  public addDependency(dependee: Job) {
+  public addDependency(dependee: Job, options?: {
+    condition?: 'success' | 'failure' | 'always' | 'completed';
+  }): this {
     const needs = Array.isArray(this.action.needs) ? this.action.needs : [];
     if (typeof this.action.needs === 'string') {
       needs.push(this.action.needs);
     }
     needs.push(dependee.id);
     this.action.needs = needs;
+
+    if (options?.condition) {
+      const conditionExpr = (options.condition === 'always' || options.condition === 'completed')
+        ? 'always()'
+        : options.condition === 'failure'
+          ? 'failure()'
+          : 'success()';
+
+      const newCondition = Condition.from(conditionExpr);
+      this.if = this.if ? this.if.and(newCondition) : newCondition;
+    }
+
     return this;
   }
 
