@@ -6,6 +6,8 @@
  * enabling type-safe composition at the TypeScript level.
  */
 
+import { camelToSnake } from './utils.js';
+
 // ─── Core Expression Type ──────────────────────────────────────────────────────
 
 declare const ExpressionBrand: unique symbol;
@@ -39,10 +41,21 @@ function expr<T = unknown>(value: string): Expression<T> {
  *
  * At build time the Proxy returns the string; TypeScript sees the interface.
  */
-function createContextProxy<T extends object>(contextName: string): T {
+/**
+ * Creates a Proxy-based context accessor that returns Expression-typed
+ * values for property access. Each property access returns a string of
+ * the form `<contextName>.<property>`.
+ *
+ * When `rename` is true, camelCase property names are converted to
+ * snake_case in the output expression (mimicking serde's rename attribute).
+ * Dynamic-key contexts (env, secrets, etc.) should pass `false` to
+ * preserve the original key.
+ */
+function createContextProxy<T extends object>(contextName: string, rename = false): T {
   return new Proxy({} as T, {
     get(_target, prop: string) {
-      return expr(`${contextName}.${prop}`);
+      const key = rename ? camelToSnake(prop) : prop;
+      return expr(`${contextName}.${key}`);
     },
   });
 }
@@ -51,41 +64,41 @@ function createContextProxy<T extends object>(contextName: string): T {
 
 export interface GitHubContext {
   readonly action: Expression<string>;
-  readonly action_path: Expression<string>;
-  readonly action_ref: Expression<string>;
-  readonly action_repository: Expression<string>;
-  readonly action_status: Expression<string>;
+  readonly actionPath: Expression<string>;
+  readonly actionRef: Expression<string>;
+  readonly actionRepository: Expression<string>;
+  readonly actionStatus: Expression<string>;
   readonly actor: Expression<string>;
-  readonly actor_id: Expression<string>;
-  readonly api_url: Expression<string>;
-  readonly base_ref: Expression<string>;
+  readonly actorId: Expression<string>;
+  readonly apiUrl: Expression<string>;
+  readonly baseRef: Expression<string>;
   readonly event: Expression<object>;
-  readonly event_name: Expression<string>;
-  readonly graphql_url: Expression<string>;
-  readonly head_ref: Expression<string>;
+  readonly eventName: Expression<string>;
+  readonly graphqlUrl: Expression<string>;
+  readonly headRef: Expression<string>;
   readonly job: Expression<string>;
   readonly path: Expression<string>;
   readonly ref: Expression<string>;
-  readonly ref_name: Expression<string>;
-  readonly ref_protected: Expression<boolean>;
-  readonly ref_type: Expression<'branch' | 'tag'>;
+  readonly refName: Expression<string>;
+  readonly refProtected: Expression<boolean>;
+  readonly refType: Expression<'branch' | 'tag'>;
   readonly repository: Expression<string>;
-  readonly repository_id: Expression<string>;
-  readonly repository_owner: Expression<string>;
-  readonly repository_owner_id: Expression<string>;
+  readonly repositoryId: Expression<string>;
+  readonly repositoryOwner: Expression<string>;
+  readonly repositoryOwnerId: Expression<string>;
   readonly repositoryUrl: Expression<string>;
-  readonly retention_days: Expression<string>;
-  readonly run_id: Expression<string>;
-  readonly run_number: Expression<string>;
-  readonly run_attempt: Expression<string>;
-  readonly secret_source: Expression<string>;
-  readonly server_url: Expression<string>;
+  readonly retentionDays: Expression<string>;
+  readonly runId: Expression<string>;
+  readonly runNumber: Expression<string>;
+  readonly runAttempt: Expression<string>;
+  readonly secretSource: Expression<string>;
+  readonly serverUrl: Expression<string>;
   readonly sha: Expression<string>;
   readonly token: Expression<string>;
-  readonly triggering_actor: Expression<string>;
+  readonly triggeringActor: Expression<string>;
   readonly workflow: Expression<string>;
-  readonly workflow_ref: Expression<string>;
-  readonly workflow_sha: Expression<string>;
+  readonly workflowRef: Expression<string>;
+  readonly workflowSha: Expression<string>;
   readonly workspace: Expression<string>;
 }
 
@@ -94,7 +107,7 @@ export interface RunnerContext {
   readonly os: Expression<string>;
   readonly arch: Expression<string>;
   readonly temp: Expression<string>;
-  readonly tool_cache: Expression<string>;
+  readonly toolCache: Expression<string>;
   readonly debug: Expression<string>;
   readonly environment: Expression<string>;
 }
@@ -152,46 +165,46 @@ export interface JobContext {
 }
 
 export interface StrategyContext {
-  readonly fail_fast: Expression<boolean>;
-  readonly job_index: Expression<number>;
-  readonly job_total: Expression<number>;
-  readonly max_parallel: Expression<number>;
+  readonly failFast: Expression<boolean>;
+  readonly jobIndex: Expression<number>;
+  readonly jobTotal: Expression<number>;
+  readonly maxParallel: Expression<number>;
 }
 
 // ─── Context Instances ──────────────────────────────────────────────────────────
 
 /** GitHub context — properties of the workflow run and triggering event. */
-export const github: GitHubContext = createContextProxy<GitHubContext>('github');
+export const github: GitHubContext = createContextProxy<GitHubContext>('github', true);
 
 /** Runner context — information about the runner executing the job. */
-export const runner: RunnerContext = createContextProxy<RunnerContext>('runner');
+export const runner: RunnerContext = createContextProxy<RunnerContext>('runner', true);
 
-/** Environment variables context. */
+/** Environment variables context. Keys are passed through as-is. */
 export const env: EnvContext = createContextProxy<EnvContext>('env');
 
-/** Secrets context. */
+/** Secrets context. Keys are passed through as-is. */
 export const secrets: SecretsContext = createContextProxy<SecretsContext>('secrets');
 
-/** Matrix context — current matrix combination values. */
+/** Matrix context — current matrix combination values. Keys are passed through as-is. */
 export const matrix: MatrixContext = createContextProxy<MatrixContext>('matrix');
 
-/** Needs context — outputs and results of dependent jobs. */
+/** Needs context — outputs and results of dependent jobs. Keys are passed through as-is. */
 export const needs: NeedsContext = createContextProxy<NeedsContext>('needs');
 
-/** Steps context — outputs and status of previous steps. */
+/** Steps context — outputs and status of previous steps. Keys are passed through as-is. */
 export const steps: StepsContext = createContextProxy<StepsContext>('steps');
 
-/** Inputs context — workflow dispatch or reusable workflow inputs. */
+/** Inputs context — workflow dispatch or reusable workflow inputs. Keys are passed through as-is. */
 export const inputs: InputsContext = createContextProxy<InputsContext>('inputs');
 
-/** Configuration variables context. */
+/** Configuration variables context. Keys are passed through as-is. */
 export const vars: VarsContext = createContextProxy<VarsContext>('vars');
 
 /** Job context — container and services info. */
 export const job: JobContext = createContextProxy<JobContext>('job');
 
 /** Strategy context — matrix strategy metadata. */
-export const strategy: StrategyContext = createContextProxy<StrategyContext>('strategy');
+export const strategy: StrategyContext = createContextProxy<StrategyContext>('strategy', true);
 
 // ─── Comparison Operators ───────────────────────────────────────────────────────
 

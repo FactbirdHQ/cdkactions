@@ -18,11 +18,24 @@ test('github context returns correct expression strings', () => {
   expect(String(github.sha)).toBe('github.sha');
   expect(String(github.actor)).toBe('github.actor');
   expect(String(github.repository)).toBe('github.repository');
-  expect(String(github.event_name)).toBe('github.event_name');
-  expect(String(github.ref_name)).toBe('github.ref_name');
-  expect(String(github.run_id)).toBe('github.run_id');
+  expect(String(github.eventName)).toBe('github.event_name');
+  expect(String(github.refName)).toBe('github.ref_name');
+  expect(String(github.runId)).toBe('github.run_id');
   expect(String(github.token)).toBe('github.token');
   expect(String(github.workspace)).toBe('github.workspace');
+});
+
+test('github context camelCase to snake_case conversion', () => {
+  expect(String(github.actionPath)).toBe('github.action_path');
+  expect(String(github.actionRef)).toBe('github.action_ref');
+  expect(String(github.actionRepository)).toBe('github.action_repository');
+  expect(String(github.actorId)).toBe('github.actor_id');
+  expect(String(github.apiUrl)).toBe('github.api_url');
+  expect(String(github.baseRef)).toBe('github.base_ref');
+  expect(String(github.headRef)).toBe('github.head_ref');
+  expect(String(github.repositoryOwner)).toBe('github.repository_owner');
+  expect(String(github.triggeringActor)).toBe('github.triggering_actor');
+  expect(String(github.workflowRef)).toBe('github.workflow_ref');
 });
 
 test('runner context returns correct expression strings', () => {
@@ -30,6 +43,7 @@ test('runner context returns correct expression strings', () => {
   expect(String(runner.arch)).toBe('runner.arch');
   expect(String(runner.temp)).toBe('runner.temp');
   expect(String(runner.name)).toBe('runner.name');
+  expect(String(runner.toolCache)).toBe('runner.tool_cache');
 });
 
 test('env context returns correct expression strings', () => {
@@ -73,10 +87,10 @@ test('job context returns correct expression strings', () => {
 });
 
 test('strategy context returns correct expression strings', () => {
-  expect(String(strategy.fail_fast)).toBe('strategy.fail_fast');
-  expect(String(strategy.job_index)).toBe('strategy.job_index');
-  expect(String(strategy.job_total)).toBe('strategy.job_total');
-  expect(String(strategy.max_parallel)).toBe('strategy.max_parallel');
+  expect(String(strategy.failFast)).toBe('strategy.fail_fast');
+  expect(String(strategy.jobIndex)).toBe('strategy.job_index');
+  expect(String(strategy.jobTotal)).toBe('strategy.job_total');
+  expect(String(strategy.maxParallel)).toBe('strategy.max_parallel');
 });
 
 // ─── Comparison Operators ───────────────────────────────────────────────────────
@@ -86,7 +100,7 @@ test('eq produces correct expression', () => {
 });
 
 test('eq with two expressions', () => {
-  expect(String(eq(github.ref, github.base_ref))).toBe('github.ref == github.base_ref');
+  expect(String(eq(github.ref, github.baseRef))).toBe('github.ref == github.base_ref');
 });
 
 test('neq produces correct expression', () => {
@@ -94,29 +108,29 @@ test('neq produces correct expression', () => {
 });
 
 test('gt produces correct expression', () => {
-  expect(String(gt(strategy.job_index, 0 as unknown as Expression<number>))).toBe('strategy.job_index > 0');
+  expect(String(gt(strategy.jobIndex, 0 as unknown as Expression<number>))).toBe('strategy.job_index > 0');
 });
 
 test('gte produces correct expression', () => {
-  expect(String(gte(strategy.job_total, 2 as unknown as Expression<number>))).toBe('strategy.job_total >= 2');
+  expect(String(gte(strategy.jobTotal, 2 as unknown as Expression<number>))).toBe('strategy.job_total >= 2');
 });
 
 test('lt produces correct expression', () => {
-  expect(String(lt(strategy.job_index, strategy.job_total))).toBe('strategy.job_index < strategy.job_total');
+  expect(String(lt(strategy.jobIndex, strategy.jobTotal))).toBe('strategy.job_index < strategy.job_total');
 });
 
 test('lte produces correct expression', () => {
-  expect(String(lte(strategy.max_parallel, 4 as unknown as Expression<number>))).toBe('strategy.max_parallel <= 4');
+  expect(String(lte(strategy.maxParallel, 4 as unknown as Expression<number>))).toBe('strategy.max_parallel <= 4');
 });
 
 test('not produces correct expression', () => {
-  expect(String(not(github.ref_protected))).toBe('!github.ref_protected');
+  expect(String(not(github.refProtected))).toBe('!github.ref_protected');
 });
 
 // ─── Built-in Functions ─────────────────────────────────────────────────────────
 
 test('contains produces correct expression', () => {
-  expect(String(contains(github.event_name, 'pull_request'))).toBe("contains(github.event_name, 'pull_request')");
+  expect(String(contains(github.eventName, 'pull_request'))).toBe("contains(github.event_name, 'pull_request')");
 });
 
 test('startsWith produces correct expression', () => {
@@ -192,8 +206,8 @@ test('expressions compose correctly', () => {
 // Expression<string> context properties are typed correctly
 const _refType: Expression<string> = github.ref;
 const _osType: Expression<string> = runner.os;
-const _boolType: Expression<boolean> = github.ref_protected;
-const _numType: Expression<number> = strategy.job_index;
+const _boolType: Expression<boolean> = github.refProtected;
+const _numType: Expression<number> = strategy.jobIndex;
 
 // Status check functions return Expression<boolean>
 const _successType: Expression<boolean> = success();
@@ -203,7 +217,7 @@ const _failureType: Expression<boolean> = failure();
 const _eqType: Expression<boolean> = eq(github.ref, 'main');
 
 // not accepts and returns Expression<boolean>
-const _notType: Expression<boolean> = not(github.ref_protected);
+const _notType: Expression<boolean> = not(github.refProtected);
 
 // Suppress unused variable warnings
 void _refType;
