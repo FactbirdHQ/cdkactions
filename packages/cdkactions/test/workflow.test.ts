@@ -14,6 +14,8 @@ import type {
   ScheduleEntry,
   Expression,
   WorkflowProps,
+  PermissionsMap,
+  Permissions,
 } from '../src';
 import { TestingWorkflow } from './utils';
 
@@ -344,3 +346,77 @@ const _scheduleWithTz: ScheduleEntry = { cron: '0 0 * * *', timezone: 'UTC' };
 const _propsWithRunName: Pick<WorkflowProps, 'runName'> = {
   runName: 'test' as Expression<string>,
 };
+
+test('workflow permissions with all 16 scopes', () => {
+  const workflow = TestingWorkflow({
+    on: 'push',
+    permissions: {
+      actions: 'read',
+      artifactMetadata: 'read',
+      attestations: 'write',
+      checks: 'write',
+      contents: 'read',
+      deployments: 'none',
+      discussions: 'read',
+      idToken: 'write',
+      issues: 'write',
+      models: 'read',
+      packages: 'read',
+      pages: 'write',
+      pullRequests: 'read',
+      repositoryProjects: 'none',
+      securityEvents: 'read',
+      statuses: 'write',
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.permissions).toEqual({
+    actions: 'read',
+    'artifact-metadata': 'read',
+    attestations: 'write',
+    checks: 'write',
+    contents: 'read',
+    deployments: 'none',
+    discussions: 'read',
+    'id-token': 'write',
+    issues: 'write',
+    models: 'read',
+    packages: 'read',
+    pages: 'write',
+    'pull-requests': 'read',
+    'repository-projects': 'none',
+    'security-events': 'read',
+    statuses: 'write',
+  });
+});
+
+test('workflow permissions read-all shorthand', () => {
+  const workflow = TestingWorkflow({
+    on: 'push',
+    permissions: 'read-all',
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.permissions).toBe('read-all');
+});
+
+test('workflow permissions write-all shorthand', () => {
+  const workflow = TestingWorkflow({
+    on: 'push',
+    permissions: 'write-all',
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.permissions).toBe('write-all');
+});
+
+// Type-level: idToken only accepts 'write' | 'none'
+// @ts-expect-error - idToken does not accept 'read'
+const _invalidIdToken: PermissionsMap = { idToken: 'read' };
+
+// Type-level: models only accepts 'read' | 'none'
+// @ts-expect-error - models does not accept 'write'
+const _invalidModels: PermissionsMap = { models: 'write' };
+
+// Type-level: Permissions accepts PermissionsMap or shorthand strings
+const _readAll: Permissions = 'read-all';
+const _writeAll: Permissions = 'write-all';
+const _mapPerms: Permissions = { contents: 'read' };

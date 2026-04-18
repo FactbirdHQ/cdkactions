@@ -3,6 +3,7 @@ import { match, P } from 'ts-pattern';
 
 import type { DefaultsProps, RunProps, StringMap } from './types.js';
 import { renameKeys, type Writable } from './utils.js';
+import type { Permissions } from './workflow.js';
 import type { Workflow } from './workflow.js';
 
 /**
@@ -164,7 +165,7 @@ export interface JobProps {
   readonly continueOnError?: boolean;
   readonly container?: DockerProps;
   readonly services?: { [key: string]: DockerProps };
-  readonly permissions?: { contents?: 'write' };
+  readonly permissions?: Permissions;
   readonly environment?: string;
   readonly uses?: Workflow;
   readonly with?: { [key: string]: string | number | boolean };
@@ -216,6 +217,11 @@ export class Job extends Construct {
         fastFail: 'fail-fast',
         maxParallel: 'max-parallel',
         workingDirectory: 'working-directory',
+        artifactMetadata: 'artifact-metadata',
+        securityEvents: 'security-events',
+        repositoryProjects: 'repository-projects',
+        pullRequests: 'pull-requests',
+        idToken: 'id-token',
       }),
       uses: uses ? `./.github/workflows/${uses.outputFile}` : undefined,
       if: _if,
