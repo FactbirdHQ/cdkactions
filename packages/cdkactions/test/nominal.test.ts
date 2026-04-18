@@ -5,7 +5,6 @@ import {
   StepConclusion,
 } from '../src';
 
-// ─── RunnerLabel ────────────────────────────────────────────────────────────────
 
 test('RunnerLabel predefined constants have correct string values', () => {
   expect(String(RunnerLabel.UBUNTU_LATEST)).toBe('ubuntu-latest');
@@ -26,7 +25,6 @@ test('RunnerLabel.custom() creates a RunnerLabel from arbitrary string', () => {
   expect(String(custom)).toBe('my-custom-runner');
 });
 
-// ─── Shell ──────────────────────────────────────────────────────────────────────
 
 test('Shell predefined constants have correct string values', () => {
   expect(String(Shell.BASH)).toBe('bash');
@@ -42,7 +40,6 @@ test('Shell.custom() creates a Shell from arbitrary string', () => {
   expect(String(custom)).toBe('perl {0}');
 });
 
-// ─── JobResult ──────────────────────────────────────────────────────────────────
 
 test('JobResult constants have correct string values', () => {
   expect(String(JobResult.SUCCESS)).toBe('success');
@@ -51,7 +48,6 @@ test('JobResult constants have correct string values', () => {
   expect(String(JobResult.SKIPPED)).toBe('skipped');
 });
 
-// ─── StepConclusion ─────────────────────────────────────────────────────────────
 
 test('StepConclusion constants have correct string values', () => {
   expect(String(StepConclusion.SUCCESS)).toBe('success');
@@ -60,7 +56,6 @@ test('StepConclusion constants have correct string values', () => {
   expect(String(StepConclusion.SKIPPED)).toBe('skipped');
 });
 
-// ─── Type-Level Tests ───────────────────────────────────────────────────────────
 // These verify that bare strings are NOT assignable to nominal types.
 
 // @ts-expect-error — bare string is not assignable to RunnerLabel
