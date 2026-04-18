@@ -2,10 +2,9 @@ import {
   App, Stack, Workflow, Job, RunnerLabel, Shell,
   CompositeAction,
 } from '#@/index.js';
-import { TestingApp } from '../test/utils.js';
 
 export function create(app?: App) {
-  const _app = app ?? TestingApp({ createValidateWorkflow: false });
+  const _app = app ?? new App();
   const stack = new Stack(_app, 'composite');
 
   const setupAction = new CompositeAction('setup-project', {

@@ -1,7 +1,6 @@
 import {
   App, Stack, Workflow, Job, RunnerLabel,
 } from '#@/index.js';
-import { TestingApp } from '../test/utils.js';
 
 const Runners = {
   ...RunnerLabel,
@@ -14,7 +13,7 @@ const Runners = {
 export type OrgRunner = (typeof Runners)[keyof typeof Runners];
 
 export function create(app?: App) {
-  const _app = app ?? TestingApp({ createValidateWorkflow: false });
+  const _app = app ?? new App();
   const stack = new Stack(_app, 'runners');
 
   const workflow = new Workflow(stack, 'custom-runners', {

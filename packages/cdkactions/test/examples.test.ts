@@ -1,6 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+import type { App } from '#@/index.js';
+import { TestingApp } from './utils.js';
+
 import { create as createNodeCiMatrix } from '../examples/01-nodejs-ci-matrix.js';
 import { create as createDockerBuildPush } from '../examples/02-docker-build-push.js';
 import { create as createMultiJobPipeline } from '../examples/03-multi-job-pipeline.js';
@@ -18,8 +21,8 @@ import { create as createEventCoverage } from '../examples/14-event-coverage.js'
 import { create as createRunnerRegistry } from '../examples/15-runner-registry.js';
 import { create as createTypedActionRefs } from '../examples/16-typed-action-refs.js';
 
-function synthAndReadAll(createFn: () => ReturnType<typeof createNodeCiMatrix>) {
-  const app = createFn();
+function synthAndReadAll(createFn: (app?: App) => App) {
+  const app = createFn(TestingApp({ createValidateWorkflow: false }));
   app.synth();
   const files = fs.readdirSync(app.outdir).sort();
   const result: Record<string, string> = {};

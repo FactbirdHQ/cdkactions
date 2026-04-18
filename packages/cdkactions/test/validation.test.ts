@@ -2,7 +2,7 @@ import { Node } from 'constructs';
 
 import { App, Stack, Workflow, Job, RunnerLabel, CronExpression, validateCronExpression, collectValidationErrors } from '#@/index.js';
 import type { StepConfig, ScheduleEvent, WorkflowProps } from '#@/index.js';
-import { TestingApp } from '#$/utils.js';
+import { TestingApp } from './utils.js';
 
 function createTestApp(options: { createValidateWorkflow?: boolean } = {}) {
   return TestingApp({ createValidateWorkflow: false, ...options });
