@@ -2,8 +2,8 @@ import { Construct } from 'constructs';
 import { match, P } from 'ts-pattern';
 
 import type { Expression } from '#@/expressions.js';
-import type { RunnerLabel } from '#@/nominal.js';
-import type { DefaultsProps, RunProps, StringMap } from '#@/types.js';
+import type { RunnerLabel, Shell } from '#@/nominal.js';
+import type { DefaultsProps, StringMap } from '#@/types.js';
 import { renameKeys, type Writable } from '#@/utils.js';
 import type { Permissions } from '#@/workflow.js';
 import type { Workflow } from '#@/workflow.js';
@@ -37,20 +37,35 @@ export interface RunnerGroupConfig {
   readonly labels?: RunnerLabel[];
 }
 
-/**
- * Propsuration for a single GitHub Action step.
- */
-export interface StepsProps extends RunProps {
+export interface StepBase {
   readonly id?: string;
-  readonly if?: string;
   readonly name?: string;
-  readonly uses?: string;
-  readonly run?: string;
-  readonly with?: { [key: string]: string | number | boolean };
+  readonly if?: Condition | Expression<boolean>;
   readonly env?: StringMap;
   readonly continueOnError?: boolean;
   readonly timeoutMinutes?: number;
 }
+
+export interface RunStep extends StepBase {
+  readonly run: string;
+  readonly shell?: Shell;
+  readonly workingDirectory?: string;
+  readonly uses?: never;
+  readonly with?: never;
+}
+
+export interface UsesStep extends StepBase {
+  readonly uses: string;
+  readonly with?: { [key: string]: string | number | boolean };
+  readonly run?: never;
+  readonly shell?: never;
+  readonly workingDirectory?: never;
+}
+
+export type StepConfig = RunStep | UsesStep;
+
+/** @deprecated Use StepConfig instead. */
+export type StepsProps = StepConfig;
 
 /**
  * Strategy configuration block.
@@ -169,7 +184,7 @@ export interface JobProps {
   readonly env?: StringMap;
   readonly defaults?: DefaultsProps;
   readonly if?: string | Condition;
-  readonly steps?: StepsProps[];
+  readonly steps?: StepConfig[];
   readonly secrets?: Record<string, string | Expression<string>> | 'inherit';
   readonly timeoutMinutes?: number;
   readonly strategy?: StrategyProps;
@@ -212,14 +227,20 @@ export class Job extends Construct {
     return this.action.name;
   }
 
-  get steps(): StepsProps[] {
-    return this.action.steps || [];
+  get steps(): StepConfig[] {
+    return (this.action.steps || []) as StepConfig[];
+  }
+
+  private static serializeStepIf(stepIf: unknown): string | undefined {
+    if (stepIf === undefined) return undefined;
+    if (stepIf instanceof Condition) return stepIf.toString();
+    return String(stepIf);
   }
 
   public toGHAction(): any {
-    const { uses, runsOn, ...rest } = this.action;
+    const { uses, runsOn, steps, ...rest } = this.action;
 
-    const _if = this.if?.toString() || this.action.if;
+    const _if = this.if?.toString() || (this.action.if instanceof Condition ? this.action.if.toString() : this.action.if);
 
     let serializedRunsOn: unknown = runsOn;
     if (runsOn && typeof runsOn === 'object' && 'group' in runsOn) {
@@ -233,24 +254,35 @@ export class Job extends Construct {
       serializedUses = `./.github/workflows/${uses.outputFile}`;
     }
 
+    const keyMap = {
+      runsOn: 'runs-on',
+      continueOnError: 'continue-on-error',
+      timeoutMinutes: 'timeout-minutes',
+      fastFail: 'fail-fast',
+      maxParallel: 'max-parallel',
+      workingDirectory: 'working-directory',
+      cancelInProgress: 'cancel-in-progress',
+      artifactMetadata: 'artifact-metadata',
+      securityEvents: 'security-events',
+      repositoryProjects: 'repository-projects',
+      pullRequests: 'pull-requests',
+      idToken: 'id-token',
+    };
+
+    const serializedSteps = steps?.map((step) => {
+      const { if: stepIf, ...stepRest } = step;
+      return {
+        ...renameKeys(stepRest, keyMap),
+        ...(stepIf !== undefined ? { if: Job.serializeStepIf(stepIf) } : {}),
+      };
+    });
+
     return {
-      ...renameKeys(rest, {
-        runsOn: 'runs-on',
-        continueOnError: 'continue-on-error',
-        timeoutMinutes: 'timeout-minutes',
-        fastFail: 'fail-fast',
-        maxParallel: 'max-parallel',
-        workingDirectory: 'working-directory',
-        cancelInProgress: 'cancel-in-progress',
-        artifactMetadata: 'artifact-metadata',
-        securityEvents: 'security-events',
-        repositoryProjects: 'repository-projects',
-        pullRequests: 'pull-requests',
-        idToken: 'id-token',
-      }),
+      ...renameKeys(rest, keyMap),
       'runs-on': serializedRunsOn,
       uses: serializedUses,
       if: _if,
+      ...(serializedSteps ? { steps: serializedSteps } : {}),
     };
   }
 

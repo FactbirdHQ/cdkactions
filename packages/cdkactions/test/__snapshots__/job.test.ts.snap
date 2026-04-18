@@ -8,6 +8,7 @@ Object {
     Object {
       "continue-on-error": false,
       "name": "step",
+      "run": "echo hello",
       "timeout-minutes": 5,
       "working-directory": "~/",
     },

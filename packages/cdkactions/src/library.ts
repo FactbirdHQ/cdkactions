@@ -1,7 +1,8 @@
 import type { Construct } from 'constructs';
 import { dedent } from 'ts-dedent';
 
-import { Job, type JobProps, type StepsProps } from '#@/job.js';
+import { always } from '#@/expressions.js';
+import { Condition, Job, type JobProps, type StepConfig } from '#@/job.js';
 import { RunnerLabel } from '#@/nominal.js';
 import { Stack } from '#@/stack.js';
 import { Workflow } from '#@/workflow.js';
@@ -44,7 +45,7 @@ export class CDKActionsStack extends Stack {
         },
         {
           name: 'Push updated manifests',
-          if: config.pushUpdatedManifests ? 'always()' : 'false',
+          if: config.pushUpdatedManifests ? always() : Condition.from('false'),
           run: dedent`cd .github/workflows
                 git config user.name github-actions
                 git config user.email github-actions[bot]@users.noreply.github.com
@@ -62,7 +63,7 @@ export class CDKActionsStack extends Stack {
  */
 export class CheckoutJob extends Job {
   public constructor(scope: Workflow, id: string, config: JobProps) {
-    const steps: StepsProps[] = ([{ uses: 'actions/checkout@v4' }] as StepsProps[]).concat(config.steps || []);
+    const steps: StepConfig[] = ([{ uses: 'actions/checkout@v4' }] as StepConfig[]).concat(config.steps || []);
     super(scope, id, { ...config, steps });
   }
 }

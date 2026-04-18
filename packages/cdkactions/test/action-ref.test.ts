@@ -1,4 +1,4 @@
-import { ActionRef, type TypedUsesStep, type Expression } from '#@/index.js';
+import { ActionRef, Condition, type TypedUsesStep, type Expression } from '#@/index.js';
 
 const allOptionalAction = ActionRef.fromReference<
   {
@@ -94,8 +94,9 @@ test('call() sets name when provided', () => {
 });
 
 test('call() sets if when provided', () => {
-  const step = allOptionalAction.call({ id: 'co', if: 'github.ref == refs/heads/main' });
-  expect(step.if).toBe('github.ref == refs/heads/main');
+  const cond = Condition.from('github.ref == refs/heads/main');
+  const step = allOptionalAction.call({ id: 'co', if: cond });
+  expect(step.if!.toString()).toBe('github.ref == refs/heads/main');
 });
 
 test('call() sets env when provided', () => {

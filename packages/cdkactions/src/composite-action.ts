@@ -1,6 +1,7 @@
 import type { Construct } from 'constructs';
 
-import type { StepsProps } from '#@/job.js';
+import type { Expression } from '#@/expressions.js';
+import type { Condition, StepConfig, UsesStep } from '#@/job.js';
 import { Stack } from '#@/stack.js';
 import type { StringMap } from '#@/types.js';
 import { renameKeys } from '#@/utils.js';
@@ -68,7 +69,7 @@ export interface CompositeActionProps<TInputs extends Record<string, CompositeAc
   /**
    * Steps to run in the composite action.
    */
-  readonly steps: StepsProps[];
+  readonly steps: StepConfig[];
 }
 
 type RequiredInputKeys<T extends Record<string, CompositeActionInputProps>> = {
@@ -88,10 +89,10 @@ type CompositeActionWith<T extends Record<string, CompositeActionInputProps>> = 
 type AsStepOptions<T extends Record<string, CompositeActionInputProps>, TOutputs extends Record<string, CompositeActionOutputProps> = Record<never, never>> = {
   env?: StringMap;
   name?: string;
-  if?: string;
+  if?: Condition | Expression<boolean>;
 } & ([keyof TOutputs] extends [never] ? { id?: string } : { id: string }) & ([RequiredInputKeys<T>] extends [never] ? { with?: CompositeActionWith<T> } : { with: CompositeActionWith<T> });
 
-type CompositeActionStepRef<TOutputs extends Record<string, CompositeActionOutputProps>> = StepsProps & {
+type CompositeActionStepRef<TOutputs extends Record<string, CompositeActionOutputProps>> = UsesStep & {
   output<K extends keyof TOutputs & string>(key: K): string;
 };
 
@@ -140,7 +141,7 @@ export class CompositeAction<const TInputs extends Record<string, CompositeActio
     const options = args[0];
     const id = options?.id;
 
-    const step: StepsProps = {
+    const step: UsesStep = {
       name: this.config.name,
       ...options,
       uses: this.usesPath,
