@@ -3,7 +3,7 @@ import {
   Shell,
   JobResult,
   StepConclusion,
-} from '#@/index.js.js';
+} from '#@/index.js';
 
 
 test('RunnerLabel predefined constants have correct string values', () => {
