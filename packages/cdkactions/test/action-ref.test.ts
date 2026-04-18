@@ -1,8 +1,5 @@
 import { ActionRef, type TypedUsesStep, type Expression } from '../src/index.js';
 
-// ─── Test Fixtures ──────────────────────────────────────────────────────────────
-
-// Action with all-optional inputs (all have defaults) and outputs
 const allOptionalAction = ActionRef.fromReference<
   {
     repository: { default: '${{ github.repository }}' };
@@ -15,7 +12,6 @@ const allOptionalAction = ActionRef.fromReference<
   }
 >('actions/all-optional@v1');
 
-// Action with both required and optional inputs, and outputs
 const uploadArtifactV4 = ActionRef.fromReference<
   {
     name: { required: true };
@@ -29,7 +25,6 @@ const uploadArtifactV4 = ActionRef.fromReference<
   }
 >('actions/upload-artifact@v4');
 
-// Action with required inputs (bare {} = required) and outputs
 const setupAction = ActionRef.fromReference<
   {
     nodeVersion: {};
@@ -40,16 +35,12 @@ const setupAction = ActionRef.fromReference<
   }
 >('actions/setup-node@v4');
 
-// Action with no inputs and no outputs
 const emptyAction = ActionRef.fromReference('actions/empty@v1');
 
-// Action with no outputs (id should be optional)
 const noOutputAction = ActionRef.fromReference<
   { inputA: { required: true } },
   Record<never, never>
 >('actions/no-output@v1');
-
-// ─── Runtime Tests ──────────────────────────────────────────────────────────────
 
 function test(name: string, fn: () => void) {
   try {
@@ -78,8 +69,6 @@ function expect<T>(actual: T) {
 
 console.log('ActionRef');
 
-// ─── fromReference ──────────────────────────────────────────────────────────────
-
 test('fromReference stores the action ref string', () => {
   expect(allOptionalAction.ref).toBe('actions/all-optional@v1');
 });
@@ -88,8 +77,6 @@ test('fromReference with no type params', () => {
   const action = ActionRef.fromReference('my/action@v1');
   expect(action.ref).toBe('my/action@v1');
 });
-
-// ─── call() — basic step shape ──────────────────────────────────────────────────
 
 test('call() produces a step with uses set to the ref', () => {
   const step = allOptionalAction.call({ id: 'co' });
@@ -126,11 +113,8 @@ test('call() sets timeoutMinutes when provided', () => {
   expect(step.timeoutMinutes).toBe(10);
 });
 
-// ─── call() — with inputs ───────────────────────────────────────────────────────
-
 test('call() passes optional inputs in with', () => {
   const step = allOptionalAction.call({ id: 'co', with: { fetchDepth: 0 } });
-  // camelCase keys are converted to kebab-case
   expect(step.with).toEqual({ 'fetch-depth': 0 });
 });
 
@@ -156,8 +140,6 @@ test('call() with bare-required input (no default, no required:true)', () => {
   expect(step.with).toEqual({ 'node-version': '20' });
 });
 
-// ─── call() — empty action ──────────────────────────────────────────────────────
-
 test('call() with no inputs and no outputs', () => {
   const step = emptyAction.call({});
   expect(step.uses).toBe('actions/empty@v1');
@@ -167,8 +149,6 @@ test('call() on no-output action allows omitting id', () => {
   const step = noOutputAction.call({ with: { inputA: 'val' } });
   expect(step.uses).toBe('actions/no-output@v1');
 });
-
-// ─── call() — camelCase to kebab-case conversion ────────────────────────────────
 
 test('camelCase input keys are serialized to kebab-case', () => {
   const step = allOptionalAction.call({ id: 'co', with: { fetchDepth: 0 } });
@@ -182,8 +162,6 @@ test('multi-word camelCase keys convert correctly', () => {
   });
   expect(step.with).toEqual({ name: 'dist', path: 'dist/', 'compression-level': '6' });
 });
-
-// ─── output() ───────────────────────────────────────────────────────────────────
 
 test('output() returns expression string for known output key', () => {
   const step = allOptionalAction.call({ id: 'co' });
@@ -203,14 +181,10 @@ test('output() on uploadArtifact returns correct expression', () => {
   expect(step.output('artifactUrl') as string).toBe('steps.upload.outputs.artifactUrl');
 });
 
-// ─── Type-Level Tests ───────────────────────────────────────────────────────────
-
 console.log('\nType-level tests (compile-time checks):');
 
-// Valid: all optional inputs, id provided (required because outputs exist)
 const _validStep: TypedUsesStep<{ ref: {}; commit: {} }> = allOptionalAction.call({ id: 'co' });
 
-// Valid: output returns Expression<string>
 const _outputRef: Expression<string> = _validStep.output('ref');
 
 // @ts-expect-error — 'nonexistent' is not an output
