@@ -67,13 +67,32 @@ export type StepConfig = RunStep | UsesStep;
 /** @deprecated Use StepConfig instead. */
 export type StepsProps = StepConfig;
 
-/**
- * Strategy configuration block.
- */
-export interface StrategyProps {
-  readonly matrix?: { [key: string]: Array<any> };
-  readonly fastFail?: boolean;
+export type MatrixDefinition = Record<string, ReadonlyArray<string | number | boolean>>;
+
+type MatrixEntry<TMatrix extends MatrixDefinition> = Partial<{
+  [K in keyof TMatrix]: TMatrix[K][number];
+}>;
+
+export interface StrategyProps<TMatrix extends MatrixDefinition = MatrixDefinition> {
+  readonly matrix?: TMatrix;
+  readonly include?: Array<MatrixEntry<TMatrix>>;
+  readonly exclude?: Array<MatrixEntry<TMatrix>>;
+  readonly failFast?: boolean;
   readonly maxParallel?: number;
+}
+
+type MatrixProxy<TMatrix extends MatrixDefinition> = {
+  readonly [K in keyof TMatrix]: Expression<TMatrix[K][number]>;
+};
+
+export function createMatrixProxy<TMatrix extends MatrixDefinition>(
+  _matrix: TMatrix,
+): MatrixProxy<TMatrix> {
+  return new Proxy({} as MatrixProxy<TMatrix>, {
+    get(_target, prop: string) {
+      return `\${{ matrix.${prop} }}` as Expression<unknown>;
+    },
+  });
 }
 
 /**
@@ -176,7 +195,7 @@ type ConditionExpression =
 /**
  * Configuration for a single GitHub Action job.
  */
-export interface JobProps {
+export interface JobProps<TMatrix extends MatrixDefinition = MatrixDefinition> {
   readonly name?: string;
   readonly needs?: string | string[];
   readonly runsOn?: RunnerLabel | RunnerLabel[] | RunnerGroupConfig | Expression<string>;
@@ -187,7 +206,7 @@ export interface JobProps {
   readonly steps?: StepConfig[];
   readonly secrets?: Record<string, string | Expression<string>> | 'inherit';
   readonly timeoutMinutes?: number;
-  readonly strategy?: StrategyProps;
+  readonly strategy?: StrategyProps<TMatrix>;
   readonly continueOnError?: boolean;
   readonly container?: DockerProps;
   readonly services?: { [key: string]: DockerProps };
@@ -201,15 +220,17 @@ export interface JobProps {
 /**
  * Represents a GH Actions job.
  */
-export class Job extends Construct {
-  protected readonly action: Writable<JobProps>;
+export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Construct {
+  protected readonly action: Writable<JobProps<TMatrix>>;
   public readonly id: string;
   public if?: Condition;
+  public readonly matrix: MatrixProxy<TMatrix>;
 
-  public constructor(scope: Workflow, id: string, config: JobProps) {
+  public constructor(scope: Workflow, id: string, config: JobProps<TMatrix>) {
     super(scope, id);
     this.id = id;
-    this.action = config;
+    this.action = config as Writable<JobProps<TMatrix>>;
+    this.matrix = createMatrixProxy((config.strategy?.matrix ?? {}) as TMatrix);
   }
 
   get env(): JobProps['env'] {
@@ -238,7 +259,7 @@ export class Job extends Construct {
   }
 
   public toGHAction(): any {
-    const { uses, runsOn, steps, ...rest } = this.action;
+    const { uses, runsOn, steps, strategy, ...rest } = this.action;
 
     const _if = this.if?.toString() || (this.action.if instanceof Condition ? this.action.if.toString() : this.action.if);
 
@@ -258,7 +279,7 @@ export class Job extends Construct {
       runsOn: 'runs-on',
       continueOnError: 'continue-on-error',
       timeoutMinutes: 'timeout-minutes',
-      fastFail: 'fail-fast',
+      failFast: 'fail-fast',
       maxParallel: 'max-parallel',
       workingDirectory: 'working-directory',
       cancelInProgress: 'cancel-in-progress',
@@ -277,11 +298,27 @@ export class Job extends Construct {
       };
     });
 
+    let serializedStrategy: Record<string, unknown> | undefined;
+    if (strategy) {
+      const { matrix, include, exclude, ...strategyRest } = strategy;
+      serializedStrategy = {
+        ...renameKeys(strategyRest, keyMap),
+        ...(matrix || include || exclude ? {
+          matrix: {
+            ...matrix,
+            ...(include?.length ? { include } : {}),
+            ...(exclude?.length ? { exclude } : {}),
+          },
+        } : {}),
+      };
+    }
+
     return {
       ...renameKeys(rest, keyMap),
       'runs-on': serializedRunsOn,
       uses: serializedUses,
       if: _if,
+      ...(serializedStrategy ? { strategy: serializedStrategy } : {}),
       ...(serializedSteps ? { steps: serializedSteps } : {}),
     };
   }

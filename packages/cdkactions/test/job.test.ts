@@ -1,5 +1,5 @@
-import { Condition, Job, RunnerLabel } from '#@/index.js';
-import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, RunStep, UsesStep, StepConfig, Expression } from '#@/index.js';
+import { Condition, Job, RunnerLabel, createMatrixProxy } from '#@/index.js';
+import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, RunStep, UsesStep, StepConfig, Expression, StrategyProps, MatrixDefinition } from '#@/index.js';
 
 test('toGHAction', () => {
   const job = new Job(undefined as any, 'test', {
@@ -7,7 +7,7 @@ test('toGHAction', () => {
     continueOnError: true,
     timeoutMinutes: 10,
     strategy: {
-      fastFail: true,
+      failFast: true,
       maxParallel: 11,
     },
     steps: [{
@@ -315,3 +315,101 @@ const _stepWithCondition: StepConfig = { run: 'echo', if: Condition.from('true')
 
 // Type-level: step if accepts Expression<boolean>
 const _stepWithExpr: StepConfig = { run: 'echo', if: 'true' as Expression<boolean> };
+
+test('generic matrix strategy serialization', () => {
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    strategy: {
+      matrix: {
+        os: ['ubuntu-latest', 'windows-latest'],
+        node: [16, 18, 20],
+      } as const,
+      include: [{ os: 'ubuntu-latest', node: 20 }],
+      exclude: [{ os: 'windows-latest', node: 16 }],
+      failFast: false,
+      maxParallel: 3,
+    },
+    steps: [{ run: 'echo hello' }],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.strategy).toEqual({
+    matrix: {
+      os: ['ubuntu-latest', 'windows-latest'],
+      node: [16, 18, 20],
+      include: [{ os: 'ubuntu-latest', node: 20 }],
+      exclude: [{ os: 'windows-latest', node: 16 }],
+    },
+    'fail-fast': false,
+    'max-parallel': 3,
+  });
+});
+
+test('typed matrix accessor returns expression strings', () => {
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    strategy: {
+      matrix: {
+        os: ['ubuntu-latest', 'windows-latest'],
+        node: [16, 18],
+      } as const,
+    },
+    steps: [{ run: 'echo hello' }],
+  });
+  expect(job.matrix.os).toBe('${{ matrix.os }}');
+  expect(job.matrix.node).toBe('${{ matrix.node }}');
+});
+
+test('createMatrixProxy produces correct expression strings', () => {
+  const proxy = createMatrixProxy({
+    os: ['ubuntu-latest', 'windows-latest'],
+    version: [1, 2, 3],
+  } as const);
+  expect(proxy.os).toBe('${{ matrix.os }}');
+  expect(proxy.version).toBe('${{ matrix.version }}');
+});
+
+test('failFast serializes as fail-fast', () => {
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    strategy: {
+      failFast: true,
+    },
+    steps: [{ run: 'echo hello' }],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.strategy['fail-fast']).toBe(true);
+  expect(ghAction.strategy.failFast).toBeUndefined();
+});
+
+// Type-level: StrategyProps with typed matrix
+const _typedStrategy: StrategyProps<{
+  readonly os: readonly ['ubuntu-latest', 'windows-latest'];
+  readonly node: readonly [16, 18];
+}> = {
+  matrix: {
+    os: ['ubuntu-latest', 'windows-latest'],
+    node: [16, 18],
+  },
+  include: [{ os: 'ubuntu-latest' }],
+  exclude: [{ node: 16 }],
+  failFast: true,
+};
+
+// Type-level: include/exclude constrained to matrix value types
+// @ts-expect-error - include entry with invalid os value
+const _invalidInclude: StrategyProps<{
+  readonly os: readonly ['ubuntu-latest', 'windows-latest'];
+}> = {
+  matrix: { os: ['ubuntu-latest', 'windows-latest'] },
+  include: [{ os: 'macos-latest' }],
+};
+
+// Type-level: typed matrix proxy prevents nonexistent key access
+{
+  const matrixDef = { os: ['ubuntu-latest'], node: [16] } as const;
+  const proxy = createMatrixProxy(matrixDef);
+  const _os: Expression<'ubuntu-latest'> = proxy.os;
+  const _node: Expression<16> = proxy.node;
+  // @ts-expect-error - nonexistent matrix key
+  const _bad: Expression<unknown> = proxy.nonexistent;
+}

@@ -2,7 +2,7 @@ import type { Construct } from 'constructs';
 import { dedent } from 'ts-dedent';
 
 import { always } from '#@/expressions.js';
-import { Condition, Job, type JobProps, type StepConfig } from '#@/job.js';
+import { Condition, Job, type JobProps, type MatrixDefinition, type StepConfig } from '#@/job.js';
 import { RunnerLabel } from '#@/nominal.js';
 import { Stack } from '#@/stack.js';
 import { Workflow } from '#@/workflow.js';
@@ -61,8 +61,8 @@ export class CDKActionsStack extends Stack {
 /**
  * A special Job that includes a checkout step automatically.
  */
-export class CheckoutJob extends Job {
-  public constructor(scope: Workflow, id: string, config: JobProps) {
+export class CheckoutJob<TMatrix extends MatrixDefinition = MatrixDefinition> extends Job<TMatrix> {
+  public constructor(scope: Workflow, id: string, config: JobProps<TMatrix>) {
     const steps: StepConfig[] = ([{ uses: 'actions/checkout@v4' }] as StepConfig[]).concat(config.steps || []);
     super(scope, id, { ...config, steps });
   }
