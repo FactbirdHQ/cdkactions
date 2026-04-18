@@ -1,5 +1,57 @@
 import { Construct, Node, type IValidation } from 'constructs';
 
+type Digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
+
+type MinuteValue = `${Digit}` | `${1 | 2 | 3 | 4 | 5}${Digit}`;
+type HourValue = `${Digit}` | `1${Digit}` | `2${'0' | '1' | '2' | '3'}`;
+type DayOfMonthValue =
+  | `${Exclude<Digit, '0'>}`
+  | `${'1' | '2'}${Digit}`
+  | '30'
+  | '31';
+type MonthValue =
+  | `${Exclude<Digit, '0'>}`
+  | '10'
+  | '11'
+  | '12'
+  | 'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN'
+  | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC';
+type WeekdayValue =
+  | '0' | '1' | '2' | '3' | '4' | '5' | '6'
+  | 'SUN' | 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT';
+
+type IsAtom<S extends string, V extends string> =
+  S extends V ? true :
+  S extends `*/${infer Step}` ? (Step extends V ? true : false) :
+  S extends `${infer Lo}-${infer Rest}` ? (
+    Rest extends `${infer Hi}/${infer Step}`
+      ? (Lo extends V ? Hi extends V ? Step extends V ? true : false : false : false)
+      : (Lo extends V ? Rest extends V ? true : false : false)
+  ) :
+  false;
+
+type IsField<S extends string, V extends string> =
+  S extends '*' ? true :
+  S extends `${infer Head},${infer Tail}`
+    ? (IsAtom<Head, V> extends true ? IsField<Tail, V> : false)
+    : IsAtom<S, V>;
+
+type IsValidCron<S extends string> =
+  S extends `${infer Min} ${infer R1}`
+    ? R1 extends `${infer Hr} ${infer R2}`
+      ? R2 extends `${infer Dom} ${infer R3}`
+        ? R3 extends `${infer Mon} ${infer Wday}`
+          ? Wday extends `${string} ${string}` ? false
+            : [IsField<Min, MinuteValue>, IsField<Hr, HourValue>, IsField<Dom, DayOfMonthValue>, IsField<Mon, MonthValue>, IsField<Wday, WeekdayValue>] extends [true, true, true, true, true]
+              ? true
+              : false
+          : false
+        : false
+      : false
+    : false;
+
+export type ValidCronExpression<S extends string> = IsValidCron<S> extends true ? S : never;
+
 const CRON_FIELD_RANGES: Array<{ name: string; min: number; max: number }> = [
   { name: 'minute', min: 0, max: 59 },
   { name: 'hour', min: 0, max: 23 },
@@ -51,7 +103,7 @@ function validateCronField(field: string, range: { name: string; min: number; ma
   return undefined;
 }
 
-export function validateCronExpression(cron: string): string[] {
+function validateCronString(cron: string): string[] {
   const fields = cron.trim().split(/\s+/);
   if (fields.length !== 5) {
     return [`Cron expression '${cron}' must have exactly 5 fields, got ${fields.length}`];
@@ -65,6 +117,37 @@ export function validateCronExpression(cron: string): string[] {
     }
   }
   return errors;
+}
+
+export class CronExpression<S extends string = string> {
+  readonly expression: S;
+
+  constructor(expression: ValidCronExpression<S>) {
+    const errors = validateCronString(expression);
+    if (errors.length > 0) {
+      throw new Error(errors.join('; '));
+    }
+    this.expression = expression as S;
+  }
+
+  static from(expression: string): CronExpression {
+    const errors = validateCronString(expression);
+    if (errors.length > 0) {
+      throw new Error(errors.join('; '));
+    }
+    const instance = Object.create(CronExpression.prototype) as CronExpression;
+    (instance as { expression: string }).expression = expression;
+    return instance;
+  }
+
+  toString(): string {
+    return this.expression;
+  }
+}
+
+export function validateCronExpression(cron: string | CronExpression): string[] {
+  const value = cron instanceof CronExpression ? cron.expression : cron;
+  return validateCronString(value);
 }
 
 export interface JobValidationData {
@@ -150,8 +233,9 @@ class WorkflowValidation implements IValidation {
       }
 
       if ('schedule' in on) {
-        const schedule = (on as { schedule: Array<{ cron: string }> }).schedule;
+        const schedule = (on as { schedule: Array<{ cron: string | CronExpression }> }).schedule;
         for (const entry of schedule) {
+          if (entry.cron instanceof CronExpression) continue;
           for (const cronError of validateCronExpression(entry.cron)) {
             errors.push(`Workflow '${data.name}': ${cronError}`);
           }
