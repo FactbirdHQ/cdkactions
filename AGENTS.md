@@ -119,7 +119,7 @@ Uses `ts-pattern` for exhaustive matching on the `ConditionExpression` discrimin
 1. `App.synth()` iterates over Stack children
 2. `Stack.synthesize(outdir)` iterates over Workflow children, calling `toGHAction()` on each
 3. `Workflow.toGHAction()` collects Job children and calls `toGHAction()` on each
-4. YAML output via `js-yaml.dump()` with options: `{ lineWidth: -1, noCompatMode: true, quotingType: '"' }`
+4. YAML output via `js-yaml.dump()` with options: `{ lineWidth: -1, noCompatMode: true, quotingType: '"', sortKeys: true }`
 5. Output files: `cdkactions_<sanitized-id>.yaml` with a header comment
 6. CompositeActions output to `.github/actions/<dir>/action.yml`
 
