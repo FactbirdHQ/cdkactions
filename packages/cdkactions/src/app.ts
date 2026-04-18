@@ -2,8 +2,8 @@ import * as fs from 'node:fs';
 
 import { Construct, Node } from 'constructs';
 
-import { CDKActionsStack } from './library.js';
-import { Stack } from './stack.js';
+import { CDKActionsStack } from '#@/library.js';
+import { Stack } from '#@/stack.js';
 
 /**
  * Configuration for a cdkactions app.

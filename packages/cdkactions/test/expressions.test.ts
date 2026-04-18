@@ -9,7 +9,7 @@ import {
   contains, startsWith, endsWith, format, join, toJSON, fromJSON, hashFiles,
   // Status check functions
   success, failure, always, cancelled,
-} from '../src';
+} from '#@/index.js';
 
 // ─── Context Accessors ─────────────────────────────────────────────────────────
 

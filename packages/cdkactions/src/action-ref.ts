@@ -1,5 +1,5 @@
-import type { Expression } from './expressions.js';
-import { camelToKebab } from './utils.js';
+import type { Expression } from '#@/expressions.js';
+import { camelToKebab } from '#@/utils.js';
 
 export interface ActionInput {
   readonly required?: boolean;

@@ -2,10 +2,10 @@ import assert from 'node:assert';
 
 import { Construct, Node } from 'constructs';
 
-import type { Expression } from './expressions.js';
-import { Job } from './job.js';
-import type { DefaultsProps, StringMap } from './types.js';
-import { camelToSnake, renameKeys, type Writable } from './utils.js';
+import type { Expression } from '#@/expressions.js';
+import { Job } from '#@/job.js';
+import type { DefaultsProps, StringMap } from '#@/types.js';
+import { camelToSnake, renameKeys, type Writable } from '#@/utils.js';
 
 /**
  * Configuration for the BranchProtectionRule event.
@@ -320,6 +320,27 @@ export type Events = keyof EventMap | EventStrings;
 
 export type TokenPermission = 'read' | 'write' | 'none';
 
+export interface PermissionsMap {
+  readonly actions?: TokenPermission;
+  readonly artifactMetadata?: TokenPermission;
+  readonly attestations?: TokenPermission;
+  readonly checks?: TokenPermission;
+  readonly contents?: TokenPermission;
+  readonly deployments?: TokenPermission;
+  readonly discussions?: TokenPermission;
+  readonly idToken?: 'write' | 'none';
+  readonly issues?: TokenPermission;
+  readonly models?: 'read' | 'none';
+  readonly packages?: TokenPermission;
+  readonly pages?: TokenPermission;
+  readonly pullRequests?: TokenPermission;
+  readonly repositoryProjects?: TokenPermission;
+  readonly securityEvents?: TokenPermission;
+  readonly statuses?: TokenPermission;
+}
+
+export type Permissions = PermissionsMap | 'read-all' | 'write-all';
+
 export interface WorkflowProps {
   readonly name: string;
   readonly runName?: string | Expression<string>;
@@ -339,22 +360,7 @@ export interface WorkflowProps {
     discriminator?: string;
   };
   readonly defaults?: DefaultsProps;
-  readonly permissions?: {
-    actions?: TokenPermission;
-    attestations?: TokenPermission;
-    checks?: TokenPermission;
-    contents?: TokenPermission;
-    deployments?: TokenPermission;
-    discussions?: TokenPermission;
-    idToken?: TokenPermission;
-    issues?: TokenPermission;
-    packages?: TokenPermission;
-    pages?: TokenPermission;
-    pullRequests?: TokenPermission;
-    repositoryProjects?: TokenPermission;
-    securityEvents?: TokenPermission;
-    statuses?: TokenPermission;
-  };
+  readonly permissions?: Permissions;
 }
 
 function isPushEvent(on: WorkflowProps['on']): on is { push: NonNullable<EventMap['push']> } {
@@ -425,6 +431,7 @@ export class Workflow extends Construct {
       workflowDispatch: 'workflow_dispatch',
       workflowRun: 'workflow_run',
       workflowCall: 'workflow_call',
+      artifactMetadata: 'artifact-metadata',
       securityEvents: 'security-events',
       repositoryProjects: 'repository-projects',
       pullRequests: 'pull-requests',
