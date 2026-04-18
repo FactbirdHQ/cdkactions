@@ -146,6 +146,14 @@ Synthesis must be fast (< 100ms for 200 jobs). Key constraints:
 - `ts-pattern` ^5.7.0 — exhaustive pattern matching (used in Condition class)
 - TypeScript 5.8+, Node 20+
 
+## Development Environment
+
+The project uses [devenv](https://devenv.sh/) (backed by Nix) to manage the development shell. The devenv configuration (`devenv.nix`) provides Node.js 22 with corepack enabled.
+
+To enter the dev shell, either:
+- **direnv** — install [nix-direnv](https://github.com/nix-community/nix-direnv) and allow the `.envrc` (`direnv allow`). The shell activates automatically when you `cd` into the project.
+- **`nix develop`** — run `nix develop --no-pure-eval` to start a shell manually.
+
 ## File Conventions
 
 - ESM modules (`.js` extensions in imports)
