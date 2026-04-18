@@ -2,6 +2,7 @@ import { Node } from 'constructs';
 
 import { App, Stack, Workflow, Job, RunnerLabel, CronExpression, validateCronExpression, collectValidationErrors } from '#@/index.js';
 import type { StepConfig, ScheduleEvent, WorkflowProps } from '#@/index.js';
+import { checkoutV4 } from '../src/actions.js';
 import { TestingApp } from './utils.js';
 
 function createTestApp(options: { createValidateWorkflow?: boolean } = {}) {
@@ -58,7 +59,7 @@ test('step mutual exclusion: valid steps pass', () => {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
       { run: 'echo hello' },
-      { uses: 'actions/checkout@v4' },
+      checkoutV4.call({}),
     ],
   });
 

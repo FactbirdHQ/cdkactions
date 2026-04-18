@@ -1,6 +1,7 @@
 import {
   App, Stack, Workflow, Job, RunnerLabel,
 } from '#@/index.js';
+import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -31,7 +32,7 @@ export function create(app?: App) {
       idToken: 'write',
     },
     steps: [
-      { uses: 'actions/checkout@v4' },
+      checkoutV4.call({}),
       {
         name: 'Login to GHCR',
         uses: 'docker/login-action@v3',

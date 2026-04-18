@@ -1,5 +1,6 @@
 import { Condition, Job, RunnerLabel, createMatrixProxy, eq, github, always, failure } from '#@/index.js';
 import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, RunStep, UsesStep, StepConfig, Expression, StrategyProps, MatrixDefinition, ServiceProps } from '#@/index.js';
+import { checkoutV2, checkoutV4 } from '../src/actions.js';
 
 test('toGHAction', () => {
   const job = new Job(undefined as any, 'test', {
@@ -275,7 +276,7 @@ test('mixed RunStep and UsesStep in same job', () => {
   const job = new Job(undefined as any, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
-      { uses: 'actions/checkout@v4' },
+      checkoutV4.call({}),
       { run: 'npm install' },
       { uses: 'actions/setup-node@v4', with: { nodeVersion: '20' } },
       { run: 'npm test', workingDirectory: 'packages/core' },

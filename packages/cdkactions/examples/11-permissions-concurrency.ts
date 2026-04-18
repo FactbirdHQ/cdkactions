@@ -1,6 +1,7 @@
 import {
   App, Stack, Workflow, Job, RunnerLabel,
 } from '#@/index.js';
+import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -30,7 +31,7 @@ export function create(app?: App) {
       contents: 'read',
     },
     steps: [
-      { uses: 'actions/checkout@v4' },
+      checkoutV4.call({}),
       { uses: 'github/codeql-action/init@v3' },
       { uses: 'github/codeql-action/analyze@v3' },
     ],
