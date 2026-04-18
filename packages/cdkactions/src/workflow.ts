@@ -313,7 +313,6 @@ export interface EventMap {
   readonly registryPackage?: RegistryPackageTypes;
   readonly release?: ReleaseTypes;
   readonly watch?: WatchTypes;
-  readonly issue_comment?: { types: ('created' | 'deleted')[] };
 }
 
 export type Events = keyof EventMap | EventStrings;

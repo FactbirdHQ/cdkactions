@@ -28,6 +28,11 @@ export interface DockerProps {
   readonly options?: string;
 }
 
+export interface ServiceProps extends DockerProps {
+  readonly command?: string;
+  readonly entrypoint?: string;
+}
+
 export type EnvironmentConfig = string | { readonly name: string; readonly url?: string };
 
 export type ConcurrencyConfig = string | { readonly group: string; readonly cancelInProgress?: boolean };
@@ -209,7 +214,7 @@ export interface JobProps<TMatrix extends MatrixDefinition = MatrixDefinition> {
   readonly strategy?: StrategyProps<TMatrix>;
   readonly continueOnError?: boolean;
   readonly container?: DockerProps;
-  readonly services?: { [key: string]: DockerProps };
+  readonly services?: Record<string, ServiceProps>;
   readonly permissions?: Permissions;
   readonly environment?: EnvironmentConfig;
   readonly concurrency?: ConcurrencyConfig;

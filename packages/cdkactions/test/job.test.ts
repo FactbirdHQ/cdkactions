@@ -1,5 +1,5 @@
 import { Condition, Job, RunnerLabel, createMatrixProxy } from '../src';
-import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, RunStep, UsesStep, StepConfig, Expression, StrategyProps, MatrixDefinition } from '../src';
+import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, RunStep, UsesStep, StepConfig, Expression, StrategyProps, MatrixDefinition, ServiceProps } from '../src';
 
 test('toGHAction', () => {
   const job = new Job(undefined as any, 'test', {
@@ -413,3 +413,61 @@ const _invalidInclude: StrategyProps<{
   // @ts-expect-error - nonexistent matrix key
   const _bad: Expression<unknown> = proxy.nonexistent;
 }
+
+test('service with command and entrypoint', () => {
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'echo hello' }],
+    services: {
+      redis: {
+        image: 'redis:7',
+        ports: ['6379:6379'],
+        options: '--health-cmd "redis-cli ping"',
+      },
+      postgres: {
+        image: 'postgres:16',
+        env: { POSTGRES_PASSWORD: 'test' },
+        ports: ['5432:5432'],
+        command: '--max-connections=200',
+        entrypoint: '/usr/local/bin/docker-entrypoint.sh',
+      },
+    },
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.services.redis).toEqual({
+    image: 'redis:7',
+    ports: ['6379:6379'],
+    options: '--health-cmd "redis-cli ping"',
+  });
+  expect(ghAction.services.postgres).toEqual({
+    image: 'postgres:16',
+    env: { POSTGRES_PASSWORD: 'test' },
+    ports: ['5432:5432'],
+    command: '--max-connections=200',
+    entrypoint: '/usr/local/bin/docker-entrypoint.sh',
+  });
+});
+
+test('service without command and entrypoint', () => {
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'echo hello' }],
+    services: {
+      redis: {
+        image: 'redis:7',
+      },
+    },
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.services.redis).toEqual({ image: 'redis:7' });
+  expect(ghAction.services.redis.command).toBeUndefined();
+  expect(ghAction.services.redis.entrypoint).toBeUndefined();
+});
+
+// Type-level: ServiceProps extends DockerProps with command and entrypoint
+const _serviceWithExtras: ServiceProps = {
+  image: 'postgres:16',
+  command: '--max-connections=200',
+  entrypoint: '/entrypoint.sh',
+};
+const _serviceWithoutExtras: ServiceProps = { image: 'redis:7' };
