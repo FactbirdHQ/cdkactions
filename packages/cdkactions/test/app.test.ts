@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { Construct } from 'constructs';
-import { Stack, Workflow, App } from '#@/index.js.js';
+import { Stack, Workflow, App } from '#@/index.js';
 import { TestingApp } from '#$/utils.js';
 
 
