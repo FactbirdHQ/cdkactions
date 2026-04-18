@@ -1,6 +1,6 @@
-import { ActionRef, Condition, type TypedUsesStep, type Expression } from '#@/index.js';
+import { Action, ActionRef, Condition, type TypedUsesStep, type Expression } from '#@/index.js';
 
-const allOptionalAction = ActionRef.fromReference<
+const allOptionalAction = Action.fromReference<
   {
     repository: { default: '${{ github.repository }}' };
     token: { default: '${{ github.token }}' };
@@ -12,7 +12,7 @@ const allOptionalAction = ActionRef.fromReference<
   }
 >('actions/all-optional@v1');
 
-const uploadArtifactV4 = ActionRef.fromReference<
+const uploadArtifactV4 = Action.fromReference<
   {
     name: { required: true };
     path: { required: true };
@@ -25,7 +25,7 @@ const uploadArtifactV4 = ActionRef.fromReference<
   }
 >('actions/upload-artifact@v4');
 
-const setupAction = ActionRef.fromReference<
+const setupAction = Action.fromReference<
   {
     nodeVersion: {};
     cache: { default: '' };
@@ -35,9 +35,9 @@ const setupAction = ActionRef.fromReference<
   }
 >('actions/setup-node@v4');
 
-const emptyAction = ActionRef.fromReference('actions/empty@v1');
+const emptyAction = Action.fromReference('actions/empty@v1');
 
-const noOutputAction = ActionRef.fromReference<
+const noOutputAction = Action.fromReference<
   { inputA: { required: true } },
   Record<never, never>
 >('actions/no-output@v1');
@@ -46,8 +46,8 @@ function test(name: string, fn: () => void) {
   try {
     fn();
     console.log(`  ✓ ${name}`);
-  } catch (e: any) {
-    console.error(`  ✗ ${name}: ${e.message}`);
+  } catch (e: unknown) {
+    console.error(`  ✗ ${name}: ${(e as Error).message}`);
     process.exitCode = 1;
   }
 }
@@ -67,15 +67,20 @@ function expect<T>(actual: T) {
   };
 }
 
-console.log('ActionRef');
+console.log('Action');
 
 test('fromReference stores the action ref string', () => {
   expect(allOptionalAction.ref).toBe('actions/all-optional@v1');
 });
 
 test('fromReference with no type params', () => {
-  const action = ActionRef.fromReference('my/action@v1');
+  const action = Action.fromReference('my/action@v1');
   expect(action.ref).toBe('my/action@v1');
+});
+
+test('ActionRef is a deprecated alias for Action', () => {
+  const isAlias = ActionRef === Action;
+  expect(isAlias).toBe(true);
 });
 
 test('call() produces a step with uses set to the ref', () => {

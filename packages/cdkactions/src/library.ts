@@ -1,35 +1,12 @@
 import type { Construct } from 'constructs';
 import { dedent } from 'ts-dedent';
 
-import { ActionRef } from '#@/action-ref.js';
+import { checkoutV4 } from '#@/actions.js';
 import { always } from '#@/expressions.js';
 import { Condition, Job, type JobProps, type MatrixDefinition, type StepConfig } from '#@/job.js';
 import { RunnerLabel } from '#@/nominal.js';
 import { Stack } from '#@/stack.js';
 import { Workflow } from '#@/workflow.js';
-
-export const checkoutV4 = ActionRef.fromReference<{
-  repository: { default: string };
-  ref: { default: string };
-  token: { default: string };
-  sshKey: { default: string };
-  sshKnownHosts: { default: string };
-  sshStrict: { default: string };
-  sshUser: { default: string };
-  persistCredentials: { default: string };
-  path: { default: string };
-  clean: { default: string };
-  filter: { default: string };
-  sparseCheckout: { default: string };
-  sparseCheckoutConeMode: { default: string };
-  fetchDepth: { default: string };
-  fetchTags: { default: string };
-  showProgress: { default: string };
-  lfs: { default: string };
-  submodules: { default: string };
-  setCacheUrl: { default: string };
-  githubServerUrl: { default: string };
-}>('actions/checkout@v4');
 
 /**
  * Configuration for a CDKActionsStack instance.
@@ -87,7 +64,8 @@ export class CDKActionsStack extends Stack {
  */
 export class CheckoutJob<TMatrix extends MatrixDefinition = MatrixDefinition> extends Job<TMatrix> {
   public constructor(scope: Workflow, id: string, config: JobProps<TMatrix>) {
-    const steps: StepConfig[] = ([checkoutV4.call({})] as StepConfig[]).concat(config.steps || []);
+    const checkoutStep: StepConfig = checkoutV4.call({});
+    const steps: StepConfig[] = [checkoutStep, ...(config.steps || [])];
     super(scope, id, { ...config, steps });
   }
 }

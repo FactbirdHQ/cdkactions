@@ -88,9 +88,9 @@ export type OrgRunner = (typeof Runners)[keyof typeof Runners];
 
 This pattern allows strict enforcement of valid runner labels at the type level without modifying cdkactions itself. The `RunnerLabel` type is the base; user-defined runner types are subtypes.
 
-### Typed Action References (`ActionRef`)
+### Typed Action References (`Action`)
 
-External GitHub Actions are defined centrally with full input/output type safety using `ActionRef.fromReference<TInputs, TOutputs>(ref)`. The generic type parameters capture the action's input schema (required vs optional, defaults) and output schema.
+External GitHub Actions are defined centrally with full input/output type safety using `Action.fromReference<TInputs, TOutputs>(ref)`. The generic type parameters capture the action's input schema (required vs optional, defaults) and output schema. Pre-defined action references (e.g., `checkoutV2`, `checkoutV3`, `checkoutV4`) live in `src/actions.ts`.
 
 Invocation via `.call(options)` returns a `TypedUsesStep<TOutputs>` — a subtype of `UsesStep` with a typed `.output(key)` accessor. This slots seamlessly into the `StepConfig` union.
 

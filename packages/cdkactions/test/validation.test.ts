@@ -343,8 +343,11 @@ test('CronExpression: complex valid expressions', () => {
 });
 
 test('CronExpression: throws on invalid expression', () => {
+  // @ts-expect-error — intentionally invalid cron for runtime validation test
   expect(() => new CronExpression('0 25 * * *')).toThrow('hour');
+  // @ts-expect-error — intentionally invalid cron for runtime validation test
   expect(() => new CronExpression('0 0 * *')).toThrow('must have exactly 5 fields');
+  // @ts-expect-error — intentionally invalid cron for runtime validation test
   expect(() => new CronExpression('60 0 * * *')).toThrow('minute');
 });
 
