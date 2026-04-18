@@ -1,8 +1,8 @@
 import { Node } from 'constructs';
 
-import { App, Stack, Workflow, Job, RunnerLabel, validateCronExpression, collectValidationErrors } from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, CronExpression, validateCronExpression, collectValidationErrors } from '#@/index.js';
 import type { StepConfig, ScheduleEvent, WorkflowProps } from '#@/index.js';
-import { TestingApp } from '#$/utils.js';
+import { TestingApp } from './utils.js';
 
 function createTestApp(options: { createValidateWorkflow?: boolean } = {}) {
   return TestingApp({ createValidateWorkflow: false, ...options });
@@ -328,4 +328,78 @@ test('multiple validation errors collected', () => {
 
   const errors = collectValidationErrors(app);
   expect(errors.filter(e => e.includes("'runsOn' is required"))).toHaveLength(2);
+});
+
+test('CronExpression: valid expression creates instance', () => {
+  const cron = new CronExpression('0 0 * * *');
+  expect(cron.expression).toBe('0 0 * * *');
+  expect(cron.toString()).toBe('0 0 * * *');
+});
+
+test('CronExpression: complex valid expressions', () => {
+  expect(new CronExpression('*/15 * * * *').toString()).toBe('*/15 * * * *');
+  expect(new CronExpression('0 9 * * 1-5').toString()).toBe('0 9 * * 1-5');
+  expect(new CronExpression('30 4 1,15 * *').toString()).toBe('30 4 1,15 * *');
+});
+
+test('CronExpression: throws on invalid expression', () => {
+  expect(() => new CronExpression('0 25 * * *')).toThrow('hour');
+  expect(() => new CronExpression('0 0 * *')).toThrow('must have exactly 5 fields');
+  expect(() => new CronExpression('60 0 * * *')).toThrow('minute');
+});
+
+test('CronExpression: used in ScheduleEntry', () => {
+  const app = createTestApp();
+  const stack = new Stack(app, 'cron-stack');
+  new Workflow(stack, 'cron-workflow', {
+    name: 'Cron Test',
+    on: {
+      schedule: [{ cron: new CronExpression('0 0 * * *') }],
+    },
+  } as unknown as WorkflowProps);
+
+  const errors = collectValidationErrors(app);
+  expect(errors).toHaveLength(0);
+});
+
+test('CronExpression: serializes to string in toGHAction', () => {
+  const app = createTestApp();
+  const stack = new Stack(app, 'cron-stack');
+  const workflow = new Workflow(stack, 'cron-workflow', {
+    name: 'Cron Test',
+    on: {
+      schedule: [{ cron: new CronExpression('*/15 * * * *') }],
+    },
+  } as unknown as WorkflowProps);
+  new Job(workflow, 'test-job', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{ run: 'echo test' }],
+  });
+
+  const output = workflow.toGHAction();
+  expect(output.on.schedule[0].cron).toBe('*/15 * * * *');
+});
+
+function _cronTypeTests() {
+  // @ts-expect-error — invalid cron expression caught at compile time
+  new CronExpression('invalid cron');
+  // @ts-expect-error — too few fields
+  new CronExpression('0 0 * *');
+  // @ts-expect-error — hour 25 out of range
+  new CronExpression('0 25 * * *');
+
+  new CronExpression('0 0 * * *');
+  new CronExpression('*/15 * * * *');
+}
+void _cronTypeTests;
+
+test('CronExpression.from: creates instance from dynamic string', () => {
+  const dynamic = '0 0 * * *';
+  const cron = CronExpression.from(dynamic);
+  expect(cron).toBeInstanceOf(CronExpression);
+  expect(cron.toString()).toBe('0 0 * * *');
+});
+
+test('CronExpression.from: throws on invalid dynamic string', () => {
+  expect(() => CronExpression.from('0 25 * * *')).toThrow('hour');
 });
