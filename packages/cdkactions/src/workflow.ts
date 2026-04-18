@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { Construct, Node } from 'constructs';
 
 import type { Expression } from './expressions.js';
-import { Job } from './job.js';
+import { Job, type ConcurrencyConfig } from './job.js';
 import type { DefaultsProps, StringMap } from './types.js';
 import { camelToSnake, renameKeys, type Writable } from './utils.js';
 
@@ -354,11 +354,7 @@ export interface WorkflowProps {
     | MergeGroupEvent
     | WorkflowCallEvent;
   readonly env?: StringMap;
-  readonly concurrency?: {
-    group?: string;
-    'cancel-in-progress'?: boolean;
-    discriminator?: string;
-  };
+  readonly concurrency?: ConcurrencyConfig;
   readonly defaults?: DefaultsProps;
   readonly permissions?: Permissions;
 }
@@ -428,6 +424,7 @@ export class Workflow extends Construct {
       pullRequestTarget: 'pull_request_target',
       registryPackage: 'registry_package',
       workingDirectory: 'working-directory',
+      cancelInProgress: 'cancel-in-progress',
       workflowDispatch: 'workflow_dispatch',
       workflowRun: 'workflow_run',
       workflowCall: 'workflow_call',
