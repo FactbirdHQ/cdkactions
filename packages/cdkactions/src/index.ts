@@ -3,6 +3,7 @@ export * from './composite-action.js';
 export * from './expressions.js';
 export * from './job.js';
 export * from './library.js';
+export * from './nominal.js';
 export * from './stack.js';
 export * from './types.js';
 export * from './workflow.js';
