@@ -6,7 +6,7 @@
  * enabling type-safe composition at the TypeScript level.
  */
 
-import { camelToSnake } from './utils.js';
+import { camelToSnake } from '#@/utils.js';
 
 // ─── Core Expression Type ──────────────────────────────────────────────────────
 

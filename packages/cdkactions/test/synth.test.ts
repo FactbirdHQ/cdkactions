@@ -1,11 +1,11 @@
 import * as fs from 'fs';
 import { Construct } from 'constructs';
-import type { Expression } from '../src/expressions';
-import { CheckoutJob } from '../src/library';
-import { RunnerLabel } from '../src/nominal';
-import { Stack } from '../src/stack';
-import { Workflow } from '../src/workflow';
-import { TestingApp } from './utils';
+import type { Expression } from '#@/expressions.js';
+import { CheckoutJob } from '#@/library.js';
+import { RunnerLabel } from '#@/nominal.js';
+import { Stack } from '#@/stack.js';
+import { Workflow } from '#@/workflow.js';
+import { TestingApp } from '#$/utils.js';
 
 
 test('complicated stack', () => {
