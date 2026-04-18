@@ -1,4 +1,5 @@
 import type { Expression } from './expressions.js';
+import type { StepBase } from './job.js';
 import { camelToKebab } from './utils.js';
 
 export interface ActionInput {
@@ -28,14 +29,6 @@ type ActionWith<T extends ActionInputs> = {
   readonly [K in OptionalInputKeys<T>]?: string | number | boolean;
 };
 
-export interface StepBase {
-  readonly name?: string;
-  readonly if?: string;
-  readonly env?: Record<string, string>;
-  readonly continueOnError?: boolean;
-  readonly timeoutMinutes?: number;
-}
-
 type ActionCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutputs> =
   & ([RequiredInputKeys<TInputs>] extends [never]
     ? { with?: ActionWith<TInputs> }
@@ -44,15 +37,9 @@ type ActionCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutp
     ? { id?: string }
     : { id: string });
 
-export interface TypedUsesStep<TOutputs extends ActionOutputs = ActionOutputs> {
-  readonly id?: string;
-  readonly name?: string;
-  readonly if?: string;
+export interface TypedUsesStep<TOutputs extends ActionOutputs = ActionOutputs> extends StepBase {
   readonly uses: string;
   readonly with?: Record<string, string | number | boolean>;
-  readonly env?: Record<string, string>;
-  readonly continueOnError?: boolean;
-  readonly timeoutMinutes?: number;
 
   output<K extends keyof TOutputs & string>(key: K): Expression<string>;
 }

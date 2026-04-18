@@ -1,5 +1,5 @@
-import { Job, RunnerLabel } from '../src';
-import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, Expression } from '../src';
+import { Condition, Job, RunnerLabel } from '../src';
+import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, RunStep, UsesStep, StepConfig, Expression } from '../src';
 
 test('toGHAction', () => {
   const job = new Job(undefined as any, 'test', {
@@ -12,6 +12,7 @@ test('toGHAction', () => {
     },
     steps: [{
       name: 'step',
+      run: 'echo hello',
       continueOnError: false,
       timeoutMinutes: 5,
       workingDirectory: '~/',
@@ -193,3 +194,124 @@ const _concObject: ConcurrencyConfig = { group: 'deploy', cancelInProgress: true
 
 // Type-level: RunnerGroupConfig
 const _runnerGroup: RunnerGroupConfig = { group: 'large', labels: [RunnerLabel.UBUNTU_LATEST] };
+
+test('RunStep serialization', () => {
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{
+      name: 'Run tests',
+      run: 'npm test',
+      workingDirectory: 'packages/core',
+    }],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.steps).toEqual([{
+    name: 'Run tests',
+    run: 'npm test',
+    'working-directory': 'packages/core',
+  }]);
+});
+
+test('UsesStep serialization', () => {
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{
+      name: 'Checkout',
+      uses: 'actions/checkout@v4',
+      with: { fetchDepth: 0 },
+    }],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.steps).toEqual([{
+    name: 'Checkout',
+    uses: 'actions/checkout@v4',
+    with: { fetchDepth: 0 },
+  }]);
+});
+
+test('step if with Condition', () => {
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{
+      name: 'Deploy',
+      run: 'deploy.sh',
+      if: Condition.from("github.ref == 'refs/heads/main'"),
+    }],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.steps[0].if).toBe("github.ref == 'refs/heads/main'");
+});
+
+test('step if with Expression<boolean>', () => {
+  const expr = "github.event_name == 'push'" as Expression<boolean>;
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{
+      name: 'Push only',
+      run: 'echo push',
+      if: expr,
+    }],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");
+});
+
+test('step continueOnError and timeoutMinutes serialization', () => {
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [{
+      name: 'Flaky step',
+      run: 'flaky-test.sh',
+      continueOnError: true,
+      timeoutMinutes: 30,
+    }],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.steps[0]['continue-on-error']).toBe(true);
+  expect(ghAction.steps[0]['timeout-minutes']).toBe(30);
+});
+
+test('mixed RunStep and UsesStep in same job', () => {
+  const job = new Job(undefined as any, 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [
+      { uses: 'actions/checkout@v4' },
+      { run: 'npm install' },
+      { uses: 'actions/setup-node@v4', with: { nodeVersion: '20' } },
+      { run: 'npm test', workingDirectory: 'packages/core' },
+    ],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.steps).toHaveLength(4);
+  expect(ghAction.steps[0].uses).toBe('actions/checkout@v4');
+  expect(ghAction.steps[1].run).toBe('npm install');
+  expect(ghAction.steps[2].uses).toBe('actions/setup-node@v4');
+  expect(ghAction.steps[3].run).toBe('npm test');
+  expect(ghAction.steps[3]['working-directory']).toBe('packages/core');
+});
+
+// Type-level: RunStep requires run, UsesStep requires uses
+const _runStep: RunStep = { run: 'echo hello' };
+const _usesStep: UsesStep = { uses: 'actions/checkout@v4' };
+
+// Type-level: run + uses together is a compile error
+// @ts-expect-error - cannot have both run and uses
+const _invalidBoth: StepConfig = { run: 'echo', uses: 'actions/checkout@v4' };
+
+// Type-level: shell on UsesStep is a compile error
+// @ts-expect-error - shell is not allowed on UsesStep
+const _invalidShell: UsesStep = { uses: 'actions/checkout@v4', shell: 'bash' };
+
+// Type-level: with on RunStep is a compile error
+// @ts-expect-error - with is not allowed on RunStep
+const _invalidWith: RunStep = { run: 'echo', with: { key: 'value' } };
+
+// Type-level: workingDirectory on UsesStep is a compile error
+// @ts-expect-error - workingDirectory is not allowed on UsesStep
+const _invalidWd: UsesStep = { uses: 'actions/checkout@v4', workingDirectory: '~/' };
+
+// Type-level: step if accepts Condition
+const _stepWithCondition: StepConfig = { run: 'echo', if: Condition.from('true') };
+
+// Type-level: step if accepts Expression<boolean>
+const _stepWithExpr: StepConfig = { run: 'echo', if: 'true' as Expression<boolean> };
