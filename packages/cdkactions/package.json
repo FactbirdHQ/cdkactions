@@ -16,7 +16,10 @@
       "types": "./src/*",
       "default": "./dist/*"
     },
-    "#$/*": "./test/*"
+    "#$/*": {
+      "types": "./test/*",
+      "default": "./test/*"
+    }
   },
   "files": [
     "dist"
