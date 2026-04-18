@@ -8,6 +8,12 @@ import type {
   PullRequestTargetTypes,
   CheckSuiteTypes,
   IssuesTypes,
+  WorkflowCallEventProps,
+  WorkflowCallOutputProps,
+  WorkflowCallSecretProps,
+  ScheduleEntry,
+  Expression,
+  WorkflowProps,
 } from '../src';
 import { TestingWorkflow } from './utils';
 
@@ -217,3 +223,124 @@ const _invalidCheckSuite: CheckSuiteTypes = { types: ['created'] };
 const _branchProtection: BranchProtectionRuleTypes = { types: ['created'] };
 const _discussion: DiscussionTypes = { types: ['created', 'answered'] };
 const _discussionComment: DiscussionCommentTypes = { types: ['created'] };
+
+test('schedule with multiple entries and timezone', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      schedule: [
+        { cron: '0 0 * * *' },
+        { cron: '0 12 * * 1-5', timezone: 'America/New_York' },
+        { cron: '30 6 * * 0', timezone: 'Europe/Copenhagen' },
+      ],
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on.schedule).toEqual([
+    { cron: '0 0 * * *' },
+    { cron: '0 12 * * 1-5', timezone: 'America/New_York' },
+    { cron: '30 6 * * 0', timezone: 'Europe/Copenhagen' },
+  ]);
+});
+
+test('workflow_dispatch with number input type', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      workflowDispatch: {
+        inputs: {
+          retries: {
+            description: 'Number of retries',
+            required: true,
+            type: WorkflowDispatchInputType.NUMBER,
+            default: '3',
+          },
+        },
+      },
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on.workflow_dispatch.inputs.retries.type).toBe('number');
+});
+
+test('workflow_call with outputs and secrets', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      workflowCall: {
+        inputs: {
+          environment: {
+            description: 'Target environment',
+            required: true,
+            type: WorkflowDispatchInputType.STRING,
+          },
+          count: {
+            description: 'Instance count',
+            required: false,
+            type: WorkflowDispatchInputType.NUMBER,
+          },
+        },
+        outputs: {
+          deployUrl: {
+            description: 'The deployment URL',
+            value: '${{ jobs.deploy.outputs.url }}',
+          },
+        },
+        secrets: {
+          apiKey: {
+            description: 'API key for deployment',
+            required: true,
+          },
+          optionalToken: {
+            required: false,
+          },
+        },
+      },
+    },
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction.on.workflow_call.inputs.environment.type).toBe('string');
+  expect(ghAction.on.workflow_call.inputs.count.type).toBe('number');
+  expect(ghAction.on.workflow_call.outputs.deployUrl).toEqual({
+    description: 'The deployment URL',
+    value: '${{ jobs.deploy.outputs.url }}',
+  });
+  expect(ghAction.on.workflow_call.secrets.apiKey).toEqual({
+    description: 'API key for deployment',
+    required: true,
+  });
+  expect(ghAction.on.workflow_call.secrets.optionalToken).toEqual({
+    required: false,
+  });
+});
+
+test('run-name in synthesized output', () => {
+  const workflow = TestingWorkflow({
+    runName: 'Deploy to production',
+    on: 'push',
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction['run-name']).toBe('Deploy to production');
+  expect(ghAction.runName).toBeUndefined();
+});
+
+test('run-name with Expression<string>', () => {
+  const exprRunName = 'Deploy ${{ inputs.environment }} by ${{ github.actor }}' as Expression<string>;
+  const workflow = TestingWorkflow({
+    runName: exprRunName,
+    on: 'push',
+  });
+  const ghAction = workflow.toGHAction();
+  expect(ghAction['run-name']).toBe('Deploy ${{ inputs.environment }} by ${{ github.actor }}');
+});
+
+// Type-level: WorkflowCallEventProps accepts outputs and secrets
+const _callWithOutputs: WorkflowCallEventProps = {
+  outputs: { url: { description: 'URL', value: 'val' } },
+  secrets: { key: { required: true } },
+};
+
+// Type-level: ScheduleEntry accepts timezone
+const _scheduleWithTz: ScheduleEntry = { cron: '0 0 * * *', timezone: 'UTC' };
+
+// Type-level: runName accepts Expression<string>
+const _propsWithRunName: Pick<WorkflowProps, 'runName'> = {
+  runName: 'test' as Expression<string>,
+};
