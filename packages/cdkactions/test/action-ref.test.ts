@@ -1,4 +1,4 @@
-import { Action, ActionRef, Condition, type TypedUsesStep, type Expression } from '#@/index.js';
+import { Action, Condition, type TypedUsesStep, type Expression } from '#@/index.js';
 
 const allOptionalAction = Action.fromReference<
   {
@@ -76,11 +76,6 @@ test('fromReference stores the action ref string', () => {
 test('fromReference with no type params', () => {
   const action = Action.fromReference('my/action@v1');
   expect(action.ref).toBe('my/action@v1');
-});
-
-test('ActionRef is a deprecated alias for Action', () => {
-  const isAlias = ActionRef === Action;
-  expect(isAlias).toBe(true);
 });
 
 test('call() produces a step with uses set to the ref', () => {
@@ -185,6 +180,93 @@ test('output() on uploadArtifact returns correct expression', () => {
   const step = uploadArtifactV4.call({ id: 'upload', with: { name: 'dist', path: 'dist/' } });
   expect(step.output('artifactId') as string).toBe('steps.upload.outputs.artifactId');
   expect(step.output('artifactUrl') as string).toBe('steps.upload.outputs.artifactUrl');
+});
+
+import {
+  checkoutV4, setupNodeV6, setupGoV6, setupJavaV5, setupPythonV6,
+  setupRubyV1, createGithubAppTokenV3, githubScriptV9, addToProjectV1,
+  publishImmutableActionV1, uploadReleaseAssetV1, createReleaseV1,
+  determinateNixV3, installNixActionV31,
+} from '#@/actions.js';
+
+console.log('\nPre-built action definitions:');
+
+test('checkoutV4 ref is correct', () => {
+  expect(checkoutV4.ref).toBe('actions/checkout@v4');
+});
+
+test('setupNodeV6 call produces correct uses and serializes inputs', () => {
+  const step = setupNodeV6.call({ id: 'node', with: { nodeVersion: '22' } });
+  expect(step.uses).toBe('actions/setup-node@v6');
+  expect(step.with).toEqual({ 'node-version': '22' });
+});
+
+test('setupNodeV6 output returns expression', () => {
+  const step = setupNodeV6.call({ id: 'node' });
+  expect(step.output('cacheHit') as string).toBe('steps.node.outputs.cacheHit');
+});
+
+test('setupGoV6 ref is correct', () => {
+  expect(setupGoV6.ref).toBe('actions/setup-go@v6');
+});
+
+test('setupJavaV5 requires distribution input', () => {
+  const step = setupJavaV5.call({ id: 'java', with: { distribution: 'temurin' } });
+  expect(step.uses).toBe('actions/setup-java@v5');
+  expect(step.with).toEqual({ distribution: 'temurin' });
+});
+
+test('setupPythonV6 ref is correct', () => {
+  expect(setupPythonV6.ref).toBe('actions/setup-python@v6');
+});
+
+test('setupRubyV1 uses ruby/setup-ruby', () => {
+  expect(setupRubyV1.ref).toBe('ruby/setup-ruby@v1');
+});
+
+test('createGithubAppTokenV3 requires privateKey', () => {
+  const step = createGithubAppTokenV3.call({ id: 'token', with: { privateKey: '${{ secrets.PK }}' } });
+  expect(step.uses).toBe('actions/create-github-app-token@v3');
+  expect(step.with).toEqual({ 'private-key': '${{ secrets.PK }}' });
+});
+
+test('githubScriptV9 requires script input', () => {
+  const step = githubScriptV9.call({ id: 'script', with: { script: 'console.log("hi")' } });
+  expect(step.uses).toBe('actions/github-script@v9');
+  expect(step.with).toEqual({ script: 'console.log("hi")' });
+});
+
+test('addToProjectV1 requires projectUrl and githubToken', () => {
+  const step = addToProjectV1.call({ id: 'add', with: { projectUrl: 'https://...', githubToken: '${{ secrets.T }}' } });
+  expect(step.uses).toBe('actions/add-to-project@v1');
+  expect(step.with).toEqual({ 'project-url': 'https://...', 'github-token': '${{ secrets.T }}' });
+});
+
+test('publishImmutableActionV1 ref is correct', () => {
+  expect(publishImmutableActionV1.ref).toBe('actions/publish-immutable-action@v1');
+});
+
+test('uploadReleaseAssetV1 snake_case inputs pass through unchanged', () => {
+  const step = uploadReleaseAssetV1.call({
+    id: 'upload',
+    with: { upload_url: 'https://...', asset_path: 'dist.zip', asset_name: 'dist.zip', asset_content_type: 'application/zip' },
+  });
+  expect(step.with).toEqual({ upload_url: 'https://...', asset_path: 'dist.zip', asset_name: 'dist.zip', asset_content_type: 'application/zip' });
+});
+
+test('createReleaseV1 requires tag_name and release_name', () => {
+  const step = createReleaseV1.call({ id: 'release', with: { tag_name: 'v1.0.0', release_name: 'Release 1.0' } });
+  expect(step.uses).toBe('actions/create-release@v1');
+});
+
+test('determinateNixV3 ref is correct', () => {
+  expect(determinateNixV3.ref).toBe('DeterminateSystems/determinate-nix-action@v3');
+});
+
+test('installNixActionV31 snake_case inputs pass through unchanged', () => {
+  const step = installNixActionV31.call({ with: { extra_nix_config: 'experimental-features = nix-command flakes' } });
+  expect(step.uses).toBe('cachix/install-nix-action@v31');
+  expect(step.with).toEqual({ extra_nix_config: 'experimental-features = nix-command flakes' });
 });
 
 console.log('\nType-level tests (compile-time checks):');
