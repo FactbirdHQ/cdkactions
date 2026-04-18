@@ -97,11 +97,3 @@ export class Action<
   }
 }
 
-/** @deprecated Use Action instead. */
-export type ActionRef<
-  TInputs extends ActionInputs = ActionInputs,
-  TOutputs extends ActionOutputs = ActionOutputs,
-> = Action<TInputs, TOutputs>;
-
-/** @deprecated Use Action instead. */
-export const ActionRef = Action;

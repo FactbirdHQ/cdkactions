@@ -1,0 +1,50 @@
+name: Update Action Definitions
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ vars.CLAUDE_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
+
+      - name: Update action definitions
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          direct_prompt: |
+            Read packages/cdkactions/src/actions.ts and for each Action.fromReference() call:
+
+            1. Extract the action reference (e.g. "actions/checkout@v4")
+            2. Check the action's repository for the latest release tag for that major version
+            3. Fetch the action.yml from that tag
+            4. Compare the inputs/outputs with the current TypeScript definition
+            5. If there are differences, update the definition to match
+
+            Rules:
+            - Preserve camelCase TypeScript key naming for kebab-case action inputs
+            - Preserve snake_case TypeScript key naming for snake_case action inputs (e.g. cachix/install-nix-action)
+            - Inputs with a default in action.yml → `{ default: string }`
+            - Inputs with `required: true` in action.yml → `{ required: true }`
+            - All other inputs → `{ default: string }` (optional by default)
+            - Update the version tag in the reference string if a new major version exists
+            - Run `bun run build` and `bun test test/action-ref.test.ts` to verify
+
+            If any definitions changed, create a PR with the title "chore(cdkactions): update action definitions"
+            and a body listing which actions were updated and what changed.
+
+            If nothing changed, do nothing.
