@@ -28,9 +28,9 @@ export type Expression<T = unknown> = string & {
 const knownExpressions = new Set<string>();
 
 /**
- * Create an Expression from a raw string. Internal use only.
+ * Create an Expression from a raw string.
  */
-function expr<T = unknown>(value: string): Expression<T> {
+export function expr<T = unknown>(value: string): Expression<T> {
   knownExpressions.add(value);
   return value as Expression<T>;
 }

@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { CheckoutJob, checkoutV4, Job, RunnerLabel, Stack, Workflow } from '#@/index.js';
+import { CheckoutJob, checkoutV2, checkoutV3, checkoutV4, Job, RunnerLabel, Stack, Workflow } from '#@/index.js';
 import type { StepConfig } from '#@/index.js';
 import { TestingApp } from './utils.js';
 
@@ -15,7 +15,7 @@ test('cdkactionsstack', () => {
   expect(fs.readFileSync(`${app.outdir}/cdkactions_validate.yaml`, 'utf-8')).toMatchSnapshot();
 });
 
-test('CheckoutJob prepends checkout step via ActionRef', () => {
+test('CheckoutJob prepends checkout step via Action', () => {
   const app = TestingApp({ createValidateWorkflow: false });
   const stack = new Stack(app, 'test-stack');
   const workflow = new Workflow(stack, 'ci', {
@@ -49,26 +49,43 @@ test('CheckoutJob with no user steps only has checkout', () => {
   expect(ghAction.steps[0]).toEqual({ uses: 'actions/checkout@v4' });
 });
 
-test('checkoutV4 ActionRef produces correct step', () => {
+test('checkoutV4 Action produces correct step', () => {
   const step = checkoutV4.call({});
   expect(step.uses).toBe('actions/checkout@v4');
   expect(Object.keys(step)).toEqual(['uses']);
 });
 
-test('checkoutV4 ActionRef with inputs', () => {
+test('checkoutV4 Action with inputs', () => {
   const step = checkoutV4.call({ with: { fetchDepth: 0 } });
   expect(step.uses).toBe('actions/checkout@v4');
   expect(step.with).toEqual({ 'fetch-depth': 0 });
 });
 
-test('checkoutV4 ActionRef output accessor', () => {
-  const step = checkoutV4.call({ id: 'co' });
-  expect((step.output as (key: string) => string)('ref')).toBe('steps.co.outputs.ref');
-});
-
 test('checkoutV4 step is valid StepConfig', () => {
   const step: StepConfig = checkoutV4.call({});
   expect(step.uses).toBe('actions/checkout@v4');
+});
+
+test('checkoutV3 Action produces correct step', () => {
+  const step = checkoutV3.call({});
+  expect(step.uses).toBe('actions/checkout@v3');
+});
+
+test('checkoutV3 Action with inputs', () => {
+  const step = checkoutV3.call({ with: { fetchDepth: 0, sparseCheckout: 'src/' } });
+  expect(step.uses).toBe('actions/checkout@v3');
+  expect(step.with).toEqual({ 'fetch-depth': 0, 'sparse-checkout': 'src/' });
+});
+
+test('checkoutV2 Action produces correct step', () => {
+  const step = checkoutV2.call({});
+  expect(step.uses).toBe('actions/checkout@v2');
+});
+
+test('checkoutV2 Action with inputs', () => {
+  const step = checkoutV2.call({ with: { fetchDepth: 0 } });
+  expect(step.uses).toBe('actions/checkout@v2');
+  expect(step.with).toEqual({ 'fetch-depth': 0 });
 });
 
 test('CheckoutJob YAML output is backward compatible', () => {

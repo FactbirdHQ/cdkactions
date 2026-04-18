@@ -1,4 +1,5 @@
-export * from '#@/action-ref.js';
+export * from '#@/action.js';
+export * from '#@/actions.js';
 export * from '#@/app.js';
 export * from '#@/composite-action.js';
 export * from '#@/expressions.js';

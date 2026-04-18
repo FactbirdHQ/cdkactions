@@ -1,5 +1,5 @@
 import {
-  Workflow, Job, RunnerLabel, ActionRef,
+  Workflow, Job, RunnerLabel, Action,
   Condition, createMatrixProxy,
 } from '#@/index.js';
 import type {
@@ -40,7 +40,7 @@ const job = new Job(workflow, 'matrix-test', {
 // @ts-expect-error — nonexistent matrix key
 job.matrix.nonexistent;
 
-const _checkoutV4 = ActionRef.fromReference<
+const _checkoutV4 = Action.fromReference<
   {
     repository: { default: '${{ github.repository }}' };
     ref: { default: '' };
@@ -52,7 +52,7 @@ const _checkoutV4 = ActionRef.fromReference<
   }
 >('actions/checkout@v4');
 
-const _uploadArtifactV4 = ActionRef.fromReference<
+const _uploadArtifactV4 = Action.fromReference<
   {
     name: { required: true };
     path: { required: true };

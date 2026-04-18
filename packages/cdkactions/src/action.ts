@@ -1,5 +1,5 @@
-import type { Expression } from '#@/expressions.js';
-import type { StepBase } from '#@/job.js';
+import { expr, type Expression } from '#@/expressions.js';
+import type { UsesStep, StepBase } from '#@/job.js';
 import { camelToKebab } from '#@/utils.js';
 
 export interface ActionInput {
@@ -37,14 +37,16 @@ type ActionCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutp
     ? { id?: string }
     : { id: string });
 
-export interface TypedUsesStep<TOutputs extends ActionOutputs = ActionOutputs> extends StepBase {
-  readonly uses: string;
-  readonly with?: Record<string, string | number | boolean>;
-
+export interface TypedUsesStep<TOutputs extends ActionOutputs = ActionOutputs> extends Omit<UsesStep, 'run' | 'shell' | 'workingDirectory'> {
   output<K extends keyof TOutputs & string>(key: K): Expression<string>;
 }
 
-export class ActionRef<
+interface InternalCallInput extends StepBase {
+  readonly id?: string;
+  readonly with?: Record<string, string | number | boolean>;
+}
+
+export class Action<
   const TInputs extends ActionInputs = ActionInputs,
   const TOutputs extends ActionOutputs = ActionOutputs,
 > {
@@ -57,25 +59,22 @@ export class ActionRef<
   static fromReference<
     TInputs extends ActionInputs = Record<never, never>,
     TOutputs extends ActionOutputs = Record<never, never>,
-  >(ref: string): ActionRef<TInputs, TOutputs> {
-    return new ActionRef<TInputs, TOutputs>(ref);
+  >(ref: string): Action<TInputs, TOutputs> {
+    return new Action<TInputs, TOutputs>(ref);
   }
 
   public call(
     options: StepBase & ActionCallOptions<TInputs, TOutputs>,
   ): TypedUsesStep<TOutputs> {
-    const { id, name, env, continueOnError, timeoutMinutes } = options as StepBase & { id?: string };
-    const ifProp = (options as StepBase)['if'];
-    const withProp = (options as { with?: Record<string, string | number | boolean> }).with;
+    const { id: stepId, name, 'if': ifProp, env, continueOnError, timeoutMinutes, 'with': withProp } =
+      options as InternalCallInput;
 
-    // Convert camelCase input keys to kebab-case for GitHub Actions
     const serializedWith = withProp
       ? Object.fromEntries(
           Object.entries(withProp).map(([k, v]) => [camelToKebab(k), v]),
         )
       : undefined;
 
-    const stepId = id;
     const step: TypedUsesStep<TOutputs> = {
       ...(stepId !== undefined && { id: stepId }),
       ...(name !== undefined && { name }),
@@ -89,7 +88,7 @@ export class ActionRef<
         if (!stepId) {
           throw new Error('Cannot access outputs on a step without an id');
         }
-        return `steps.${stepId}.outputs.${key}` as Expression<string>;
+        return expr<string>(`steps.${stepId}.outputs.${key}`);
       },
     };
     Object.defineProperty(step, 'output', { enumerable: false });
@@ -97,3 +96,12 @@ export class ActionRef<
     return step;
   }
 }
+
+/** @deprecated Use Action instead. */
+export type ActionRef<
+  TInputs extends ActionInputs = ActionInputs,
+  TOutputs extends ActionOutputs = ActionOutputs,
+> = Action<TInputs, TOutputs>;
+
+/** @deprecated Use Action instead. */
+export const ActionRef = Action;

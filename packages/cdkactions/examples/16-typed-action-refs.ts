@@ -1,10 +1,10 @@
 import {
   App, Stack, Workflow, Job, RunnerLabel,
-  ActionRef,
+  Action,
 } from '#@/index.js';
 import { TestingApp } from '../test/utils.js';
 
-const checkoutV4 = ActionRef.fromReference<
+const checkoutV4 = Action.fromReference<
   {
     repository: { default: '${{ github.repository }}' };
     ref: { default: '' };
@@ -24,7 +24,7 @@ const checkoutV4 = ActionRef.fromReference<
   }
 >('actions/checkout@v4');
 
-const setupNodeV4 = ActionRef.fromReference<
+const setupNodeV4 = Action.fromReference<
   {
     nodeVersion: { default: '' };
     nodeVersionFile: { default: '' };
@@ -39,7 +39,7 @@ const setupNodeV4 = ActionRef.fromReference<
   }
 >('actions/setup-node@v4');
 
-const uploadArtifactV4 = ActionRef.fromReference<
+const uploadArtifactV4 = Action.fromReference<
   {
     name: { required: true };
     path: { required: true };
@@ -58,7 +58,7 @@ export function create(app?: App) {
   const stack = new Stack(_app, 'action-refs');
 
   const workflow = new Workflow(stack, 'build', {
-    name: 'Build with ActionRef',
+    name: 'Build with Action',
     on: { push: { branches: ['main'] } },
   });
 
