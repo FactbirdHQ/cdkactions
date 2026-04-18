@@ -1,10 +1,10 @@
 import type { Construct } from 'constructs';
 import { dedent } from 'ts-dedent';
 
-import { Job, type JobProps, type StepsProps } from './job.js';
-import { RunnerLabel } from './nominal.js';
-import { Stack } from './stack.js';
-import { Workflow } from './workflow.js';
+import { Job, type JobProps, type StepsProps } from '#@/job.js';
+import { RunnerLabel } from '#@/nominal.js';
+import { Stack } from '#@/stack.js';
+import { Workflow } from '#@/workflow.js';
 
 /**
  * Configuration for a CDKActionsStack instance.

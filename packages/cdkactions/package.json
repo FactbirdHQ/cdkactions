@@ -11,6 +11,13 @@
       "import": "./dist/index.js"
     }
   },
+  "imports": {
+    "#@/*": {
+      "types": "./src/*",
+      "default": "./dist/*"
+    },
+    "#$/*": "./test/*"
+  },
   "files": [
     "dist"
   ],
@@ -29,9 +36,6 @@
     "constructs",
     "github"
   ],
-  "engines": {
-    "node": ">= 20"
-  },
   "peerDependencies": {
     "constructs": "^10.4.2"
   },

@@ -1,4 +1,4 @@
-import { camelToSnake, renameKeys } from '../src/utils';
+import { camelToSnake, renameKeys } from '#@/utils.js';
 
 
 test('renameKeys', () => {

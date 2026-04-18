@@ -1,5 +1,5 @@
-import { Job, RunnerLabel } from '../src';
-import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, Expression } from '../src';
+import { Job, RunnerLabel } from '#@/index.js';
+import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, Expression } from '#@/index.js';
 
 test('toGHAction', () => {
   const job = new Job(undefined as any, 'test', {
