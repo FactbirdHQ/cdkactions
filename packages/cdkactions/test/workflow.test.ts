@@ -1,22 +1,22 @@
 import { Construct } from 'constructs';
-import { Job, RunnerLabel, WorkflowDispatchInputType } from '#@/index.js';
 import type {
   BranchProtectionRuleTypes,
-  DiscussionTypes,
-  DiscussionCommentTypes,
-  PullRequestTypes,
-  PullRequestTargetTypes,
   CheckSuiteTypes,
+  DiscussionCommentTypes,
+  DiscussionTypes,
+  Expression,
   IssuesTypes,
+  Permissions,
+  PermissionsMap,
+  PullRequestTargetTypes,
+  PullRequestTypes,
+  ScheduleEntry,
   WorkflowCallEventProps,
   WorkflowCallOutputProps,
   WorkflowCallSecretProps,
-  ScheduleEntry,
-  Expression,
   WorkflowProps,
-  PermissionsMap,
-  Permissions,
 } from '#@/index.js';
+import { Job, RunnerLabel, WorkflowDispatchInputType } from '#@/index.js';
 import { TestingWorkflow } from '#$/utils.js';
 
 test('toGHAction', () => {
@@ -131,9 +131,19 @@ test('discussion event with all 13 activity types', () => {
     on: {
       discussion: {
         types: [
-          'created', 'edited', 'deleted', 'transferred',
-          'pinned', 'unpinned', 'labeled', 'unlabeled',
-          'locked', 'unlocked', 'category_changed', 'answered', 'unanswered',
+          'created',
+          'edited',
+          'deleted',
+          'transferred',
+          'pinned',
+          'unpinned',
+          'labeled',
+          'unlabeled',
+          'locked',
+          'unlocked',
+          'category_changed',
+          'answered',
+          'unanswered',
         ],
       },
     },
@@ -165,7 +175,12 @@ test('pull_request new activity types', () => {
   });
   const ghAction = workflow.toGHAction();
   expect(ghAction.on.pull_request.types).toEqual([
-    'enqueued', 'dequeued', 'milestoned', 'demilestoned', 'auto_merge_enabled', 'auto_merge_disabled',
+    'enqueued',
+    'dequeued',
+    'milestoned',
+    'demilestoned',
+    'auto_merge_enabled',
+    'auto_merge_disabled',
   ]);
 });
 
@@ -173,13 +188,27 @@ test('pull_request_target new activity types', () => {
   const workflow = TestingWorkflow({
     on: {
       pullRequestTarget: {
-        types: ['converted_to_draft', 'enqueued', 'dequeued', 'milestoned', 'demilestoned', 'auto_merge_enabled', 'auto_merge_disabled'],
+        types: [
+          'converted_to_draft',
+          'enqueued',
+          'dequeued',
+          'milestoned',
+          'demilestoned',
+          'auto_merge_enabled',
+          'auto_merge_disabled',
+        ],
       },
     },
   });
   const ghAction = workflow.toGHAction();
   expect(ghAction.on.pull_request_target.types).toEqual([
-    'converted_to_draft', 'enqueued', 'dequeued', 'milestoned', 'demilestoned', 'auto_merge_enabled', 'auto_merge_disabled',
+    'converted_to_draft',
+    'enqueued',
+    'dequeued',
+    'milestoned',
+    'demilestoned',
+    'auto_merge_enabled',
+    'auto_merge_disabled',
   ]);
 });
 

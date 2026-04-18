@@ -1,8 +1,7 @@
-import * as fs from 'fs';
 import { Construct } from 'constructs';
+import * as fs from 'fs';
 import { Stack, Workflow } from '#@/index.js';
 import { TestingApp } from '#$/utils.js';
-
 
 test('non-workflow children are ignored', () => {
   const app = TestingApp({ createValidateWorkflow: false });
@@ -20,8 +19,6 @@ test('workflow manifest has metadata', () => {
     on: 'push',
   });
   app.synth();
-  expect(fs.readdirSync(app.outdir)).toEqual([
-    workflow.outputFile,
-  ]);
+  expect(fs.readdirSync(app.outdir)).toEqual([workflow.outputFile]);
   expect(fs.readFileSync(`${app.outdir}/${workflow.outputFile}`, 'utf-8')).toMatchSnapshot();
 });

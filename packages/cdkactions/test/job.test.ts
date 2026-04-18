@@ -1,5 +1,17 @@
-import { Condition, Job, RunnerLabel, createMatrixProxy, eq, github, always, failure } from '#@/index.js';
-import type { JobProps, ConcurrencyConfig, EnvironmentConfig, RunnerGroupConfig, RunStep, UsesStep, StepConfig, Expression, StrategyProps, MatrixDefinition, ServiceProps } from '#@/index.js';
+import type {
+  ConcurrencyConfig,
+  EnvironmentConfig,
+  Expression,
+  JobProps,
+  MatrixDefinition,
+  RunnerGroupConfig,
+  RunStep,
+  ServiceProps,
+  StepConfig,
+  StrategyProps,
+  UsesStep,
+} from '#@/index.js';
+import { always, Condition, createMatrixProxy, eq, failure, github, Job, RunnerLabel } from '#@/index.js';
 
 test('toGHAction', () => {
   const job = new Job(undefined as any, 'test', {
@@ -10,22 +22,24 @@ test('toGHAction', () => {
       failFast: true,
       maxParallel: 11,
     },
-    steps: [{
-      name: 'step',
-      run: 'echo hello',
-      continueOnError: false,
-      timeoutMinutes: 5,
-      workingDirectory: '~/',
-    },
-    {
-      name: 'External action',
-      uses: 'actions/checkout@v2',
-      with: {
-        stringValue: 'string',
-        numberValue: 10,
-        booleanValue: false,
+    steps: [
+      {
+        name: 'step',
+        run: 'echo hello',
+        continueOnError: false,
+        timeoutMinutes: 5,
+        workingDirectory: '~/',
       },
-    }],
+      {
+        name: 'External action',
+        uses: 'actions/checkout@v2',
+        with: {
+          stringValue: 'string',
+          numberValue: 10,
+          booleanValue: false,
+        },
+      },
+    ],
   });
   expect(job.toGHAction()).toMatchSnapshot();
 });
@@ -83,7 +97,10 @@ test('environment object form', () => {
     environment: { name: 'production', url: 'https://prod.example.com' },
   });
   const ghAction = job.toGHAction();
-  expect(ghAction.environment).toEqual({ name: 'production', url: 'https://prod.example.com' });
+  expect(ghAction.environment).toEqual({
+    name: 'production',
+    url: 'https://prod.example.com',
+  });
 });
 
 test('concurrency string form', () => {
@@ -144,7 +161,10 @@ test('external uses as string', () => {
 
 test('runner group config', () => {
   const job = new Job(undefined as any, 'deploy', {
-    runsOn: { group: 'large-runners', labels: [RunnerLabel.UBUNTU_LATEST, RunnerLabel.custom('gpu')] },
+    runsOn: {
+      group: 'large-runners',
+      labels: [RunnerLabel.UBUNTU_LATEST, RunnerLabel.custom('gpu')],
+    },
     steps: [],
   });
   const ghAction = job.toGHAction();
@@ -186,57 +206,76 @@ const _bareStringRunsOn: Pick<JobProps, 'runsOn'> = { runsOn: 'ubuntu-latest' };
 
 // Type-level: EnvironmentConfig accepts both forms
 const _envString: EnvironmentConfig = 'production';
-const _envObject: EnvironmentConfig = { name: 'staging', url: 'https://staging.example.com' };
+const _envObject: EnvironmentConfig = {
+  name: 'staging',
+  url: 'https://staging.example.com',
+};
 
 // Type-level: ConcurrencyConfig accepts both forms
 const _concString: ConcurrencyConfig = 'my-group';
-const _concObject: ConcurrencyConfig = { group: 'deploy', cancelInProgress: true };
+const _concObject: ConcurrencyConfig = {
+  group: 'deploy',
+  cancelInProgress: true,
+};
 
 // Type-level: RunnerGroupConfig
-const _runnerGroup: RunnerGroupConfig = { group: 'large', labels: [RunnerLabel.UBUNTU_LATEST] };
+const _runnerGroup: RunnerGroupConfig = {
+  group: 'large',
+  labels: [RunnerLabel.UBUNTU_LATEST],
+};
 
 test('RunStep serialization', () => {
   const job = new Job(undefined as any, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{
-      name: 'Run tests',
-      run: 'npm test',
-      workingDirectory: 'packages/core',
-    }],
+    steps: [
+      {
+        name: 'Run tests',
+        run: 'npm test',
+        workingDirectory: 'packages/core',
+      },
+    ],
   });
   const ghAction = job.toGHAction();
-  expect(ghAction.steps).toEqual([{
-    name: 'Run tests',
-    run: 'npm test',
-    'working-directory': 'packages/core',
-  }]);
+  expect(ghAction.steps).toEqual([
+    {
+      name: 'Run tests',
+      run: 'npm test',
+      'working-directory': 'packages/core',
+    },
+  ]);
 });
 
 test('UsesStep serialization', () => {
   const job = new Job(undefined as any, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{
+    steps: [
+      {
+        name: 'Checkout',
+        uses: 'actions/checkout@v4',
+        with: { fetchDepth: 0 },
+      },
+    ],
+  });
+  const ghAction = job.toGHAction();
+  expect(ghAction.steps).toEqual([
+    {
       name: 'Checkout',
       uses: 'actions/checkout@v4',
       with: { fetchDepth: 0 },
-    }],
-  });
-  const ghAction = job.toGHAction();
-  expect(ghAction.steps).toEqual([{
-    name: 'Checkout',
-    uses: 'actions/checkout@v4',
-    with: { fetchDepth: 0 },
-  }]);
+    },
+  ]);
 });
 
 test('step if with Condition', () => {
   const job = new Job(undefined as any, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{
-      name: 'Deploy',
-      run: 'deploy.sh',
-      if: Condition.from("github.ref == 'refs/heads/main'"),
-    }],
+    steps: [
+      {
+        name: 'Deploy',
+        run: 'deploy.sh',
+        if: Condition.from("github.ref == 'refs/heads/main'"),
+      },
+    ],
   });
   const ghAction = job.toGHAction();
   expect(ghAction.steps[0].if).toBe("github.ref == 'refs/heads/main'");
@@ -246,11 +285,13 @@ test('step if with Expression<boolean>', () => {
   const expr = "github.event_name == 'push'" as Expression<boolean>;
   const job = new Job(undefined as any, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{
-      name: 'Push only',
-      run: 'echo push',
-      if: expr,
-    }],
+    steps: [
+      {
+        name: 'Push only',
+        run: 'echo push',
+        if: expr,
+      },
+    ],
   });
   const ghAction = job.toGHAction();
   expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");
@@ -259,12 +300,14 @@ test('step if with Expression<boolean>', () => {
 test('step continueOnError and timeoutMinutes serialization', () => {
   const job = new Job(undefined as any, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{
-      name: 'Flaky step',
-      run: 'flaky-test.sh',
-      continueOnError: true,
-      timeoutMinutes: 30,
-    }],
+    steps: [
+      {
+        name: 'Flaky step',
+        run: 'flaky-test.sh',
+        continueOnError: true,
+        timeoutMinutes: 30,
+      },
+    ],
   });
   const ghAction = job.toGHAction();
   expect(ghAction.steps[0]['continue-on-error']).toBe(true);
@@ -308,13 +351,22 @@ const _invalidWith: RunStep = { run: 'echo', with: { key: 'value' } };
 
 // Type-level: workingDirectory on UsesStep is a compile error
 // @ts-expect-error - workingDirectory is not allowed on UsesStep
-const _invalidWd: UsesStep = { uses: 'actions/checkout@v4', workingDirectory: '~/' };
+const _invalidWd: UsesStep = {
+  uses: 'actions/checkout@v4',
+  workingDirectory: '~/',
+};
 
 // Type-level: step if accepts Condition
-const _stepWithCondition: StepConfig = { run: 'echo', if: Condition.from('true') };
+const _stepWithCondition: StepConfig = {
+  run: 'echo',
+  if: Condition.from('true'),
+};
 
 // Type-level: step if accepts Expression<boolean>
-const _stepWithExpr: StepConfig = { run: 'echo', if: 'true' as Expression<boolean> };
+const _stepWithExpr: StepConfig = {
+  run: 'echo',
+  if: 'true' as Expression<boolean>,
+};
 
 test('generic matrix strategy serialization', () => {
   const job = new Job(undefined as any, 'test', {
@@ -642,11 +694,13 @@ test('step if with Expression emits without ${{ }} wrapping', () => {
   const expr = eq(github.eventName, 'push');
   const job = new Job(undefined as any, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{
-      name: 'Push only',
-      run: 'echo push',
-      if: expr,
-    }],
+    steps: [
+      {
+        name: 'Push only',
+        run: 'echo push',
+        if: expr,
+      },
+    ],
   });
   const ghAction = job.toGHAction();
   expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");

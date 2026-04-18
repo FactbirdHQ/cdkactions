@@ -119,7 +119,7 @@ Uses `ts-pattern` for exhaustive matching on the `ConditionExpression` discrimin
 1. `App.synth()` iterates over Stack children
 2. `Stack.synthesize(outdir)` iterates over Workflow children, calling `toGHAction()` on each
 3. `Workflow.toGHAction()` collects Job children and calls `toGHAction()` on each
-4. YAML output via `js-yaml.dump()` with options: `{ lineWidth: -1, noCompatMode: true, quotingType: '"' }`
+4. YAML output via `js-yaml.dump()` with options: `{ lineWidth: -1, noCompatMode: true, quotingType: '"', sortKeys: true }`
 5. Output files: `cdkactions_<sanitized-id>.yaml` with a header comment
 6. CompositeActions output to `.github/actions/<dir>/action.yml`
 
@@ -145,6 +145,8 @@ Synthesis must be fast (< 100ms for 200 jobs). Key constraints:
 - `ts-dedent` ^2.2.0 — template literal dedentation
 - `ts-pattern` ^5.7.0 — exhaustive pattern matching (used in Condition class)
 - TypeScript 5.8+, Node 20+
+- Package manager: **Bun** — use `bun install`, `bun run`, `bun test`, etc.
+- **treefmt** — unified formatter orchestrator (configured in `devenv.nix`). Runs Biome (JS/TS/JSON/CSS), Alejandra (Nix), and yamlfmt (YAML). Run `treefmt` to format the entire project.
 
 ## Development Environment
 
@@ -168,6 +170,9 @@ To enter the dev shell, either:
 - All imports require `.js` extension: `from '#@/job.js'`, `from '#$/utils.js'`
 - `#@/*` resolves to `src/*` (TypeScript) and `dist/*` (Node runtime) via conditional imports in package.json
 - `#$/*` resolves to `test/*` (no conditional, development-only)
+- **Import path rules:**
+  - `index.ts` (barrel) files must use relative paths: `from './file.js'`
+  - All other (non-index) files must use subpath imports: `from '#@/file.js'` or `from '#$/file.js'`
 - Single `index.ts` barrel export — all public API exported from here
 - No default exports
 - Source in `src/`, tests in `test/`, examples in `examples/`
