@@ -2,10 +2,10 @@ import assert from 'node:assert';
 
 import { Construct, Node } from 'constructs';
 
-import type { Expression } from './expressions.js';
-import { Job, type ConcurrencyConfig } from './job.js';
-import type { DefaultsProps, StringMap } from './types.js';
-import { camelToSnake, renameKeys, type Writable } from './utils.js';
+import type { Expression } from '#@/expressions.js';
+import { Job, type ConcurrencyConfig } from '#@/job.js';
+import type { DefaultsProps, StringMap } from '#@/types.js';
+import { camelToSnake, renameKeys, type Writable } from '#@/utils.js';
 
 /**
  * Configuration for the BranchProtectionRule event.

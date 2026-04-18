@@ -1,4 +1,4 @@
-import type { StringMap } from './types.js';
+import type { StringMap } from '#@/types.js';
 
 export type Writable<T> = T extends object ? { -readonly [K in keyof T]: Writable<T[K]> } : T;
 
