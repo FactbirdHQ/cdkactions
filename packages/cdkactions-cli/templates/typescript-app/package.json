@@ -9,7 +9,7 @@
     "synth": "cdkactions synth",
     "compile": "tsc",
     "watch": "tsc -w",
-    "build": "yarn compile && yarn synth",
-    "upgrade-cdk": "yarn upgrade cdkactions@latest cdkactions-cli@latest"
+    "build": "bun run compile && bun run synth",
+    "upgrade-cdk": "bun update cdkactions@latest cdkactions-cli@latest"
   }
 }
