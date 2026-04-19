@@ -33,15 +33,17 @@ jobs:
           done
       - name: Build
         run: bun run build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
       # TODO: Switch to `bun publish` once OIDC lands (https://github.com/oven-sh/bun/pull/29374)
       - name: Publish packages
         run: |
-          npm i -g corepack && corepack enable && corepack install --global yarn@4
-          echo 'npmRegistryServer: "https://registry.npmjs.org"' > .yarnrc.yml
           for pkg in packages/*/; do
             if ! bun -e "const p = require('./${pkg}package.json'); process.exit(p.private ? 0 : 1)" 2>/dev/null; then
               cd "$pkg"
-              yarn npm publish --access public --tolerate-republish
+              npm publish --access public --tolerate-republish
               cd ../..
             fi
           done
