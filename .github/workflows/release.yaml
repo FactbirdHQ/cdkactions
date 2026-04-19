@@ -45,7 +45,7 @@ jobs:
           for pkg in packages/*/; do
             if ! bun -e "const p = require('./${pkg}package.json'); process.exit(p.private ? 0 : 1)" 2>/dev/null; then
               cd "$pkg"
-              bun publish --access public --tolerate-republish
+              npm publish --access public --tolerate-republish
               cd ../..
             fi
           done
