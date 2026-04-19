@@ -140,25 +140,49 @@ Organizations define all their action references in a shared module (e.g., `acti
 
 Expressions are branded strings (`Expression<T>`) with a phantom type parameter tracking the runtime value type. They are zero-cost at runtime — no AST, no parsing.
 
-Context accessors (e.g., `github`, `runner`) use `Proxy` objects created once at module load to generate `${{ context.prop }}` strings on property access.
+Context accessors (e.g., `github`, `runner`, `secrets`, `matrix`) use `Proxy` objects created once at module load to generate expression strings like `github.ref` on property access.
 
-### Condition Class
+All expression functions and context proxies are available via the `expression` namespace:
 
-Uses `ts-pattern` for exhaustive matching on the `ConditionExpression` discriminated union (`string | { or: [...] } | { and: [...] }`). Composable via `.and()` / `.or()` methods.
+```typescript
+import { expression } from '@factbird/cdkactions';
+const { and, or, eq, github, secrets } = expression;
+```
+
+Individual exports (`eq`, `and`, `github`, etc.) are also available for direct import.
+
+Composition uses free functions: `and(a, b)`, `or(a, b)`, `eq(left, right)`, `not(expr)`, etc. These return `Expression<boolean>` values that compose without wrapping.
+
+**Token-based resolution:** Expressions encode themselves with Unicode noncharacter delimiters (`\uFDD0` / `\uFDD1`), making them recognizable in any string context — including template literal interpolation. At synthesis time, `resolveTokens()` walks the serialized output and resolves tokens based on field context:
+
+- `if` fields → strip delimiters, leave raw expression (GitHub Actions auto-evaluates)
+- All other fields → replace tokens with `${{ expression }}`
+
+This means expressions work transparently everywhere — no manual `${{ }}` wrapping needed:
+
+```typescript
+// Expressions in with/env are auto-wrapped during synthesis
+{ with: { username: github.actor, password: secrets.GITHUB_TOKEN } }
+
+// Expressions in string interpolation are also auto-resolved
+{ group: `docker-${github.ref}` }  // → "docker-${{ github.ref }}"
+```
 
 ## Synthesis
 
 1. `App.synth()` iterates over Stack children
 2. `Stack.synthesize(outdir)` iterates over Workflow children, calling `toGHAction()` on each
 3. `Workflow.toGHAction()` collects Job children and calls `toGHAction()` on each
-4. YAML output via `js-yaml.dump()` with options: `{ lineWidth: -1, noCompatMode: true, quotingType: '"', sortKeys: true }`
-5. Output files: `cdkactions_<sanitized-id>.yaml` with a header comment
-6. CompositeActions output to `.github/actions/<dir>/action.yml`
+4. `resolveTokens()` walks the serialized output, resolving expression tokens based on field context
+5. YAML output via `js-yaml.dump()` with options: `{ lineWidth: -1, noCompatMode: true, quotingType: '"', sortKeys: true }`
+6. Output files: `cdkactions_<sanitized-id>.yaml` with a header comment
+7. CompositeActions output to `.github/actions/<dir>/action.yml`
 
 ### Performance
 
 Synthesis must be fast (< 100ms for 200 jobs). Key constraints:
-- No AST for expressions — branded strings only
+- No AST for expressions — branded strings with token delimiters
+- `resolveTokens` is a single recursive pass at synthesis time
 - `renameKeys` called once per construct
 - Single-pass YAML dump
 - Proxy context objects created once at module load
@@ -175,7 +199,6 @@ Synthesis must be fast (< 100ms for 200 jobs). Key constraints:
 - `constructs` ^10.4.2 — peer dependency, provides construct tree
 - `js-yaml` ^4.0.0 — YAML serialization
 - `ts-dedent` ^2.2.0 — template literal dedentation
-- `ts-pattern` ^5.7.0 — exhaustive pattern matching (used in Condition class)
 - TypeScript 5.8+, Node 20+
 - Package manager: **Bun** — use `bun install`, `bun run`, `bun test`, etc.
 - **treefmt** — unified formatter orchestrator (configured in `devenv.nix`). Runs Biome (JS/TS/JSON/CSS), Alejandra (Nix), and yamlfmt (YAML). Run `treefmt` to format the entire project.

@@ -11,8 +11,26 @@ import type {
   StrategyProps,
   UsesStep,
 } from '#@/index.js';
-import { always, Condition, createMatrixProxy, eq, failure, github, Job, RunnerLabel } from '#@/index.js';
+import {
+  always,
+  and,
+  createMatrixProxy,
+  eq,
+  expr,
+  failure,
+  github,
+  Job,
+  resolveTokens,
+  RunnerLabel,
+  secrets,
+  unwrapToken,
+} from '#@/index.js';
 import { checkoutV4 } from '../src/actions.js';
+
+/** Simulate the full serialization pipeline (toGHAction + token resolution). */
+function serialize(job: Job): any {
+  return resolveTokens(job.toGHAction());
+}
 
 test('toGHAction', () => {
   const job = new Job(undefined as any, 'test', {
@@ -42,7 +60,7 @@ test('toGHAction', () => {
       },
     ],
   });
-  expect(job.toGHAction()).toMatchSnapshot();
+  expect(serialize(job)).toMatchSnapshot();
 });
 
 test('job permissions with full PermissionsMap', () => {
@@ -59,7 +77,7 @@ test('job permissions with full PermissionsMap', () => {
       repositoryProjects: 'none',
     },
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.permissions).toEqual({
     contents: 'read',
     packages: 'write',
@@ -77,7 +95,7 @@ test('job permissions with read-all shorthand', () => {
     steps: [],
     permissions: 'read-all',
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.permissions).toBe('read-all');
 });
 
@@ -87,7 +105,7 @@ test('environment string form', () => {
     steps: [],
     environment: 'production',
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.environment).toBe('production');
 });
 
@@ -97,7 +115,7 @@ test('environment object form', () => {
     steps: [],
     environment: { name: 'production', url: 'https://prod.example.com' },
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.environment).toEqual({
     name: 'production',
     url: 'https://prod.example.com',
@@ -110,7 +128,7 @@ test('concurrency string form', () => {
     steps: [],
     concurrency: 'deploy-group',
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.concurrency).toBe('deploy-group');
 });
 
@@ -120,7 +138,7 @@ test('concurrency object form with cancelInProgress', () => {
     steps: [],
     concurrency: { group: 'deploy-${{ github.ref }}', cancelInProgress: true },
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.concurrency).toEqual({
     group: 'deploy-${{ github.ref }}',
     'cancel-in-progress': true,
@@ -132,7 +150,7 @@ test('secrets inherit', () => {
     uses: 'org/repo/.github/workflows/deploy.yml@main',
     secrets: 'inherit',
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.secrets).toBe('inherit');
   expect(ghAction.uses).toBe('org/repo/.github/workflows/deploy.yml@main');
 });
@@ -141,11 +159,11 @@ test('secrets as record', () => {
   const job = new Job(undefined as any, 'reusable', {
     uses: 'org/repo/.github/workflows/deploy.yml@main',
     secrets: {
-      token: '${{ secrets.DEPLOY_TOKEN }}' as Expression<string>,
+      token: secrets.DEPLOY_TOKEN,
       apiKey: 'literal-key',
     },
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.secrets).toEqual({
     token: '${{ secrets.DEPLOY_TOKEN }}',
     apiKey: 'literal-key',
@@ -156,7 +174,7 @@ test('external uses as string', () => {
   const job = new Job(undefined as any, 'reusable', {
     uses: 'org/repo/.github/workflows/build.yml@v1',
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.uses).toBe('org/repo/.github/workflows/build.yml@v1');
 });
 
@@ -168,7 +186,7 @@ test('runner group config', () => {
     },
     steps: [],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction['runs-on']).toEqual({
     group: 'large-runners',
     labels: ['ubuntu-latest', 'gpu'],
@@ -180,16 +198,16 @@ test('runsOn with RunnerLabel array', () => {
     runsOn: [RunnerLabel.SELF_HOSTED, RunnerLabel.custom('linux')],
     steps: [],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction['runs-on']).toEqual(['self-hosted', 'linux']);
 });
 
-test('runsOn with Expression<string>', () => {
+test('runsOn with Expression<string> auto-wraps in ${{ }}', () => {
   const job = new Job(undefined as any, 'matrix', {
-    runsOn: '${{ matrix.os }}' as Expression<string>,
+    runsOn: expr<string>('matrix.os'),
     steps: [],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction['runs-on']).toBe('${{ matrix.os }}');
 });
 
@@ -236,7 +254,7 @@ test('RunStep serialization', () => {
       },
     ],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.steps).toEqual([
     {
       name: 'Run tests',
@@ -257,7 +275,7 @@ test('UsesStep serialization', () => {
       },
     ],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.steps).toEqual([
     {
       name: 'Checkout',
@@ -267,34 +285,19 @@ test('UsesStep serialization', () => {
   ]);
 });
 
-test('step if with Condition', () => {
-  const job = new Job(undefined as any, 'test', {
-    runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [
-      {
-        name: 'Deploy',
-        run: 'deploy.sh',
-        if: Condition.from("github.ref == 'refs/heads/main'"),
-      },
-    ],
-  });
-  const ghAction = job.toGHAction();
-  expect(ghAction.steps[0].if).toBe("github.ref == 'refs/heads/main'");
-});
-
 test('step if with Expression<boolean>', () => {
-  const expr = "github.event_name == 'push'" as Expression<boolean>;
+  const ifExpr = eq(github.eventName, 'push');
   const job = new Job(undefined as any, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
       {
         name: 'Push only',
         run: 'echo push',
-        if: expr,
+        if: ifExpr,
       },
     ],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");
 });
 
@@ -310,7 +313,7 @@ test('step continueOnError and timeoutMinutes serialization', () => {
       },
     ],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.steps[0]['continue-on-error']).toBe(true);
   expect(ghAction.steps[0]['timeout-minutes']).toBe(30);
 });
@@ -325,7 +328,7 @@ test('mixed RunStep and UsesStep in same job', () => {
       { run: 'npm test', workingDirectory: 'packages/core' },
     ],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.steps).toHaveLength(4);
   expect(ghAction.steps[0].uses).toBe('actions/checkout@v4');
   expect(ghAction.steps[1].run).toBe('npm install');
@@ -357,16 +360,10 @@ const _invalidWd: UsesStep = {
   workingDirectory: '~/',
 };
 
-// Type-level: step if accepts Condition
-const _stepWithCondition: StepConfig = {
-  run: 'echo',
-  if: Condition.from('true'),
-};
-
 // Type-level: step if accepts Expression<boolean>
 const _stepWithExpr: StepConfig = {
   run: 'echo',
-  if: 'true' as Expression<boolean>,
+  if: expr<boolean>('true'),
 };
 
 test('generic matrix strategy serialization', () => {
@@ -384,7 +381,7 @@ test('generic matrix strategy serialization', () => {
     },
     steps: [{ run: 'echo hello' }],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.strategy).toEqual({
     matrix: {
       os: ['ubuntu-latest', 'windows-latest'],
@@ -408,8 +405,8 @@ test('typed matrix accessor returns expression strings', () => {
     },
     steps: [{ run: 'echo hello' }],
   });
-  expect(job.matrix.os).toBe('${{ matrix.os }}');
-  expect(job.matrix.node).toBe('${{ matrix.node }}');
+  expect(unwrapToken(String(job.matrix.os))).toBe('matrix.os');
+  expect(unwrapToken(String(job.matrix.node))).toBe('matrix.node');
 });
 
 test('createMatrixProxy produces correct expression strings', () => {
@@ -417,8 +414,8 @@ test('createMatrixProxy produces correct expression strings', () => {
     os: ['ubuntu-latest', 'windows-latest'],
     version: [1, 2, 3],
   } as const);
-  expect(proxy.os).toBe('${{ matrix.os }}');
-  expect(proxy.version).toBe('${{ matrix.version }}');
+  expect(unwrapToken(String(proxy.os))).toBe('matrix.os');
+  expect(unwrapToken(String(proxy.version))).toBe('matrix.version');
 });
 
 test('failFast serializes as fail-fast', () => {
@@ -429,7 +426,7 @@ test('failFast serializes as fail-fast', () => {
     },
     steps: [{ run: 'echo hello' }],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.strategy['fail-fast']).toBe(true);
   expect(ghAction.strategy.failFast).toBeUndefined();
 });
@@ -486,7 +483,7 @@ test('service with command and entrypoint', () => {
       },
     },
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.services.redis).toEqual({
     image: 'redis:7',
     ports: ['6379:6379'],
@@ -511,7 +508,7 @@ test('service without command and entrypoint', () => {
       },
     },
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.services.redis).toEqual({ image: 'redis:7' });
   expect(ghAction.services.redis.command).toBeUndefined();
   expect(ghAction.services.redis.entrypoint).toBeUndefined();
@@ -525,47 +522,21 @@ const _serviceWithExtras: ServiceProps = {
 };
 const _serviceWithoutExtras: ServiceProps = { image: 'redis:7' };
 
-test('Condition.from accepts Expression<boolean>', () => {
-  const expr = eq(github.ref, 'refs/heads/main');
-  const condition = Condition.from(expr);
-  expect(condition.toString()).toBe("github.ref == 'refs/heads/main'");
-});
-
-test('Condition.fromExpr creates condition from expression', () => {
-  const expr = eq(github.ref, 'refs/heads/main');
-  const condition = Condition.fromExpr(expr);
-  expect(condition.toString()).toBe("github.ref == 'refs/heads/main'");
-});
-
-test('Condition.toExpression wraps in ${{ }}', () => {
-  const condition = Condition.from("github.ref == 'refs/heads/main'");
-  expect(condition.toExpression()).toBe("${{ github.ref == 'refs/heads/main' }}");
-});
-
-test('Condition.toExpression returns empty string for empty condition', () => {
-  const condition = Condition.from('');
-  expect(condition.toExpression()).toBe('');
+test('and() composes expressions', () => {
+  const isMain = eq(github.ref, 'refs/heads/main');
+  const isNotBot = eq(github.actor, 'dependabot[bot]');
+  const composed = and(isMain, isNotBot);
+  expect(unwrapToken(String(composed))).toBe("(github.ref == 'refs/heads/main' && github.actor == 'dependabot[bot]')");
 });
 
 test('job if with Expression<boolean> serializes without ${{ }}', () => {
-  const expr = eq(github.ref, 'refs/heads/main');
+  const ifExpr = eq(github.ref, 'refs/heads/main');
   const job = new Job(undefined as any, 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    if: expr,
+    if: ifExpr,
     steps: [{ run: 'deploy.sh' }],
   });
-  const ghAction = job.toGHAction();
-  expect(ghAction.if).toBe("github.ref == 'refs/heads/main'");
-});
-
-test('job if with Condition serializes without ${{ }}', () => {
-  const condition = Condition.from("github.ref == 'refs/heads/main'");
-  const job = new Job(undefined as any, 'deploy', {
-    runsOn: RunnerLabel.UBUNTU_LATEST,
-    if: condition,
-    steps: [{ run: 'deploy.sh' }],
-  });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.if).toBe("github.ref == 'refs/heads/main'");
 });
 
@@ -580,7 +551,7 @@ test('addDependency with condition: always augments if with always()', () => {
   });
   notify.addDependency(build, { condition: 'always' });
 
-  const ghAction = notify.toGHAction();
+  const ghAction = serialize(notify);
   expect(ghAction.needs).toEqual(['build']);
   expect(ghAction.if).toBe('always()');
 });
@@ -596,7 +567,7 @@ test('addDependency with condition: failure augments if with failure()', () => {
   });
   rollback.addDependency(build, { condition: 'failure' });
 
-  const ghAction = rollback.toGHAction();
+  const ghAction = serialize(rollback);
   expect(ghAction.needs).toEqual(['build']);
   expect(ghAction.if).toBe('failure()');
 });
@@ -612,7 +583,7 @@ test('addDependency with condition: completed augments if with always()', () => 
   });
   cleanup.addDependency(build, { condition: 'completed' });
 
-  const ghAction = cleanup.toGHAction();
+  const ghAction = serialize(cleanup);
   expect(ghAction.if).toBe('always()');
 });
 
@@ -627,7 +598,7 @@ test('addDependency with condition: success augments if with success()', () => {
   });
   deploy.addDependency(build, { condition: 'success' });
 
-  const ghAction = deploy.toGHAction();
+  const ghAction = serialize(deploy);
   expect(ghAction.if).toBe('success()');
 });
 
@@ -642,7 +613,7 @@ test('addDependency without condition does not set if', () => {
   });
   test.addDependency(build);
 
-  const ghAction = test.toGHAction();
+  const ghAction = serialize(test);
   expect(ghAction.needs).toEqual(['build']);
   expect(ghAction.if).toBeUndefined();
 });
@@ -663,7 +634,7 @@ test('multiple addDependency with conditions composes if with &&', () => {
   notify.addDependency(build, { condition: 'always' });
   notify.addDependency(test, { condition: 'always' });
 
-  const ghAction = notify.toGHAction();
+  const ghAction = serialize(notify);
   expect(ghAction.needs).toEqual(['build', 'test']);
   expect(ghAction.if).toBe('(always() && always())');
 });
@@ -680,15 +651,14 @@ test('job if from props merges with addDependency condition', () => {
   });
   deploy.addDependency(build, { condition: 'success' });
 
-  const ghAction = deploy.toGHAction();
+  const ghAction = serialize(deploy);
   expect(ghAction.if).toBe("(success() && github.ref == 'refs/heads/main')");
 });
 
-test('Condition composed with Expression via and/or', () => {
-  const cond = Condition.fromExpr(eq(github.ref, 'refs/heads/main'));
-  const alwaysCond = Condition.from('always()');
-  const combined = alwaysCond.and(cond);
-  expect(combined.toString()).toBe("(always() && github.ref == 'refs/heads/main')");
+test('and() composed with multiple expressions', () => {
+  const isMain = eq(github.ref, 'refs/heads/main');
+  const combined = and(always(), isMain);
+  expect(unwrapToken(String(combined))).toBe("(always() && github.ref == 'refs/heads/main')");
 });
 
 test('step if with Expression emits without ${{ }} wrapping', () => {
@@ -703,16 +673,13 @@ test('step if with Expression emits without ${{ }} wrapping', () => {
       },
     ],
   });
-  const ghAction = job.toGHAction();
+  const ghAction = serialize(job);
   expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");
 });
 
-// Type-level: JobProps.if accepts Condition
-const _jobIfCondition: Pick<JobProps, 'if'> = { if: Condition.from('true') };
-
 // Type-level: JobProps.if accepts Expression<boolean>
-const _jobIfExpr: Pick<JobProps, 'if'> = { if: 'true' as Expression<boolean> };
+const _jobIfExpr: Pick<JobProps, 'if'> = { if: expr<boolean>('true') };
 
 // Type-level: JobProps.if rejects raw string
-// @ts-expect-error - raw string should not be assignable to Condition | Expression<boolean>
+// @ts-expect-error - raw string should not be assignable to Expression<boolean>
 const _jobIfString: Pick<JobProps, 'if'> = { if: 'raw string' };

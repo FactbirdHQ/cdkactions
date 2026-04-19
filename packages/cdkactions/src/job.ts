@@ -1,7 +1,6 @@
 import { Construct } from 'constructs';
-import { match, P } from 'ts-pattern';
 
-import type { Expression } from '#@/expressions.js';
+import { and, expr, type Expression } from '#@/expressions.js';
 import type { RunnerLabel, Shell } from '#@/nominal.js';
 import type { DefaultsProps, StringMap } from '#@/types.js';
 import { renameKeys, type Writable } from '#@/utils.js';
@@ -45,7 +44,7 @@ export interface RunnerGroupConfig {
 export interface StepBase {
   readonly id?: string;
   readonly name?: string;
-  readonly if?: Condition | Expression<boolean>;
+  readonly if?: Expression<boolean>;
   readonly env?: StringMap;
   readonly continueOnError?: boolean;
   readonly timeoutMinutes?: number;
@@ -93,114 +92,10 @@ type MatrixProxy<TMatrix extends MatrixDefinition> = {
 export function createMatrixProxy<TMatrix extends MatrixDefinition>(_matrix: TMatrix): MatrixProxy<TMatrix> {
   return new Proxy({} as MatrixProxy<TMatrix>, {
     get(_target, prop: string) {
-      return `\${{ matrix.${prop} }}` as Expression<unknown>;
+      return expr(`matrix.${prop}`);
     },
   });
 }
-
-/**
- * Represents a conditional expression that can be composed with nested and recursive
- * statements using `||` and `&&` operators.
- */
-export class Condition {
-  private expression: ConditionExpression;
-
-  constructor(expression: ConditionExpression) {
-    this.expression = expression;
-  }
-
-  static from(condition: string | Expression<boolean> | undefined | null): Condition {
-    if (!condition || (typeof condition === 'string' && condition.trim() === '')) {
-      return new Condition('');
-    }
-    return new Condition(String(condition));
-  }
-
-  static fromExpr(expr: Expression<boolean>): Condition {
-    return new Condition(String(expr));
-  }
-
-  static and(left: Condition | string | undefined, right: Condition | string | undefined): Condition {
-    const leftCondition = typeof left === 'string' ? Condition.from(left) : left || Condition.from('');
-    const rightCondition = typeof right === 'string' ? Condition.from(right) : right || Condition.from('');
-    return leftCondition.and(rightCondition);
-  }
-
-  static or(left: Condition | string | undefined, right: Condition | string | undefined): Condition {
-    const leftCondition = typeof left === 'string' ? Condition.from(left) : left || Condition.from('');
-    const rightCondition = typeof right === 'string' ? Condition.from(right) : right || Condition.from('');
-    return leftCondition.or(rightCondition);
-  }
-
-  and(other: Condition | string): Condition {
-    const otherExpr = typeof other === 'string' ? other : other.expression;
-    const thisConditions = this.extractAndConditions(this.expression);
-    const otherConditions = this.extractAndConditions(otherExpr);
-    return new Condition({
-      and: [...thisConditions, ...otherConditions],
-    });
-  }
-
-  or(other: Condition | string): Condition {
-    const otherExpr = typeof other === 'string' ? other : other.expression;
-    const thisConditions = this.extractOrConditions(this.expression);
-    const otherConditions = this.extractOrConditions(otherExpr);
-    return new Condition({
-      or: [...thisConditions, ...otherConditions],
-    });
-  }
-
-  toString(): string {
-    return this.evaluateExpression(this.expression);
-  }
-
-  toExpression(): string {
-    const str = this.toString();
-    if (!str) return '';
-    return `\${{ ${str} }}`;
-  }
-
-  private evaluateExpression(expr: ConditionExpression): string {
-    if (typeof expr === 'string') {
-      return expr;
-    }
-
-    return match(expr)
-      .with({ or: P.select() }, (conditions) => {
-        const evaluatedConditions = conditions
-          .map((condition) => this.evaluateExpression(condition))
-          .filter((cond) => cond.trim() !== '');
-
-        if (evaluatedConditions.length === 0) return '';
-        if (evaluatedConditions.length === 1) return evaluatedConditions[0];
-        return `(${evaluatedConditions.join(' || ')})`;
-      })
-      .with({ and: P.select() }, (conditions) => {
-        const evaluatedConditions = conditions
-          .map((condition) => this.evaluateExpression(condition))
-          .filter((cond) => cond.trim() !== '');
-
-        if (evaluatedConditions.length === 0) return '';
-        if (evaluatedConditions.length === 1) return evaluatedConditions[0];
-        return `(${evaluatedConditions.join(' && ')})`;
-      })
-      .exhaustive();
-  }
-
-  private extractOrConditions(expr: ConditionExpression): ConditionExpression[] {
-    if (typeof expr === 'string') return [expr];
-    if ('or' in expr) return expr.or.flatMap((condition) => this.extractOrConditions(condition));
-    return [expr];
-  }
-
-  private extractAndConditions(expr: ConditionExpression): ConditionExpression[] {
-    if (typeof expr === 'string') return [expr];
-    if ('and' in expr) return expr.and.flatMap((condition) => this.extractAndConditions(condition));
-    return [expr];
-  }
-}
-
-type ConditionExpression = string | { or: Array<ConditionExpression> } | { and: Array<ConditionExpression> };
 
 /**
  * Configuration for a single GitHub Action job.
@@ -212,7 +107,7 @@ export interface JobProps<TMatrix extends MatrixDefinition = MatrixDefinition> {
   readonly outputs?: StringMap;
   readonly env?: StringMap;
   readonly defaults?: DefaultsProps;
-  readonly if?: Condition | Expression<boolean>;
+  readonly if?: Expression<boolean>;
   readonly steps?: StepConfig[];
   readonly secrets?: Record<string, string | Expression<string>> | 'inherit';
   readonly timeoutMinutes?: number;
@@ -233,7 +128,7 @@ export interface JobProps<TMatrix extends MatrixDefinition = MatrixDefinition> {
 export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Construct {
   protected readonly action: Writable<JobProps<TMatrix>>;
   public readonly id: string;
-  public if?: Condition;
+  public if?: Expression<boolean>;
   public readonly matrix: MatrixProxy<TMatrix>;
 
   public constructor(scope: Workflow, id: string, config: JobProps<TMatrix>) {
@@ -269,34 +164,15 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     return (this.action.steps || []) as StepConfig[];
   }
 
-  private static serializeStepIf(stepIf: unknown): string | undefined {
-    if (stepIf === undefined) return undefined;
-    if (stepIf instanceof Condition) return stepIf.toString();
-    return String(stepIf);
-  }
-
   public toGHAction(): any {
     const { uses, runsOn, steps, strategy, ...rest } = this.action;
 
-    const propsIf =
-      this.action.if instanceof Condition
-        ? this.action.if.toString()
-        : this.action.if
-          ? String(this.action.if)
-          : undefined;
-    const instanceIf = this.if?.toString();
+    const propsIf = this.action.if ? String(this.action.if) : undefined;
+    const instanceIf = this.if ? String(this.if) : undefined;
     const _if =
       instanceIf && propsIf
-        ? Condition.from(instanceIf).and(Condition.from(propsIf)).toString()
+        ? String(and(expr<boolean>(instanceIf), expr<boolean>(propsIf)))
         : instanceIf || propsIf || undefined;
-
-    let serializedRunsOn: unknown = runsOn;
-    if (runsOn && typeof runsOn === 'object' && 'group' in runsOn) {
-      serializedRunsOn = {
-        group: runsOn.group,
-        ...(runsOn.labels ? { labels: runsOn.labels } : {}),
-      };
-    }
 
     let serializedUses: string | undefined;
     if (typeof uses === 'string') {
@@ -320,11 +196,20 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
       idToken: 'id-token',
     };
 
+    let serializedRunsOn: unknown = runsOn;
+    if (runsOn && typeof runsOn === 'object' && 'group' in runsOn) {
+      serializedRunsOn = {
+        group: runsOn.group,
+        ...(runsOn.labels ? { labels: runsOn.labels } : {}),
+      };
+    }
+
     const serializedSteps = steps?.map((step) => {
       const { if: stepIf, ...stepRest } = step;
+      const serialized = renameKeys(stepRest, keyMap);
       return {
-        ...renameKeys(stepRest, keyMap),
-        ...(stepIf !== undefined ? { if: Job.serializeStepIf(stepIf) } : {}),
+        ...serialized,
+        ...(stepIf !== undefined ? { if: String(stepIf) } : {}),
       };
     });
 
@@ -345,8 +230,10 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
       };
     }
 
+    const serializedRest = renameKeys(rest, keyMap);
+
     return {
-      ...renameKeys(rest, keyMap),
+      ...serializedRest,
       'runs-on': serializedRunsOn,
       uses: serializedUses,
       if: _if,
@@ -369,15 +256,14 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     this.action.needs = needs;
 
     if (options?.condition) {
-      const conditionExpr =
+      const conditionExpr: Expression<boolean> =
         options.condition === 'always' || options.condition === 'completed'
-          ? 'always()'
+          ? expr('always()')
           : options.condition === 'failure'
-            ? 'failure()'
-            : 'success()';
+            ? expr('failure()')
+            : expr('success()');
 
-      const newCondition = Condition.from(conditionExpr);
-      this.if = this.if ? this.if.and(newCondition) : newCondition;
+      this.if = this.if ? and(this.if, conditionExpr) : conditionExpr;
     }
 
     return this;

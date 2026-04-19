@@ -1,4 +1,4 @@
-import { defineAction, Condition, type TypedUsesStep, type Expression } from '#@/index.js';
+import { defineAction, expr, unwrapToken, type TypedUsesStep, type Expression } from '#@/index.js';
 
 const allOptionalAction = defineAction<
   {
@@ -37,9 +37,7 @@ const setupAction = defineAction<
 
 const emptyAction = defineAction('actions/empty@v1');
 
-const noOutputAction = defineAction<{ inputA: { required: true } }, Record<never, never>>(
-  'actions/no-output@v1',
-);
+const noOutputAction = defineAction<{ inputA: { required: true } }, Record<never, never>>('actions/no-output@v1');
 
 function test(name: string, fn: () => void) {
   try {
@@ -97,9 +95,9 @@ test('calling sets name when provided', () => {
 });
 
 test('calling sets if when provided', () => {
-  const cond = Condition.from('github.ref == refs/heads/main');
+  const cond = expr<boolean>('github.ref == refs/heads/main');
   const step = allOptionalAction({ id: 'co', if: cond });
-  expect(step.if!.toString()).toBe('github.ref == refs/heads/main');
+  expect(unwrapToken(String(step.if!))).toBe('github.ref == refs/heads/main');
 });
 
 test('calling sets env when provided', () => {
@@ -186,13 +184,13 @@ test('multi-word camelCase keys convert correctly', () => {
 test('output() returns expression string for known output key', () => {
   const step = allOptionalAction({ id: 'co' });
   const ref = step.output('ref');
-  expect(ref as string).toBe('steps.co.outputs.ref');
+  expect(unwrapToken(ref as string)).toBe('steps.co.outputs.ref');
 });
 
 test('output() returns expression for another known output key', () => {
   const step = allOptionalAction({ id: 'co' });
   const commit = step.output('commit');
-  expect(commit as string).toBe('steps.co.outputs.commit');
+  expect(unwrapToken(commit as string)).toBe('steps.co.outputs.commit');
 });
 
 test('output() on uploadArtifact returns correct expression', () => {
@@ -200,8 +198,8 @@ test('output() on uploadArtifact returns correct expression', () => {
     id: 'upload',
     with: { name: 'dist', path: 'dist/' },
   });
-  expect(step.output('artifactId') as string).toBe('steps.upload.outputs.artifactId');
-  expect(step.output('artifactUrl') as string).toBe('steps.upload.outputs.artifactUrl');
+  expect(unwrapToken(step.output('artifactId') as string)).toBe('steps.upload.outputs.artifactId');
+  expect(unwrapToken(step.output('artifactUrl') as string)).toBe('steps.upload.outputs.artifactUrl');
 });
 
 import {
@@ -240,7 +238,7 @@ test('setupNodeV6 produces correct uses and serializes inputs', () => {
 
 test('setupNodeV6 output returns expression', () => {
   const step = setupNodeV6({ id: 'node' });
-  expect(step.output('cacheHit') as string).toBe('steps.node.outputs.cacheHit');
+  expect(unwrapToken(step.output('cacheHit') as string)).toBe('steps.node.outputs.cacheHit');
 });
 
 test('setupGoV6 ref is correct', () => {

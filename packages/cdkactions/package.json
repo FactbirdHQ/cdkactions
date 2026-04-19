@@ -44,8 +44,7 @@
   },
   "dependencies": {
     "js-yaml": "^4.0.0",
-    "ts-dedent": "^2.2.0",
-    "ts-pattern": "^5.7.0"
+    "ts-dedent": "^2.2.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

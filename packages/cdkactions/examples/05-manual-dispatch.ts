@@ -1,7 +1,4 @@
-import {
-  App, Stack, Workflow, Job, RunnerLabel,
-  WorkflowDispatchInputType,
-} from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType } from '#@/index.js';
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -43,9 +40,7 @@ export function create(app?: App) {
 
   new Job(workflow, 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [
-      { name: 'Deploy', run: 'echo "Deploying..."' },
-    ],
+    steps: [{ name: 'Deploy', run: 'echo "Deploying..."' }],
   });
 
   return _app;

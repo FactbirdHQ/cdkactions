@@ -37,25 +37,29 @@ export interface TypedUsesStep<TOutputs extends ActionOutputs = ActionOutputs>
   output<K extends keyof TOutputs & string>(key: K): Expression<string>;
 }
 
-type HasRequiredCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutputs> =
-  [RequiredInputKeys<TInputs>] extends [never]
-    ? [keyof TOutputs] extends [never] ? false : true
-    : true;
+type HasRequiredCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutputs> = [
+  RequiredInputKeys<TInputs>,
+] extends [never]
+  ? [keyof TOutputs] extends [never]
+    ? false
+    : true
+  : true;
 
 export type Action<
   TInputs extends ActionInputs = Record<never, never>,
   TOutputs extends ActionOutputs = Record<never, never>,
-> = HasRequiredCallOptions<TInputs, TOutputs> extends true
-  ? {
-      (options: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
-      readonly ref: string;
-      readonly uses: string;
-    }
-  : {
-      (options?: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
-      readonly ref: string;
-      readonly uses: string;
-    };
+> =
+  HasRequiredCallOptions<TInputs, TOutputs> extends true
+    ? {
+        (options: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
+        readonly ref: string;
+        readonly uses: string;
+      }
+    : {
+        (options?: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
+        readonly ref: string;
+        readonly uses: string;
+      };
 
 export function defineAction<
   TInputs extends ActionInputs = Record<never, never>,

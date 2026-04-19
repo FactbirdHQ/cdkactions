@@ -1,7 +1,6 @@
-import {
-  App, Stack, Workflow, Job, RunnerLabel,
-  eq, github,
-} from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#@/index.js';
+
+const { eq, github } = expression;
 import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {
@@ -30,10 +29,7 @@ export function create(app?: App) {
 
   const test = new Job(workflow, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [
-      checkoutV4(),
-      { name: 'Test', run: 'npm test' },
-    ],
+    steps: [checkoutV4(), { name: 'Test', run: 'npm test' }],
   });
   test.addDependency(build);
 
@@ -54,9 +50,7 @@ export function create(app?: App) {
 
   const notify = new Job(workflow, 'notify', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [
-      { name: 'Notify', run: 'echo "Pipeline finished"' },
-    ],
+    steps: [{ name: 'Notify', run: 'echo "Pipeline finished"' }],
   });
   notify.addDependency(deploy, { condition: 'always' });
 
