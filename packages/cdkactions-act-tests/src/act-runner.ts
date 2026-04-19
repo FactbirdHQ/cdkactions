@@ -8,7 +8,7 @@ export interface ActResult {
 }
 
 const KNOWN_ACT_LIMITATION_RE =
-  /failed to connect to the docker API|no DOCKER_HOST|Couldn't get a valid docker connection/;
+  /failed to connect to the docker API|no DOCKER_HOST|Couldn't get a valid docker connection|Cannot connect to the Docker daemon/;
 
 export function runActDryRun(workflowPath: string, event: string): ActResult {
   const result = spawnSync(
@@ -30,6 +30,7 @@ export function runActDryRun(workflowPath: string, event: string): ActResult {
     {
       encoding: 'utf-8',
       timeout: 30_000,
+      env: { ...process.env, DOCKER_HOST: 'unix:///dev/null' },
     },
   );
 
