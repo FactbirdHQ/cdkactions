@@ -11,7 +11,7 @@ GitHub Actions workflows are YAML files with no type checking, no IDE support be
 
 - **Branded nominal types** prevent passing a bare string where a `RunnerLabel`, `Shell`, or `TokenPermission` is expected
 - **Typed expressions** (`Expression<T>`) give you autocomplete on `github.ref`, `runner.os`, and all 11 context objects — with compile-time errors for typos
-- **`Action<TInputs, TOutputs>`** makes third-party action usage type-safe: required inputs are enforced, unknown inputs are rejected, and `.output()` only accepts declared output keys
+- **`Action<TInputs, TOutputs>`** makes third-party action usage type-safe: call directly (`checkoutV4()` or `checkoutV4({ with: { fetchDepth: 0 } })`), and the compiler enforces required inputs, rejects unknown keys, and restricts `.output()` to declared output keys
 - **Construct-based composition** lets you publish reusable stacks, workflows, and jobs as npm packages — not fragile YAML templates
 
 ## Quick Start
