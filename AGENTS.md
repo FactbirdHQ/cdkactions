@@ -221,13 +221,13 @@ To enter the dev shell, either:
 
 ## File Conventions
 
-- ESM modules with subpath imports — use `#@/` for source modules and `#$/` for test modules
-- All imports require `.js` extension: `from '#@/job.js'`, `from '#$/utils.js'`
-- `#@/*` resolves to `src/*` (TypeScript) and `dist/*` (Node runtime) via conditional imports in package.json
-- `#$/*` resolves to `test/*` (no conditional, development-only)
+- ESM modules with subpath imports — use `#src/` for source modules and `#test/` for test modules
+- Source imports require `.js` extension: `from '#src/job.js'`; test imports use `.ts`: `from '#test/utils.ts'`
+- `#src/*` resolves to `src/*` (TypeScript) and `dist/*` (Node runtime) via conditional imports in package.json
+- `#test/*` resolves to `test/*` directly
 - **Import path rules:**
   - `index.ts` (barrel) files must use relative paths: `from './file.js'`
-  - All other (non-index) files must use subpath imports: `from '#@/file.js'` or `from '#$/file.js'`
+  - All other (non-index) files must use subpath imports: `from '#src/file.js'` or `from '#test/file.ts'`
 - Single `index.ts` barrel export — all public API exported from here
 - No default exports
 - Source in `src/`, tests in `test/`, examples in `examples/`

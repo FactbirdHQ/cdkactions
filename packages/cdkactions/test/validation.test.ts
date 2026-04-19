@@ -1,5 +1,5 @@
 import { Node } from 'constructs';
-import type { ScheduleEvent, StepConfig, WorkflowProps } from '#@/index.js';
+import type { ScheduleEvent, StepConfig, WorkflowProps } from '#src/index.js';
 import {
   type App,
   CronExpression,
@@ -9,9 +9,9 @@ import {
   Stack,
   validateCronExpression,
   Workflow,
-} from '#@/index.js';
-import { checkoutV4 } from '#@/actions.js';
-import { TestingApp } from '#$/utils.js';
+} from '#src/index.js';
+import { checkoutV4 } from '#src/actions.js';
+import { TestingApp } from '#test/utils.ts';
 
 function createTestApp(options: { createValidateWorkflow?: boolean } = {}) {
   return TestingApp({ createValidateWorkflow: false, ...options });

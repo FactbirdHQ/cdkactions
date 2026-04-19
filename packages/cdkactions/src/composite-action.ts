@@ -1,10 +1,10 @@
 import type { Construct } from 'constructs';
 
-import { expr, type Expression } from '#@/expressions.js';
-import type { StepConfig, UsesStep } from '#@/job.js';
-import { Stack } from '#@/stack.js';
-import type { StringMap } from '#@/types.js';
-import { renameKeys } from '#@/utils.js';
+import { expr, type Expression } from '#src/expressions.js';
+import type { StepConfig, UsesStep } from '#src/job.js';
+import { Stack } from '#src/stack.js';
+import type { StringMap } from '#src/types.js';
+import { renameKeys } from '#src/utils.js';
 
 /**
  * Configuration for a composite action input.

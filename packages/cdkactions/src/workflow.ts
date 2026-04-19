@@ -2,11 +2,11 @@ import assert from 'node:assert';
 
 import { Construct, Node } from 'constructs';
 
-import type { Expression } from '#@/expressions.js';
-import { type ConcurrencyConfig, Job } from '#@/job.js';
-import type { DefaultsProps, StringMap } from '#@/types.js';
-import { camelToSnake, renameKeys, type Writable } from '#@/utils.js';
-import { addWorkflowValidation, CronExpression } from '#@/validation.js';
+import type { Expression } from '#src/expressions.js';
+import { type ConcurrencyConfig, Job } from '#src/job.js';
+import type { DefaultsProps, StringMap } from '#src/types.js';
+import { camelToSnake, renameKeys, type Writable } from '#src/utils.js';
+import { addWorkflowValidation, CronExpression } from '#src/validation.js';
 
 /**
  * Configuration for the BranchProtectionRule event.

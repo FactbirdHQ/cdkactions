@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType, expression } from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType, expression } from '#src/index.js';
 
 const { inputs, github } = expression;
 

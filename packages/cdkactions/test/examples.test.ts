@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import type { App } from '#@/index.js';
-import { TestingApp } from '#$/utils.js';
+import type { App } from '#src/index.js';
+import { TestingApp } from '#test/utils.ts';
 
 import { create as createNodeCiMatrix } from '../examples/01-nodejs-ci-matrix.js';
 import { create as createDockerBuildPush } from '../examples/02-docker-build-push.js';

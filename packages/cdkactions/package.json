@@ -12,14 +12,11 @@
     }
   },
   "imports": {
-    "#@/*": {
+    "#src/*": {
       "types": "./src/*",
       "default": "./dist/*"
     },
-    "#$/*": {
-      "types": "./test/*",
-      "default": "./test/*"
-    }
+    "#test/*": "./test/*"
   },
   "files": [
     "dist"

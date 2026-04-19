@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel } from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel } from '#src/index.js';
 import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {

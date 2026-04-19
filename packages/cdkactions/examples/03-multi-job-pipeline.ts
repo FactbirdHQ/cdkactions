@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#src/index.js';
 import { checkoutV4, uploadArtifactV4, downloadArtifactV4 } from '../src/actions.js';
 
 const { eq, github } = expression;
@@ -16,11 +16,7 @@ export function create(app?: App) {
   const build = new Job(workflow, 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     outputs: { artifact_id: `${upload.output('artifactId')}` },
-    steps: [
-      checkoutV4(),
-      { name: 'Build', run: 'npm run build' },
-      upload,
-    ],
+    steps: [checkoutV4(), { name: 'Build', run: 'npm run build' }, upload],
   });
 
   const test = new Job(workflow, 'test', {
