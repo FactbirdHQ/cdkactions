@@ -2,7 +2,7 @@ import type { Construct } from 'constructs';
 import { dedent } from 'ts-dedent';
 
 import { checkoutV4 } from '#@/actions.js';
-import { always, expr, type Expression } from '#@/expressions.js';
+import { always, expr, github, secrets } from '#@/expressions.js';
 import { Job, type JobProps, type MatrixDefinition, type StepConfig } from '#@/job.js';
 import { RunnerLabel } from '#@/nominal.js';
 import { Stack } from '#@/stack.js';
@@ -21,9 +21,7 @@ export interface CDKActionsProps {
 export class CDKActionsStack extends Stack {
   public constructor(scope: Construct, id: string, config: CDKActionsProps) {
     super(scope, id);
-    const token: Expression<string> = config.pushUpdatedManifests
-      ? expr('secrets.CDKACTIONS_TOKEN')
-      : expr('github.token');
+    const token = config.pushUpdatedManifests ? secrets.CDKACTIONS_TOKEN : github.token;
     const synth = new Workflow(this, 'validate', {
       name: 'Validate cdkactions manifests',
       on: 'push',

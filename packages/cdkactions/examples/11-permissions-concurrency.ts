@@ -1,5 +1,7 @@
-import { App, Stack, Workflow, Job, RunnerLabel } from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#@/index.js';
 import { checkoutV4 } from '../src/actions.js';
+
+const { github } = expression;
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -16,7 +18,7 @@ export function create(app?: App) {
       models: 'read',
     },
     concurrency: {
-      group: 'security-${{ github.ref }}',
+      group: `security-${github.ref}`,
       cancelInProgress: false,
     },
   });

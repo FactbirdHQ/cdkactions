@@ -1,4 +1,4 @@
-import { defineAction, expr, unwrapToken, type TypedUsesStep, type Expression } from '#@/index.js';
+import { defineAction, expr, secrets, unwrapToken, type TypedUsesStep, type Expression } from '#@/index.js';
 
 const allOptionalAction = defineAction<
   {
@@ -260,9 +260,9 @@ test('setupRubyV1 uses ruby/setup-ruby', () => {
 });
 
 test('createGithubAppTokenV3 requires privateKey', () => {
-  const step = createGithubAppTokenV3({ id: 'token', with: { privateKey: '${{ secrets.PK }}' } });
+  const step = createGithubAppTokenV3({ id: 'token', with: { privateKey: secrets.PK } });
   expect(step.uses).toBe('actions/create-github-app-token@v3');
-  expect(step.with).toEqual({ 'private-key': '${{ secrets.PK }}' });
+  expect(unwrapToken(String(step.with!['private-key']))).toBe('secrets.PK');
 });
 
 test('githubScriptV9 requires script input', () => {
@@ -272,9 +272,10 @@ test('githubScriptV9 requires script input', () => {
 });
 
 test('addToProjectV1 requires projectUrl and githubToken', () => {
-  const step = addToProjectV1({ id: 'add', with: { projectUrl: 'https://...', githubToken: '${{ secrets.T }}' } });
+  const step = addToProjectV1({ id: 'add', with: { projectUrl: 'https://...', githubToken: secrets.T } });
   expect(step.uses).toBe('actions/add-to-project@v1');
-  expect(step.with).toEqual({ 'project-url': 'https://...', 'github-token': '${{ secrets.T }}' });
+  expect(step.with!['project-url']).toBe('https://...');
+  expect(unwrapToken(String(step.with!['github-token']))).toBe('secrets.T');
 });
 
 test('publishImmutableActionV1 ref is correct', () => {

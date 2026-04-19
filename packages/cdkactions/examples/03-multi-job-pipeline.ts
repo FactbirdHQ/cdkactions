@@ -1,7 +1,7 @@
 import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#@/index.js';
+import { checkoutV4, uploadArtifactV4, downloadArtifactV4 } from '../src/actions.js';
 
 const { eq, github } = expression;
-import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -12,18 +12,14 @@ export function create(app?: App) {
     on: { push: { branches: ['main'] } },
   });
 
+  const upload = uploadArtifactV4({ id: 'upload', with: { name: 'dist', path: 'dist/' } });
   const build = new Job(workflow, 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    outputs: { artifact_id: '${{ steps.upload.outputs.artifact-id }}' },
+    outputs: { artifact_id: `${upload.output('artifactId')}` },
     steps: [
       checkoutV4(),
       { name: 'Build', run: 'npm run build' },
-      {
-        id: 'upload',
-        name: 'Upload',
-        uses: 'actions/upload-artifact@v4',
-        with: { name: 'dist', path: 'dist/' },
-      },
+      upload,
     ],
   });
 
@@ -38,11 +34,7 @@ export function create(app?: App) {
     if: eq(github.ref, 'refs/heads/main'),
     environment: 'production',
     steps: [
-      {
-        name: 'Download artifact',
-        uses: 'actions/download-artifact@v4',
-        with: { name: 'dist' },
-      },
+      downloadArtifactV4({ name: 'Download artifact', with: { name: 'dist' } }),
       { name: 'Deploy', run: './deploy.sh' },
     ],
   });

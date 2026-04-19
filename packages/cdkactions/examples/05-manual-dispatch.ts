@@ -1,4 +1,6 @@
-import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType } from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType, expression } from '#@/index.js';
+
+const { inputs, github } = expression;
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -6,7 +8,7 @@ export function create(app?: App) {
 
   const workflow = new Workflow(stack, 'deploy-manual', {
     name: 'Manual Deploy',
-    runName: 'Deploy ${{ inputs.environment }} by ${{ github.actor }}',
+    runName: `Deploy ${inputs.environment} by ${github.actor}`,
     on: {
       workflowDispatch: {
         inputs: {
