@@ -42,7 +42,7 @@ export function create(app?: App) {
   new Job(reusable, 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
-      checkoutV4.call({}),
+      checkoutV4(),
       { name: 'Build', run: 'npm run build' },
     ],
   });

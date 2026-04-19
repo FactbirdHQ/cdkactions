@@ -32,7 +32,7 @@ export function create(app?: App) {
       idToken: 'write',
     },
     steps: [
-      checkoutV4.call({}),
+      checkoutV4(),
       {
         name: 'Login to GHCR',
         uses: 'docker/login-action@v3',

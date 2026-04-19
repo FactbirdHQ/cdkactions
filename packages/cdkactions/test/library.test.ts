@@ -47,40 +47,40 @@ test('CheckoutJob with no user steps only has checkout', () => {
 });
 
 test('checkoutV4 Action produces correct step', () => {
-  const step = checkoutV4.call({});
+  const step = checkoutV4();
   expect(step.uses).toBe('actions/checkout@v4');
   expect(Object.keys(step)).toEqual(['uses']);
 });
 
 test('checkoutV4 Action with inputs', () => {
-  const step = checkoutV4.call({ with: { fetchDepth: 0 } });
+  const step = checkoutV4({ with: { fetchDepth: 0 } });
   expect(step.uses).toBe('actions/checkout@v4');
   expect(step.with).toEqual({ 'fetch-depth': 0 });
 });
 
 test('checkoutV4 step is valid StepConfig', () => {
-  const step: StepConfig = checkoutV4.call({});
+  const step: StepConfig = checkoutV4();
   expect(step.uses).toBe('actions/checkout@v4');
 });
 
 test('checkoutV3 Action produces correct step', () => {
-  const step = checkoutV3.call({});
+  const step = checkoutV3();
   expect(step.uses).toBe('actions/checkout@v3');
 });
 
 test('checkoutV3 Action with inputs', () => {
-  const step = checkoutV3.call({ with: { fetchDepth: 0, sparseCheckout: 'src/' } });
+  const step = checkoutV3({ with: { fetchDepth: 0, sparseCheckout: 'src/' } });
   expect(step.uses).toBe('actions/checkout@v3');
   expect(step.with).toEqual({ 'fetch-depth': 0, 'sparse-checkout': 'src/' });
 });
 
 test('checkoutV2 Action produces correct step', () => {
-  const step = checkoutV2.call({});
+  const step = checkoutV2();
   expect(step.uses).toBe('actions/checkout@v2');
 });
 
 test('checkoutV2 Action with inputs', () => {
-  const step = checkoutV2.call({ with: { fetchDepth: 0 } });
+  const step = checkoutV2({ with: { fetchDepth: 0 } });
   expect(step.uses).toBe('actions/checkout@v2');
   expect(step.with).toEqual({ 'fetch-depth': 0 });
 });

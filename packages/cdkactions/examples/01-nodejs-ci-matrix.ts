@@ -24,7 +24,7 @@ export function create(app?: App) {
       failFast: false,
     },
     steps: [
-      checkoutV4.call({}),
+      checkoutV4(),
       {
         name: 'Setup Node.js',
         uses: 'actions/setup-node@v4',

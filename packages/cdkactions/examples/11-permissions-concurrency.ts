@@ -31,7 +31,7 @@ export function create(app?: App) {
       contents: 'read',
     },
     steps: [
-      checkoutV4.call({}),
+      checkoutV4(),
       { uses: 'github/codeql-action/init@v3' },
       { uses: 'github/codeql-action/analyze@v3' },
     ],
