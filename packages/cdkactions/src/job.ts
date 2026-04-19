@@ -1,7 +1,7 @@
 import { Construct } from 'constructs';
 import { match, P } from 'ts-pattern';
 
-import type { Expression } from '#@/expressions.js';
+import { isExpression, wrapExpression, type Expression } from '#@/expressions.js';
 import type { RunnerLabel, Shell } from '#@/nominal.js';
 import type { DefaultsProps, StringMap } from '#@/types.js';
 import { renameKeys, type Writable } from '#@/utils.js';
@@ -275,6 +275,12 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     return String(stepIf);
   }
 
+  private static wrapObjectExpressions(obj: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [k, isExpression(v) ? wrapExpression(v as string) : v]),
+    );
+  }
+
   public toGHAction(): any {
     const { uses, runsOn, steps, strategy, ...rest } = this.action;
 
@@ -322,8 +328,15 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
 
     const serializedSteps = steps?.map((step) => {
       const { if: stepIf, ...stepRest } = step;
+      const serialized = renameKeys(stepRest, keyMap);
+      if (serialized.with) {
+        serialized.with = Job.wrapObjectExpressions(serialized.with as Record<string, unknown>);
+      }
+      if (serialized.env) {
+        serialized.env = Job.wrapObjectExpressions(serialized.env as Record<string, unknown>);
+      }
       return {
-        ...renameKeys(stepRest, keyMap),
+        ...serialized,
         ...(stepIf !== undefined ? { if: Job.serializeStepIf(stepIf) } : {}),
       };
     });

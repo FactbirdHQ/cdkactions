@@ -1,4 +1,4 @@
-import { defineAction, Condition, type TypedUsesStep, type Expression } from '#@/index.js';
+import { defineAction, Condition, type TypedUsesStep, type Expression, secrets } from '#@/index.js';
 
 const allOptionalAction = defineAction<
   {
@@ -262,7 +262,7 @@ test('setupRubyV1 uses ruby/setup-ruby', () => {
 });
 
 test('createGithubAppTokenV3 requires privateKey', () => {
-  const step = createGithubAppTokenV3({ id: 'token', with: { privateKey: '${{ secrets.PK }}' } });
+  const step = createGithubAppTokenV3({ id: 'token', with: { privateKey: secrets.PK } });
   expect(step.uses).toBe('actions/create-github-app-token@v3');
   expect(step.with).toEqual({ 'private-key': '${{ secrets.PK }}' });
 });
@@ -274,7 +274,7 @@ test('githubScriptV9 requires script input', () => {
 });
 
 test('addToProjectV1 requires projectUrl and githubToken', () => {
-  const step = addToProjectV1({ id: 'add', with: { projectUrl: 'https://...', githubToken: '${{ secrets.T }}' } });
+  const step = addToProjectV1({ id: 'add', with: { projectUrl: 'https://...', githubToken: secrets.T } });
   expect(step.uses).toBe('actions/add-to-project@v1');
   expect(step.with).toEqual({ 'project-url': 'https://...', 'github-token': '${{ secrets.T }}' });
 });

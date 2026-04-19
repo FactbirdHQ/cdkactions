@@ -33,8 +33,12 @@ export function expr<T = unknown>(value: string): Expression<T> {
   return value as Expression<T>;
 }
 
-function isExpression(value: unknown): value is Expression {
+export function isExpression(value: unknown): value is Expression {
   return typeof value === 'string' && knownExpressions.has(value);
+}
+
+export function wrapExpression(value: string): string {
+  return `\${{ ${value} }}`;
 }
 
 /**

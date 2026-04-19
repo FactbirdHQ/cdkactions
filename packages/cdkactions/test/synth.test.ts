@@ -1,5 +1,6 @@
 import type { Construct } from 'constructs';
 import * as fs from 'fs';
+import { secrets } from '#@/expressions.js';
 import type { Expression } from '#@/expressions.js';
 import { CheckoutJob } from '#@/library.js';
 import { RunnerLabel } from '#@/nominal.js';
@@ -41,8 +42,8 @@ test('complicated stack', () => {
             with: {
               repository: 'example/image',
               path: 'path/to/Dockerfile',
-              username: '${{ secrets.DOCKER_USERNAME }}',
-              password: '${{ secrets.DOCKER_PASSWORD }}',
+              username: secrets.DOCKER_USERNAME,
+              password: secrets.DOCKER_PASSWORD,
               push: "${{ github.ref == 'refs/heads/master' }}",
               tags: 'latest,${{ github.sha }}',
             },

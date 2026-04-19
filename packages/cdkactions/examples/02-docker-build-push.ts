@@ -1,5 +1,6 @@
 import {
   App, Stack, Workflow, Job, RunnerLabel,
+  github, secrets,
 } from '#@/index.js';
 import { checkoutV4 } from '../src/actions.js';
 
@@ -38,8 +39,8 @@ export function create(app?: App) {
         uses: 'docker/login-action@v3',
         with: {
           registry: 'ghcr.io',
-          username: '${{ github.actor }}',
-          password: '${{ secrets.GITHUB_TOKEN }}',
+          username: github.actor,
+          password: secrets.GITHUB_TOKEN,
         },
       },
       {
