@@ -1,6 +1,7 @@
 import type { Construct } from 'constructs';
 import { dedent } from 'ts-dedent';
 
+import { checkoutV4 } from '#@/actions.js';
 import { always } from '#@/expressions.js';
 import { Condition, Job, type JobProps, type MatrixDefinition, type StepConfig } from '#@/job.js';
 import { RunnerLabel } from '#@/nominal.js';
@@ -63,7 +64,8 @@ export class CDKActionsStack extends Stack {
  */
 export class CheckoutJob<TMatrix extends MatrixDefinition = MatrixDefinition> extends Job<TMatrix> {
   public constructor(scope: Workflow, id: string, config: JobProps<TMatrix>) {
-    const steps: StepConfig[] = ([{ uses: 'actions/checkout@v4' }] as StepConfig[]).concat(config.steps || []);
+    const checkoutStep: StepConfig = checkoutV4();
+    const steps: StepConfig[] = [checkoutStep, ...(config.steps || [])];
     super(scope, id, { ...config, steps });
   }
 }

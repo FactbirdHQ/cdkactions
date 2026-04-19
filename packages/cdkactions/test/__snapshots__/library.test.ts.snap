@@ -10,7 +10,7 @@ jobs:
     name: Validate cdkactions manifests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           token: \${{ secrets.CDKACTIONS_TOKEN }}
       - name: Validate manifests

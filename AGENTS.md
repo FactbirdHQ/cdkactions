@@ -120,11 +120,11 @@ export type OrgRunner = (typeof Runners)[keyof typeof Runners];
 
 This pattern allows strict enforcement of valid runner labels at the type level without modifying cdkactions itself. The `RunnerLabel` type is the base; user-defined runner types are subtypes.
 
-### Typed Action References (`ActionRef`)
+### Typed Action References (`Action`)
 
-External GitHub Actions are defined centrally with full input/output type safety using `ActionRef.fromReference<TInputs, TOutputs>(ref)`. The generic type parameters capture the action's input schema (required vs optional, defaults) and output schema.
+External GitHub Actions are defined centrally with full input/output type safety using `defineAction<TInputs, TOutputs>(ref)`. The generic type parameters capture the action's input schema (required vs optional, defaults) and output schema. Pre-defined action references (e.g., `checkoutV2`, `checkoutV3`, `checkoutV4`) live in `src/actions.ts`.
 
-Invocation via `.call(options)` returns a `TypedUsesStep<TOutputs>` — a subtype of `UsesStep` with a typed `.output(key)` accessor. This slots seamlessly into the `StepConfig` union.
+Actions are **directly callable** — `checkoutV4()` or `checkoutV4({ with: { fetchDepth: 0 } })`. When all inputs are optional and there are no outputs, the parameter is optional. The return is a `TypedUsesStep<TOutputs>` — a subtype of `UsesStep` with a typed `.output(key)` accessor. This slots seamlessly into the `StepConfig` union. Each action also exposes `.ref` and `.uses` properties for the raw reference string.
 
 Key design rules:
 - Input keys use **camelCase** in TypeScript, serialized to **kebab-case** in YAML (e.g., `fetchDepth` → `fetch-depth`)
