@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import type { App } from '#@/index.js';
-import { TestingApp } from './utils.js';
+import { TestingApp } from '#$/utils.js';
 
 import { create as createNodeCiMatrix } from '../examples/01-nodejs-ci-matrix.js';
 import { create as createDockerBuildPush } from '../examples/02-docker-build-push.js';

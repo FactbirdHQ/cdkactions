@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType } from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType, expr } from '#@/index.js';
 import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {
@@ -25,7 +25,7 @@ export function create(app?: App) {
         outputs: {
           buildHash: {
             description: 'SHA of the build output',
-            value: '${{ jobs.build.outputs.hash }}',
+            value: `${expr('jobs.build.outputs.hash')}`,
           },
         },
         secrets: {

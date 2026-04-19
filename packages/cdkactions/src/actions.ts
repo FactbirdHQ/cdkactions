@@ -59,6 +59,102 @@ export const checkoutV4 = defineAction<{
   githubServerUrl: { default: string };
 }>('actions/checkout@v4');
 
+export const uploadArtifactV1 = defineAction<
+  {
+    name: { required: true };
+    path: { required: true };
+  },
+  {
+    artifactId: {};
+  }
+>('actions/upload-artifact@v1');
+
+export const uploadArtifactV2 = defineAction<
+  {
+    name: { required: true };
+    path: { required: true };
+    ifNoFilesFound: { default: string };
+    retentionDays: { default: string };
+  },
+  {
+    artifactId: {};
+  }
+>('actions/upload-artifact@v2');
+
+export const uploadArtifactV3 = defineAction<
+  {
+    name: { required: true };
+    path: { required: true };
+    ifNoFilesFound: { default: string };
+    retentionDays: { default: string };
+  },
+  {
+    artifactId: {};
+  }
+>('actions/upload-artifact@v3');
+
+export const uploadArtifactV4 = defineAction<
+  {
+    name: { required: true };
+    path: { required: true };
+    ifNoFilesFound: { default: string };
+    retentionDays: { default: string };
+    compressionLevel: { default: string };
+    overwrite: { default: string };
+    includeHiddenFiles: { default: string };
+  },
+  {
+    artifactId: {};
+    artifactUrl: {};
+  }
+>('actions/upload-artifact@v4');
+
+export const downloadArtifactV1 = defineAction<{
+  name: { default: string };
+  path: { default: string };
+}>('actions/download-artifact@v1');
+
+export const downloadArtifactV2 = defineAction<{
+  name: { default: string };
+  path: { default: string };
+}>('actions/download-artifact@v2');
+
+export const downloadArtifactV3 = defineAction<{
+  name: { default: string };
+  path: { default: string };
+}>('actions/download-artifact@v3');
+
+export const downloadArtifactV4 = defineAction<
+  {
+    name: { default: string };
+    path: { default: string };
+    pattern: { default: string };
+    mergeMultiple: { default: string };
+    githubToken: { default: string };
+    repository: { default: string };
+    runId: { default: string };
+  },
+  {
+    downloadPath: {};
+  }
+>('actions/download-artifact@v4');
+
+export const cacheV4 = defineAction<
+  {
+    path: { required: true };
+    key: { required: true };
+    restoreKeys: { default: string };
+    uploadChunkSize: { default: string };
+    enableCrossOsArchive: { default: string };
+    failOnCacheMiss: { default: string };
+    lookupOnly: { default: string };
+    saveAlways: { default: string };
+  },
+  {
+    cacheHit: {};
+  }
+>('actions/cache@v4');
+
 export const setupNodeV6 = defineAction<
   {
     nodeVersion: { default: string };

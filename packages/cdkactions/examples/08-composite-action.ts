@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel, Shell, CompositeAction } from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, Shell, CompositeAction, hashFiles } from '#@/index.js';
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -18,7 +18,7 @@ export function create(app?: App) {
       {
         id: 'cache',
         uses: 'actions/cache@v4',
-        with: { path: 'node_modules', key: 'deps-${{ hashFiles("package-lock.json") }}' },
+        with: { path: 'node_modules', key: `deps-${hashFiles('package-lock.json')}` },
       },
       { name: 'Install', run: 'npm ci', shell: Shell.BASH },
     ],

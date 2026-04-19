@@ -6,7 +6,7 @@ import { CheckoutJob } from '#@/library.js';
 import { RunnerLabel } from '#@/nominal.js';
 import { Stack } from '#@/stack.js';
 import { Workflow } from '#@/workflow.js';
-import { TestingApp } from './utils.js';
+import { TestingApp } from '#$/utils.js';
 
 test('complicated stack', () => {
   class MyStack extends Stack {
