@@ -1,0 +1,23 @@
+{
+  "name": "@factbird/cdkactions-act-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#src/*": {
+      "types": "./src/*",
+      "default": "./src/*"
+    },
+    "#test/*": "./test/*"
+  },
+  "dependencies": {
+    "@factbird/cdkactions": "workspace:*",
+    "constructs": "^10.4.2",
+    "js-yaml": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.0",
+    "@types/node": "^22.1.0",
+    "typescript": "^5.8.2"
+  }
+}

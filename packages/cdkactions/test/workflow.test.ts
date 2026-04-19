@@ -17,7 +17,7 @@ import type {
   WorkflowProps,
 } from '#src/index.js';
 import { Job, RunnerLabel, WorkflowDispatchInputType } from '#src/index.js';
-import { TestingWorkflow } from '#test/utils.js';
+import { TestingWorkflow } from '#test/utils.ts';
 
 test('toGHAction', () => {
   const workflow = TestingWorkflow({

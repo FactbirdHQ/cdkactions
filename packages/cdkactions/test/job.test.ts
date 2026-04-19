@@ -26,7 +26,7 @@ import {
   unwrapToken,
 } from '#src/index.js';
 import { checkoutV4 } from '#src/actions.js';
-import { TestingWorkflow } from '#test/utils.js';
+import { TestingWorkflow } from '#test/utils.ts';
 
 /** Simulate the full serialization pipeline (toGHAction + token resolution). */
 function serialize(job: Job): any {

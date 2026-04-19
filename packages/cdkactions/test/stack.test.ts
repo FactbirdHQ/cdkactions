@@ -1,7 +1,7 @@
 import { Construct } from 'constructs';
 import * as fs from 'fs';
 import { Stack, Workflow } from '#src/index.js';
-import { TestingApp } from '#test/utils.js';
+import { TestingApp } from '#test/utils.ts';
 
 test('non-workflow children are ignored', () => {
   const app = TestingApp({ createValidateWorkflow: false });

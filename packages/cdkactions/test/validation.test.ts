@@ -11,7 +11,7 @@ import {
   Workflow,
 } from '#src/index.js';
 import { checkoutV4 } from '#src/actions.js';
-import { TestingApp } from '#test/utils.js';
+import { TestingApp } from '#test/utils.ts';
 
 function createTestApp(options: { createValidateWorkflow?: boolean } = {}) {
   return TestingApp({ createValidateWorkflow: false, ...options });

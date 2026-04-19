@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { App, Stack, Workflow } from '#src/index.js';
-import { TestingApp } from '#test/utils.js';
+import { TestingApp } from '#test/utils.ts';
 
 test('no params', () => {
   const app = new App();
