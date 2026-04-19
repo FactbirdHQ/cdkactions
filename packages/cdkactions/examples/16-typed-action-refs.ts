@@ -1,7 +1,4 @@
-import {
-  App, Stack, Workflow, Job, RunnerLabel,
-  defineAction,
-} from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, defineAction } from '#@/index.js';
 
 const checkoutV4 = defineAction<
   {
@@ -74,12 +71,7 @@ export function create(app?: App) {
 
   new Job(workflow, 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [
-      co,
-      node,
-      { name: 'Build', run: 'npm run build' },
-      upload,
-    ],
+    steps: [co, node, { name: 'Build', run: 'npm run build' }, upload],
   });
 
   return _app;

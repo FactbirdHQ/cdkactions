@@ -1,4 +1,4 @@
-import { expr, type Expression } from '#@/expressions.js';
+import { expr, type Expression, isExpression } from '#@/expressions.js';
 import type { UsesStep, StepBase } from '#@/job.js';
 import { camelToKebab } from '#@/utils.js';
 
@@ -37,25 +37,29 @@ export interface TypedUsesStep<TOutputs extends ActionOutputs = ActionOutputs>
   output<K extends keyof TOutputs & string>(key: K): Expression<string>;
 }
 
-type HasRequiredCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutputs> =
-  [RequiredInputKeys<TInputs>] extends [never]
-    ? [keyof TOutputs] extends [never] ? false : true
-    : true;
+type HasRequiredCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutputs> = [
+  RequiredInputKeys<TInputs>,
+] extends [never]
+  ? [keyof TOutputs] extends [never]
+    ? false
+    : true
+  : true;
 
 export type Action<
   TInputs extends ActionInputs = Record<never, never>,
   TOutputs extends ActionOutputs = Record<never, never>,
-> = HasRequiredCallOptions<TInputs, TOutputs> extends true
-  ? {
-      (options: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
-      readonly ref: string;
-      readonly uses: string;
-    }
-  : {
-      (options?: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
-      readonly ref: string;
-      readonly uses: string;
-    };
+> =
+  HasRequiredCallOptions<TInputs, TOutputs> extends true
+    ? {
+        (options: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
+        readonly ref: string;
+        readonly uses: string;
+      }
+    : {
+        (options?: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
+        readonly ref: string;
+        readonly uses: string;
+      };
 
 export function defineAction<
   TInputs extends ActionInputs = Record<never, never>,
@@ -65,7 +69,12 @@ export function defineAction<
     const { id: stepId, name, if: ifProp, env, continueOnError, timeoutMinutes, with: withProp } = options ?? {};
 
     const serializedWith = withProp
-      ? Object.fromEntries(Object.entries<string | number | boolean>(withProp).map(([k, v]) => [camelToKebab(k), v]))
+      ? Object.fromEntries(
+          Object.entries<string | number | boolean>(withProp).map(([k, v]) => [
+            camelToKebab(k),
+            isExpression(v) ? `\${{ ${v} }}` : v,
+          ]),
+        )
       : undefined;
 
     const step: TypedUsesStep<TOutputs> = {

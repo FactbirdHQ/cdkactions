@@ -1,6 +1,4 @@
-import {
-  App, Stack, Workflow, Job, RunnerLabel,
-} from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel } from '#@/index.js';
 import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {
@@ -33,9 +31,7 @@ export function create(app?: App) {
   const deploy = new Job(workflow, 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     environment: { name: 'github-pages', url: '${{ steps.deployment.outputs.page_url }}' },
-    steps: [
-      { id: 'deployment', uses: 'actions/deploy-pages@v4' },
-    ],
+    steps: [{ id: 'deployment', uses: 'actions/deploy-pages@v4' }],
   });
   deploy.addDependency(build);
 

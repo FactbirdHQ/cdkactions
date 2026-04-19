@@ -140,11 +140,34 @@ Organizations define all their action references in a shared module (e.g., `acti
 
 Expressions are branded strings (`Expression<T>`) with a phantom type parameter tracking the runtime value type. They are zero-cost at runtime — no AST, no parsing.
 
-Context accessors (e.g., `github`, `runner`) use `Proxy` objects created once at module load to generate `${{ context.prop }}` strings on property access.
+Context accessors (e.g., `github`, `runner`, `secrets`, `matrix`) use `Proxy` objects created once at module load to generate expression strings like `github.ref` on property access.
 
-### Condition Class
+All expression functions and context proxies are available via the `expression` namespace:
 
-Uses `ts-pattern` for exhaustive matching on the `ConditionExpression` discriminated union (`string | { or: [...] } | { and: [...] }`). Composable via `.and()` / `.or()` methods.
+```typescript
+import { expression } from '@factbird/cdkactions';
+const { and, or, eq, github, secrets } = expression;
+```
+
+Individual exports (`eq`, `and`, `github`, etc.) are also available for direct import.
+
+Composition uses free functions: `and(a, b)`, `or(a, b)`, `eq(left, right)`, `not(expr)`, etc. These return `Expression<boolean>` values that compose without wrapping.
+
+**Context-aware serialization:** `if:` fields emit raw expression strings (GitHub Actions auto-evaluates them). All other contexts (`with:`, `env:`, `secrets:`, `runs-on:`) auto-wrap `Expression` values in `${{ }}` during serialization. This means you can pass expression values directly — no manual `${{ }}` wrapping needed:
+
+```typescript
+// Before: manual wrapping
+{ with: { username: '${{ github.actor }}', password: '${{ secrets.GITHUB_TOKEN }}' } }
+
+// After: auto-wrapped during serialization
+{ with: { username: github.actor, password: secrets.GITHUB_TOKEN } }
+```
+
+For string interpolation contexts (e.g., concurrency groups, run commands), use `wrap()`:
+```typescript
+import { wrap } from '@factbird/cdkactions';
+{ group: `docker-${wrap(github.ref)}` }
+```
 
 ## Synthesis
 
@@ -175,7 +198,6 @@ Synthesis must be fast (< 100ms for 200 jobs). Key constraints:
 - `constructs` ^10.4.2 — peer dependency, provides construct tree
 - `js-yaml` ^4.0.0 — YAML serialization
 - `ts-dedent` ^2.2.0 — template literal dedentation
-- `ts-pattern` ^5.7.0 — exhaustive pattern matching (used in Condition class)
 - TypeScript 5.8+, Node 20+
 - Package manager: **Bun** — use `bun install`, `bun run`, `bun test`, etc.
 - **treefmt** — unified formatter orchestrator (configured in `devenv.nix`). Runs Biome (JS/TS/JSON/CSS), Alejandra (Nix), and yamlfmt (YAML). Run `treefmt` to format the entire project.

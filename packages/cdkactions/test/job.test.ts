@@ -11,7 +11,7 @@ import type {
   StrategyProps,
   UsesStep,
 } from '#@/index.js';
-import { always, Condition, createMatrixProxy, eq, failure, github, Job, RunnerLabel } from '#@/index.js';
+import { always, and, createMatrixProxy, eq, expr, failure, github, Job, RunnerLabel, secrets } from '#@/index.js';
 import { checkoutV4 } from '../src/actions.js';
 
 test('toGHAction', () => {
@@ -141,7 +141,7 @@ test('secrets as record', () => {
   const job = new Job(undefined as any, 'reusable', {
     uses: 'org/repo/.github/workflows/deploy.yml@main',
     secrets: {
-      token: '${{ secrets.DEPLOY_TOKEN }}' as Expression<string>,
+      token: secrets.DEPLOY_TOKEN,
       apiKey: 'literal-key',
     },
   });
@@ -184,9 +184,9 @@ test('runsOn with RunnerLabel array', () => {
   expect(ghAction['runs-on']).toEqual(['self-hosted', 'linux']);
 });
 
-test('runsOn with Expression<string>', () => {
+test('runsOn with Expression<string> auto-wraps in ${{ }}', () => {
   const job = new Job(undefined as any, 'matrix', {
-    runsOn: '${{ matrix.os }}' as Expression<string>,
+    runsOn: expr<string>('matrix.os'),
     steps: [],
   });
   const ghAction = job.toGHAction();
@@ -267,30 +267,15 @@ test('UsesStep serialization', () => {
   ]);
 });
 
-test('step if with Condition', () => {
-  const job = new Job(undefined as any, 'test', {
-    runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [
-      {
-        name: 'Deploy',
-        run: 'deploy.sh',
-        if: Condition.from("github.ref == 'refs/heads/main'"),
-      },
-    ],
-  });
-  const ghAction = job.toGHAction();
-  expect(ghAction.steps[0].if).toBe("github.ref == 'refs/heads/main'");
-});
-
 test('step if with Expression<boolean>', () => {
-  const expr = "github.event_name == 'push'" as Expression<boolean>;
+  const ifExpr = eq(github.eventName, 'push');
   const job = new Job(undefined as any, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
       {
         name: 'Push only',
         run: 'echo push',
-        if: expr,
+        if: ifExpr,
       },
     ],
   });
@@ -357,16 +342,10 @@ const _invalidWd: UsesStep = {
   workingDirectory: '~/',
 };
 
-// Type-level: step if accepts Condition
-const _stepWithCondition: StepConfig = {
-  run: 'echo',
-  if: Condition.from('true'),
-};
-
 // Type-level: step if accepts Expression<boolean>
 const _stepWithExpr: StepConfig = {
   run: 'echo',
-  if: 'true' as Expression<boolean>,
+  if: expr<boolean>('true'),
 };
 
 test('generic matrix strategy serialization', () => {
@@ -408,8 +387,8 @@ test('typed matrix accessor returns expression strings', () => {
     },
     steps: [{ run: 'echo hello' }],
   });
-  expect(job.matrix.os).toBe('${{ matrix.os }}');
-  expect(job.matrix.node).toBe('${{ matrix.node }}');
+  expect(String(job.matrix.os)).toBe('matrix.os');
+  expect(String(job.matrix.node)).toBe('matrix.node');
 });
 
 test('createMatrixProxy produces correct expression strings', () => {
@@ -417,8 +396,8 @@ test('createMatrixProxy produces correct expression strings', () => {
     os: ['ubuntu-latest', 'windows-latest'],
     version: [1, 2, 3],
   } as const);
-  expect(proxy.os).toBe('${{ matrix.os }}');
-  expect(proxy.version).toBe('${{ matrix.version }}');
+  expect(String(proxy.os)).toBe('matrix.os');
+  expect(String(proxy.version)).toBe('matrix.version');
 });
 
 test('failFast serializes as fail-fast', () => {
@@ -525,44 +504,18 @@ const _serviceWithExtras: ServiceProps = {
 };
 const _serviceWithoutExtras: ServiceProps = { image: 'redis:7' };
 
-test('Condition.from accepts Expression<boolean>', () => {
-  const expr = eq(github.ref, 'refs/heads/main');
-  const condition = Condition.from(expr);
-  expect(condition.toString()).toBe("github.ref == 'refs/heads/main'");
-});
-
-test('Condition.fromExpr creates condition from expression', () => {
-  const expr = eq(github.ref, 'refs/heads/main');
-  const condition = Condition.fromExpr(expr);
-  expect(condition.toString()).toBe("github.ref == 'refs/heads/main'");
-});
-
-test('Condition.toExpression wraps in ${{ }}', () => {
-  const condition = Condition.from("github.ref == 'refs/heads/main'");
-  expect(condition.toExpression()).toBe("${{ github.ref == 'refs/heads/main' }}");
-});
-
-test('Condition.toExpression returns empty string for empty condition', () => {
-  const condition = Condition.from('');
-  expect(condition.toExpression()).toBe('');
+test('and() composes expressions', () => {
+  const isMain = eq(github.ref, 'refs/heads/main');
+  const isNotBot = eq(github.actor, 'dependabot[bot]');
+  const composed = and(isMain, isNotBot);
+  expect(String(composed)).toBe("(github.ref == 'refs/heads/main' && github.actor == 'dependabot[bot]')");
 });
 
 test('job if with Expression<boolean> serializes without ${{ }}', () => {
-  const expr = eq(github.ref, 'refs/heads/main');
+  const ifExpr = eq(github.ref, 'refs/heads/main');
   const job = new Job(undefined as any, 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    if: expr,
-    steps: [{ run: 'deploy.sh' }],
-  });
-  const ghAction = job.toGHAction();
-  expect(ghAction.if).toBe("github.ref == 'refs/heads/main'");
-});
-
-test('job if with Condition serializes without ${{ }}', () => {
-  const condition = Condition.from("github.ref == 'refs/heads/main'");
-  const job = new Job(undefined as any, 'deploy', {
-    runsOn: RunnerLabel.UBUNTU_LATEST,
-    if: condition,
+    if: ifExpr,
     steps: [{ run: 'deploy.sh' }],
   });
   const ghAction = job.toGHAction();
@@ -684,11 +637,10 @@ test('job if from props merges with addDependency condition', () => {
   expect(ghAction.if).toBe("(success() && github.ref == 'refs/heads/main')");
 });
 
-test('Condition composed with Expression via and/or', () => {
-  const cond = Condition.fromExpr(eq(github.ref, 'refs/heads/main'));
-  const alwaysCond = Condition.from('always()');
-  const combined = alwaysCond.and(cond);
-  expect(combined.toString()).toBe("(always() && github.ref == 'refs/heads/main')");
+test('and() composed with multiple expressions', () => {
+  const isMain = eq(github.ref, 'refs/heads/main');
+  const combined = and(always(), isMain);
+  expect(String(combined)).toBe("(always() && github.ref == 'refs/heads/main')");
 });
 
 test('step if with Expression emits without ${{ }} wrapping', () => {
@@ -707,12 +659,9 @@ test('step if with Expression emits without ${{ }} wrapping', () => {
   expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");
 });
 
-// Type-level: JobProps.if accepts Condition
-const _jobIfCondition: Pick<JobProps, 'if'> = { if: Condition.from('true') };
-
 // Type-level: JobProps.if accepts Expression<boolean>
-const _jobIfExpr: Pick<JobProps, 'if'> = { if: 'true' as Expression<boolean> };
+const _jobIfExpr: Pick<JobProps, 'if'> = { if: expr<boolean>('true') };
 
 // Type-level: JobProps.if rejects raw string
-// @ts-expect-error - raw string should not be assignable to Condition | Expression<boolean>
+// @ts-expect-error - raw string should not be assignable to Expression<boolean>
 const _jobIfString: Pick<JobProps, 'if'> = { if: 'raw string' };

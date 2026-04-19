@@ -25,16 +25,25 @@ export type Expression<T = unknown> = string & {
 
 const knownExpressions = new Set<string>();
 
-/**
- * Create an Expression from a raw string.
- */
+/** Create an Expression from a raw string. */
 export function expr<T = unknown>(value: string): Expression<T> {
   knownExpressions.add(value);
   return value as Expression<T>;
 }
 
-function isExpression(value: unknown): value is Expression {
+export function isExpression(value: unknown): value is Expression {
   return typeof value === 'string' && knownExpressions.has(value);
+}
+
+/**
+ * Wraps an expression in `${{ ... }}` for use in non-`if` contexts
+ * (e.g. `run:`, `name:`, string interpolation).
+ *
+ * GitHub Actions `if:` fields auto-evaluate expressions, so wrapping
+ * is unnecessary there. All other contexts require explicit `${{ }}`.
+ */
+export function wrap(e: Expression): string {
+  return `\${{ ${e} }}`;
 }
 
 /**
@@ -235,8 +244,8 @@ export function lte(left: Expression<number>, right: Expression<number> | number
 }
 
 /** Logical negation: produces `!<expr>`. */
-export function not(expression: Expression<boolean>): Expression<boolean> {
-  return expr(`!${expression}`);
+export function not(e: Expression<boolean>): Expression<boolean> {
+  return expr(`!${e}`);
 }
 
 /** Produces `contains(<search>, <item>)`. */
@@ -312,3 +321,65 @@ export function always(): Expression<boolean> {
 export function cancelled(): Expression<boolean> {
   return expr('cancelled()');
 }
+
+/** Logical AND: produces `(<a> && <b> && ...)`. */
+export function and(...exprs: Expression<boolean>[]): Expression<boolean> {
+  const parts = exprs.map(String).filter((s) => s.trim() !== '');
+  if (parts.length === 0) return expr('');
+  if (parts.length === 1) return expr(parts[0]);
+  return expr(`(${parts.join(' && ')})`);
+}
+
+/** Logical OR: produces `(<a> || <b> || ...)`. */
+export function or(...exprs: Expression<boolean>[]): Expression<boolean> {
+  const parts = exprs.map(String).filter((s) => s.trim() !== '');
+  if (parts.length === 0) return expr('');
+  if (parts.length === 1) return expr(parts[0]);
+  return expr(`(${parts.join(' || ')})`);
+}
+
+/**
+ * Expression namespace — callable as `expression<T>(value)` to create raw expressions,
+ * with all operators, status functions, and context proxies as properties.
+ *
+ * ```typescript
+ * import { expression } from '@factbird/cdkactions';
+ * const { and, or, eq, github, secrets } = expression;
+ * ```
+ */
+export const expression = Object.assign(expr, {
+  and,
+  or,
+  eq,
+  neq,
+  gt,
+  gte,
+  lt,
+  lte,
+  not,
+  contains,
+  startsWith,
+  endsWith,
+  format,
+  join,
+  toJSON,
+  fromJSON,
+  hashFiles,
+  success,
+  failure,
+  always,
+  cancelled,
+  wrap,
+  isExpression,
+  github,
+  runner,
+  env,
+  secrets,
+  matrix,
+  needs,
+  steps,
+  inputs,
+  vars,
+  job,
+  strategy,
+});

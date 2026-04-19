@@ -1,4 +1,4 @@
-import { defineAction, Condition, type TypedUsesStep, type Expression } from '#@/index.js';
+import { defineAction, expr, type TypedUsesStep, type Expression } from '#@/index.js';
 
 const allOptionalAction = defineAction<
   {
@@ -37,9 +37,7 @@ const setupAction = defineAction<
 
 const emptyAction = defineAction('actions/empty@v1');
 
-const noOutputAction = defineAction<{ inputA: { required: true } }, Record<never, never>>(
-  'actions/no-output@v1',
-);
+const noOutputAction = defineAction<{ inputA: { required: true } }, Record<never, never>>('actions/no-output@v1');
 
 function test(name: string, fn: () => void) {
   try {
@@ -97,9 +95,9 @@ test('calling sets name when provided', () => {
 });
 
 test('calling sets if when provided', () => {
-  const cond = Condition.from('github.ref == refs/heads/main');
+  const cond = expr<boolean>('github.ref == refs/heads/main');
   const step = allOptionalAction({ id: 'co', if: cond });
-  expect(step.if!.toString()).toBe('github.ref == refs/heads/main');
+  expect(String(step.if!)).toBe('github.ref == refs/heads/main');
 });
 
 test('calling sets env when provided', () => {

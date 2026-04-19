@@ -1,7 +1,7 @@
 import type { Construct } from 'constructs';
 
 import type { Expression } from '#@/expressions.js';
-import type { Condition, StepConfig, UsesStep } from '#@/job.js';
+import type { StepConfig, UsesStep } from '#@/job.js';
 import { Stack } from '#@/stack.js';
 import type { StringMap } from '#@/types.js';
 import { renameKeys } from '#@/utils.js';
@@ -95,7 +95,7 @@ type AsStepOptions<
 > = {
   env?: StringMap;
   name?: string;
-  if?: Condition | Expression<boolean>;
+  if?: Expression<boolean>;
 } & ([keyof TOutputs] extends [never] ? { id?: string } : { id: string }) &
   ([RequiredInputKeys<T>] extends [never] ? { with?: CompositeActionWith<T> } : { with: CompositeActionWith<T> });
 

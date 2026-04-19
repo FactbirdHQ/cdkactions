@@ -1,6 +1,4 @@
-import {
-  App, Stack, Workflow, Job, RunnerLabel,
-} from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel } from '#@/index.js';
 import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {
@@ -38,10 +36,7 @@ export function create(app?: App) {
         entrypoint: '',
       },
     },
-    steps: [
-      checkoutV4(),
-      { name: 'Run integration tests', run: 'npm run test:integration' },
-    ],
+    steps: [checkoutV4(), { name: 'Run integration tests', run: 'npm run test:integration' }],
   });
 
   return _app;

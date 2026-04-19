@@ -1,7 +1,4 @@
-import {
-  App, Stack, Workflow, Job, RunnerLabel, Shell,
-  CompositeAction,
-} from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, Shell, CompositeAction } from '#@/index.js';
 
 export function create(app?: App) {
   const _app = app ?? new App();

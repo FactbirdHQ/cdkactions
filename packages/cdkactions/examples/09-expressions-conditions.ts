@@ -1,9 +1,6 @@
-import {
-  App, Stack, Workflow, Job, RunnerLabel,
-  github, eq, neq, contains, startsWith, not,
-  success, failure, always, cancelled,
-  Condition,
-} from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#@/index.js';
+
+const { github, eq, neq, contains, startsWith, not, and, success, failure, always, cancelled } = expression;
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -20,15 +17,12 @@ export function create(app?: App) {
   const runOnFailure = failure();
   const runAlways = always();
 
-  const deployCondition = Condition.fromExpr(isMain)
-    .and(Condition.fromExpr(not(eq(github.actor, 'dependabot[bot]'))));
+  const deployCondition = and(isMain, not(eq(github.actor, 'dependabot[bot]')));
 
   new Job(workflow, 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     if: deployCondition,
-    steps: [
-      { name: 'Deploy', run: 'echo deploying' },
-    ],
+    steps: [{ name: 'Deploy', run: 'echo deploying' }],
   });
 
   return _app;
