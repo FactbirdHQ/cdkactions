@@ -65,7 +65,7 @@ export function defineAction<
     const { id: stepId, name, if: ifProp, env, continueOnError, timeoutMinutes, with: withProp } = options ?? {};
 
     const serializedWith = withProp
-      ? Object.fromEntries(Object.entries(withProp).map(([k, v]) => [camelToKebab(k), v])) as Record<string, string | number | boolean>
+      ? Object.fromEntries(Object.entries<string | number | boolean>(withProp).map(([k, v]) => [camelToKebab(k), v]))
       : undefined;
 
     const step: TypedUsesStep<TOutputs> = {
@@ -89,5 +89,5 @@ export function defineAction<
     return step;
   };
 
-  return Object.assign(fn, { ref, uses: ref }) as Action<TInputs, TOutputs>;
+  return Object.assign(fn, { ref, uses: ref });
 }
