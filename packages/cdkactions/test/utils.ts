@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { App, type AppProps, type WorkflowProps, Workflow, Stack } from '#src/index.js';
+import { App, type AppProps, type WorkflowProps, Workflow, Stack } from '#src/index.ts';
 
 /**
  * A util function returning an instance of App with a outdir set to a temp directory

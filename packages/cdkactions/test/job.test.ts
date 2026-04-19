@@ -10,7 +10,7 @@ import type {
   StepConfig,
   StrategyProps,
   UsesStep,
-} from '#src/index.js';
+} from '#src/index.ts';
 import {
   always,
   and,
@@ -24,8 +24,8 @@ import {
   RunnerLabel,
   secrets,
   unwrapToken,
-} from '#src/index.js';
-import { checkoutV4 } from '#src/actions.js';
+} from '#src/index.ts';
+import { checkoutV4 } from '#src/actions.ts';
 import { TestingWorkflow } from '#test/utils.ts';
 
 /** Simulate the full serialization pipeline (toGHAction + token resolution). */

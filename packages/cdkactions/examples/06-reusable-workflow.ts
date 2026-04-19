@@ -1,5 +1,5 @@
-import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType, expr } from '#src/index.js';
-import { checkoutV4 } from '../src/actions.js';
+import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType, expr } from '#src/index.ts';
+import { checkoutV4 } from '#src/actions.ts';
 
 export function create(app?: App) {
   const _app = app ?? new App();

@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#src/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#src/index.ts';
 
 const { github, eq, neq, contains, startsWith, not, and, success, failure, always, cancelled } = expression;
 

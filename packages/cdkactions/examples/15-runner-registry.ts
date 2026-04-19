@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel } from '#src/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel } from '#src/index.ts';
 
 const Runners = {
   ...RunnerLabel,

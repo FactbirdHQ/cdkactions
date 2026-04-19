@@ -1,2 +1,2 @@
-export { readConfigSync } from './config.js';
-export { shell } from './utils.js';
+export { readConfigSync } from '#src/config.ts';
+export { shell } from '#src/utils.ts';

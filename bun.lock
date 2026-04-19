@@ -23,6 +23,20 @@
         "constructs": "^10.4.2",
       },
     },
+    "packages/cdkactions-act-tests": {
+      "name": "@factbird/cdkactions-act-tests",
+      "version": "0.0.0",
+      "dependencies": {
+        "@factbird/cdkactions": "workspace:*",
+        "constructs": "^10.4.2",
+        "js-yaml": "^4.0.0",
+      },
+      "devDependencies": {
+        "@types/js-yaml": "^4.0.0",
+        "@types/node": "^22.1.0",
+        "typescript": "^5.8.2",
+      },
+    },
     "packages/cdkactions-cli": {
       "name": "@factbird/cdkactions-cli",
       "version": "0.0.0",
@@ -50,6 +64,8 @@
     "@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.28.5", "", {}, "sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q=="],
 
     "@factbird/cdkactions": ["@factbird/cdkactions@workspace:packages/cdkactions"],
+
+    "@factbird/cdkactions-act-tests": ["@factbird/cdkactions-act-tests@workspace:packages/cdkactions-act-tests"],
 
     "@factbird/cdkactions-cli": ["@factbird/cdkactions-cli@workspace:packages/cdkactions-cli"],
 

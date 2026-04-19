@@ -1,11 +1,11 @@
 import type { Construct } from 'constructs';
 import * as fs from 'fs';
-import { secrets } from '#src/expressions.js';
-import type { Expression } from '#src/expressions.js';
-import { CheckoutJob } from '#src/library.js';
-import { RunnerLabel } from '#src/nominal.js';
-import { Stack } from '#src/stack.js';
-import { Workflow } from '#src/workflow.js';
+import { secrets } from '#src/expressions.ts';
+import type { Expression } from '#src/expressions.ts';
+import { CheckoutJob } from '#src/library.ts';
+import { RunnerLabel } from '#src/nominal.ts';
+import { Stack } from '#src/stack.ts';
+import { Workflow } from '#src/workflow.ts';
 import { TestingApp } from '#test/utils.ts';
 
 test('complicated stack', () => {

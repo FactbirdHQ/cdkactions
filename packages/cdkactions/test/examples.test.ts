@@ -1,25 +1,25 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import type { App } from '#src/index.js';
+import type { App } from '#src/index.ts';
 import { TestingApp } from '#test/utils.ts';
 
-import { create as createNodeCiMatrix } from '../examples/01-nodejs-ci-matrix.js';
-import { create as createDockerBuildPush } from '../examples/02-docker-build-push.js';
-import { create as createMultiJobPipeline } from '../examples/03-multi-job-pipeline.js';
-import { create as createScheduledCron } from '../examples/04-scheduled-cron.js';
-import { create as createManualDispatch } from '../examples/05-manual-dispatch.js';
-import { create as createReusableWorkflow } from '../examples/06-reusable-workflow.js';
-import { create as createContainerServices } from '../examples/07-container-services.js';
-import { create as createCompositeAction } from '../examples/08-composite-action.js';
-import { create as createExpressionsConditions } from '../examples/09-expressions-conditions.js';
-import { create as createCrossWorkflowDeps } from '../examples/10-cross-workflow-deps.js';
-import { create as createPermissionsConcurrency } from '../examples/11-permissions-concurrency.js';
-import { create as createMultiPlatformRunnerGroups } from '../examples/12-multi-platform-runner-groups.js';
-import { create as createGithubPages } from '../examples/13-github-pages.js';
-import { create as createEventCoverage } from '../examples/14-event-coverage.js';
-import { create as createRunnerRegistry } from '../examples/15-runner-registry.js';
-import { create as createTypedActionRefs } from '../examples/16-typed-action-refs.js';
+import { create as createNodeCiMatrix } from '../examples/01-nodejs-ci-matrix.ts';
+import { create as createDockerBuildPush } from '../examples/02-docker-build-push.ts';
+import { create as createMultiJobPipeline } from '../examples/03-multi-job-pipeline.ts';
+import { create as createScheduledCron } from '../examples/04-scheduled-cron.ts';
+import { create as createManualDispatch } from '../examples/05-manual-dispatch.ts';
+import { create as createReusableWorkflow } from '../examples/06-reusable-workflow.ts';
+import { create as createContainerServices } from '../examples/07-container-services.ts';
+import { create as createCompositeAction } from '../examples/08-composite-action.ts';
+import { create as createExpressionsConditions } from '../examples/09-expressions-conditions.ts';
+import { create as createCrossWorkflowDeps } from '../examples/10-cross-workflow-deps.ts';
+import { create as createPermissionsConcurrency } from '../examples/11-permissions-concurrency.ts';
+import { create as createMultiPlatformRunnerGroups } from '../examples/12-multi-platform-runner-groups.ts';
+import { create as createGithubPages } from '../examples/13-github-pages.ts';
+import { create as createEventCoverage } from '../examples/14-event-coverage.ts';
+import { create as createRunnerRegistry } from '../examples/15-runner-registry.ts';
+import { create as createTypedActionRefs } from '../examples/16-typed-action-refs.ts';
 
 function synthAndReadAll(createFn: (app?: App) => App) {
   const app = createFn(TestingApp({ createValidateWorkflow: false }));

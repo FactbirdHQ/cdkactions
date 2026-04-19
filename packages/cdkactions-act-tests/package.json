@@ -4,10 +4,7 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#src/*": {
-      "types": "./src/*",
-      "default": "./src/*"
-    },
+    "#src/*.ts": "./src/*.ts",
     "#test/*": "./test/*"
   },
   "dependencies": {

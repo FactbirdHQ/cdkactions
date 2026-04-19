@@ -1,4 +1,6 @@
 {pkgs, ...}: {
+  packages = [pkgs.act];
+
   languages.javascript = {
     enable = true;
     bun.enable = true;

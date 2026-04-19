@@ -17,3 +17,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Build
         run: bun run build
+      - name: Install act
+        run: |
+          curl -sfL https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash -s -- -b /usr/local/bin
+      - name: Run act dry-run tests
+        run: bun test --filter cdkactions-act-tests

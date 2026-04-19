@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel } from '#src/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel } from '#src/index.ts';
 
 export function create(app?: App) {
   const _app = app ?? new App();
