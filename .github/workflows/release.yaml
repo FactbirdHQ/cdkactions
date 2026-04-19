@@ -33,16 +33,19 @@ jobs:
           done
       - name: Build
         run: bun run build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
       - name: Publish packages
         env:
           NPM_CONFIG_PROVENANCE: 'true'
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
           for pkg in packages/*/; do
             if ! bun -e "const p = require('./${pkg}package.json'); process.exit(p.private ? 0 : 1)" 2>/dev/null; then
               cd "$pkg"
-              bunx npm publish --access public --tolerate-republish
+              npm publish --access public --tolerate-republish
               cd ../..
             fi
           done
