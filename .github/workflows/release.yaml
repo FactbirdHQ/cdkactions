@@ -33,6 +33,7 @@ jobs:
           done
       - name: Build
         run: bun run build
+      # TODO: Switch to `bun publish` once OIDC lands (https://github.com/oven-sh/bun/pull/29374)
       - name: Publish packages
         run: |
           npm i -g corepack && corepack enable && corepack install --global yarn@4
