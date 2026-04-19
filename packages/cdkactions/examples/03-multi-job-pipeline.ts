@@ -17,7 +17,7 @@ export function create(app?: App) {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     outputs: { artifact_id: '${{ steps.upload.outputs.artifact-id }}' },
     steps: [
-      checkoutV4.call({}),
+      checkoutV4(),
       { name: 'Build', run: 'npm run build' },
       {
         id: 'upload',
@@ -31,7 +31,7 @@ export function create(app?: App) {
   const test = new Job(workflow, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
-      checkoutV4.call({}),
+      checkoutV4(),
       { name: 'Test', run: 'npm test' },
     ],
   });

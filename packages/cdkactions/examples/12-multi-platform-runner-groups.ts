@@ -25,7 +25,7 @@ export function create(app?: App) {
     continueOnError: true,
     timeoutMinutes: 60,
     steps: [
-      checkoutV4.call({}),
+      checkoutV4(),
       { name: 'Build', run: 'make build ARCH=${{ matrix.arch }}' },
     ],
   });

@@ -69,7 +69,7 @@ test('step mutual exclusion: valid steps pass', () => {
   const workflow = createTestWorkflow(app);
   new Job(workflow, 'good-job', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{ run: 'echo hello' }, checkoutV4.call({})],
+    steps: [{ run: 'echo hello' }, checkoutV4()],
   });
 
   const errors = collectValidationErrors(app);

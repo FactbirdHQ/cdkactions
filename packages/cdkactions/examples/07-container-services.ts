@@ -39,7 +39,7 @@ export function create(app?: App) {
       },
     },
     steps: [
-      checkoutV4.call({}),
+      checkoutV4(),
       { name: 'Run integration tests', run: 'npm run test:integration' },
     ],
   });

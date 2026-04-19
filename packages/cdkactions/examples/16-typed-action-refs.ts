@@ -1,9 +1,9 @@
 import {
   App, Stack, Workflow, Job, RunnerLabel,
-  Action,
+  defineAction,
 } from '#@/index.js';
 
-const checkoutV4 = Action.fromReference<
+const checkoutV4 = defineAction<
   {
     repository: { default: '${{ github.repository }}' };
     ref: { default: '' };
@@ -23,7 +23,7 @@ const checkoutV4 = Action.fromReference<
   }
 >('actions/checkout@v4');
 
-const setupNodeV4 = Action.fromReference<
+const setupNodeV4 = defineAction<
   {
     nodeVersion: { default: '' };
     nodeVersionFile: { default: '' };
@@ -38,7 +38,7 @@ const setupNodeV4 = Action.fromReference<
   }
 >('actions/setup-node@v4');
 
-const uploadArtifactV4 = Action.fromReference<
+const uploadArtifactV4 = defineAction<
   {
     name: { required: true };
     path: { required: true };
@@ -61,9 +61,9 @@ export function create(app?: App) {
     on: { push: { branches: ['main'] } },
   });
 
-  const co = checkoutV4.call({ id: 'co', with: { fetchDepth: 0, lfs: true } });
-  const node = setupNodeV4.call({ id: 'node', with: { nodeVersion: '20', cache: 'npm' } });
-  const upload = uploadArtifactV4.call({
+  const co = checkoutV4({ id: 'co', with: { fetchDepth: 0, lfs: true } });
+  const node = setupNodeV4({ id: 'node', with: { nodeVersion: '20', cache: 'npm' } });
+  const upload = uploadArtifactV4({
     id: 'upload',
     with: { name: 'dist', path: 'dist/' },
   });
@@ -86,10 +86,10 @@ export function create(app?: App) {
 }
 
 // @ts-expect-error — 'branchName' is not an input of checkout
-checkoutV4.call({ id: 'x', with: { branchName: 'main' } });
+checkoutV4({ id: 'x', with: { branchName: 'main' } });
 
 // @ts-expect-error — 'name' is required for upload-artifact
-uploadArtifactV4.call({ id: 'x', with: { path: 'dist/' } });
+uploadArtifactV4({ id: 'x', with: { path: 'dist/' } });
 
 // @ts-expect-error — 'digest' is not an output of checkout
-checkoutV4.call({ id: 'x' }).output('digest');
+checkoutV4({ id: 'x' }).output('digest');
