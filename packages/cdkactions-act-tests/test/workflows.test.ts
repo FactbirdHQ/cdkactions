@@ -3,8 +3,8 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, test, expect } from 'bun:test';
 import { App } from '@factbird/cdkactions';
-import { extractEvents } from '#src/event-extractor.js';
-import { runActDryRun } from '#src/act-runner.js';
+import { extractEvents } from '../src/event-extractor.js';
+import { runActDryRun } from '../src/act-runner.js';
 
 interface ExampleModule {
   create?: (app?: App) => App;

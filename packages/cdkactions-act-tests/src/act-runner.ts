@@ -19,6 +19,7 @@ export function runActDryRun(workflowPath: string, event: string): ActResult {
       '--workflows',
       workflowPath,
       '--action-offline-mode',
+      '--pull=false',
       '-P',
       'ubuntu-latest=node:20-slim',
       '-P',
