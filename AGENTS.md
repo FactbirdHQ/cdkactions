@@ -173,14 +173,16 @@ This means expressions work transparently everywhere — no manual `${{ }}` wrap
 1. `App.synth()` iterates over Stack children
 2. `Stack.synthesize(outdir)` iterates over Workflow children, calling `toGHAction()` on each
 3. `Workflow.toGHAction()` collects Job children and calls `toGHAction()` on each
-4. YAML output via `js-yaml.dump()` with options: `{ lineWidth: -1, noCompatMode: true, quotingType: '"', sortKeys: true }`
-5. Output files: `cdkactions_<sanitized-id>.yaml` with a header comment
-6. CompositeActions output to `.github/actions/<dir>/action.yml`
+4. `resolveTokens()` walks the serialized output, resolving expression tokens based on field context
+5. YAML output via `js-yaml.dump()` with options: `{ lineWidth: -1, noCompatMode: true, quotingType: '"', sortKeys: true }`
+6. Output files: `cdkactions_<sanitized-id>.yaml` with a header comment
+7. CompositeActions output to `.github/actions/<dir>/action.yml`
 
 ### Performance
 
 Synthesis must be fast (< 100ms for 200 jobs). Key constraints:
-- No AST for expressions — branded strings only
+- No AST for expressions — branded strings with token delimiters
+- `resolveTokens` is a single recursive pass at synthesis time
 - `renameKeys` called once per construct
 - Single-pass YAML dump
 - Proxy context objects created once at module load
