@@ -1,6 +1,6 @@
-import { Action } from '#@/action.js';
+import { defineAction } from '#@/action.js';
 
-export const checkoutV2 = Action.fromReference<{
+export const checkoutV2 = defineAction<{
   repository: { default: string };
   ref: { default: string };
   token: { default: string };
@@ -16,7 +16,7 @@ export const checkoutV2 = Action.fromReference<{
   setSafeDirectory: { default: string };
 }>('actions/checkout@v2');
 
-export const checkoutV3 = Action.fromReference<{
+export const checkoutV3 = defineAction<{
   repository: { default: string };
   ref: { default: string };
   token: { default: string };
@@ -36,7 +36,7 @@ export const checkoutV3 = Action.fromReference<{
   githubServerUrl: { default: string };
 }>('actions/checkout@v3');
 
-export const checkoutV4 = Action.fromReference<{
+export const checkoutV4 = defineAction<{
   repository: { default: string };
   ref: { default: string };
   token: { default: string };
@@ -59,7 +59,7 @@ export const checkoutV4 = Action.fromReference<{
   githubServerUrl: { default: string };
 }>('actions/checkout@v4');
 
-export const setupNodeV6 = Action.fromReference<
+export const setupNodeV6 = defineAction<
   {
     nodeVersion: { default: string };
     nodeVersionFile: { default: string };
@@ -80,7 +80,7 @@ export const setupNodeV6 = Action.fromReference<
   }
 >('actions/setup-node@v6');
 
-export const setupGoV6 = Action.fromReference<
+export const setupGoV6 = defineAction<
   {
     goVersion: { default: string };
     goVersionFile: { default: string };
@@ -97,7 +97,7 @@ export const setupGoV6 = Action.fromReference<
   }
 >('actions/setup-go@v6');
 
-export const setupJavaV5 = Action.fromReference<
+export const setupJavaV5 = defineAction<
   {
     javaVersion: { default: string };
     javaVersionFile: { default: string };
@@ -128,7 +128,7 @@ export const setupJavaV5 = Action.fromReference<
   }
 >('actions/setup-java@v5');
 
-export const setupPythonV6 = Action.fromReference<
+export const setupPythonV6 = defineAction<
   {
     pythonVersion: { default: string };
     pythonVersionFile: { default: string };
@@ -150,7 +150,7 @@ export const setupPythonV6 = Action.fromReference<
   }
 >('actions/setup-python@v6');
 
-export const setupRubyV1 = Action.fromReference<
+export const setupRubyV1 = defineAction<
   {
     rubyVersion: { default: string };
     rubygems: { default: string };
@@ -167,7 +167,7 @@ export const setupRubyV1 = Action.fromReference<
   }
 >('ruby/setup-ruby@v1');
 
-export const createGithubAppTokenV3 = Action.fromReference<
+export const createGithubAppTokenV3 = defineAction<
   {
     clientId: { default: string };
     privateKey: { required: true };
@@ -183,7 +183,7 @@ export const createGithubAppTokenV3 = Action.fromReference<
   }
 >('actions/create-github-app-token@v3');
 
-export const githubScriptV9 = Action.fromReference<
+export const githubScriptV9 = defineAction<
   {
     script: { required: true };
     githubToken: { default: string };
@@ -200,7 +200,7 @@ export const githubScriptV9 = Action.fromReference<
   }
 >('actions/github-script@v9');
 
-export const addToProjectV1 = Action.fromReference<
+export const addToProjectV1 = defineAction<
   {
     projectUrl: { required: true };
     githubToken: { required: true };
@@ -212,7 +212,7 @@ export const addToProjectV1 = Action.fromReference<
   }
 >('actions/add-to-project@v1');
 
-export const publishImmutableActionV1 = Action.fromReference<
+export const publishImmutableActionV1 = defineAction<
   {
     githubToken: { default: string };
   },
@@ -223,7 +223,7 @@ export const publishImmutableActionV1 = Action.fromReference<
   }
 >('actions/publish-immutable-action@v1');
 
-export const uploadReleaseAssetV1 = Action.fromReference<
+export const uploadReleaseAssetV1 = defineAction<
   {
     upload_url: { required: true };
     asset_path: { required: true };
@@ -235,7 +235,7 @@ export const uploadReleaseAssetV1 = Action.fromReference<
   }
 >('actions/upload-release-asset@v1');
 
-export const createReleaseV1 = Action.fromReference<
+export const createReleaseV1 = defineAction<
   {
     tag_name: { required: true };
     release_name: { required: true };
@@ -254,7 +254,7 @@ export const createReleaseV1 = Action.fromReference<
   }
 >('actions/create-release@v1');
 
-export const determinateNixV3 = Action.fromReference<{
+export const determinateNixV3 = defineAction<{
   extraConf: { default: string };
   githubServerUrl: { default: string };
   githubToken: { default: string };
@@ -278,7 +278,7 @@ export const determinateNixV3 = Action.fromReference<{
   logger: { default: string };
 }>('DeterminateSystems/determinate-nix-action@v3');
 
-export const installNixActionV31 = Action.fromReference<{
+export const installNixActionV31 = defineAction<{
   extra_nix_config: { default: string };
   github_access_token: { default: string };
   install_url: { default: string };
