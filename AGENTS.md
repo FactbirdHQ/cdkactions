@@ -57,6 +57,38 @@ All config interfaces (`WorkflowProps`, `JobProps`, `StepsProps`, etc.) use `rea
 
 Internally, `Writable<T>` (from `utils.ts`) is used when mutation is needed (e.g., `addDependency` pushing to `needs`).
 
+### No `as X` Type Assertions
+
+`as X` casts are not permitted. They bypass the type checker and hide real type mismatches. Instead:
+
+- **Assign to a typed variable** — let TypeScript verify the assignment:
+  ```typescript
+  // Bad
+  const config = { runsOn: 'ubuntu-latest' } as JobProps;
+
+  // Good
+  const config: JobProps = { runsOn: 'ubuntu-latest' };
+  ```
+- **Apply copies / spreads** when converting between compatible types:
+  ```typescript
+  // Bad
+  const partial = fullConfig as PartialConfig;
+
+  // Good
+  const partial: PartialConfig = { ...fullConfig };
+  ```
+- **Use call signatures** for type-safe narrowing where applicable:
+  ```typescript
+  // Bad
+  const label = value as RunnerLabel;
+
+  // Good — use a function with a call signature that validates/converts
+  function toRunnerLabel(value: string): RunnerLabel { ... }
+  const label = toRunnerLabel(value);
+  ```
+
+The only exception is inside branded/nominal type `custom()` escape hatches (see below), where `as` is the intentional boundary between untyped and typed worlds.
+
 ### Branded / Nominal Types
 
 Use the pattern:
