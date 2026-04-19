@@ -1,61 +1,145 @@
 # cdkactions
 
-![Release](https://github.com/ArmaanT/cdkactions/workflows/Release/badge.svg)
-[![codecov](https://codecov.io/gh/ArmaanT/cdkactions/branch/master/graph/badge.svg)](https://codecov.io/gh/ArmaanT/cdkactions)
-[![NPM](https://badge.fury.io/js/cdkactions.svg)](https://badge.fury.io/js/cdkactions)
-[![PyPI](https://badge.fury.io/py/cdkactions.svg)](https://badge.fury.io/py/cdkactions)
+[![Release](https://github.com/FactbirdHQ/cdkactions/workflows/Release/badge.svg)](https://github.com/FactbirdHQ/cdkactions/actions/workflows/release.yaml)
+[![NPM](https://badge.fury.io/js/@factbird%2Fcdkactions.svg)](https://www.npmjs.com/package/@factbird/cdkactions)
 
-A [cdk](https://aws.amazon.com/cdk/) for GitHub Actions. cdkactions allows you to define GitHub Actions workflows and create abstractions in TypeScript and synthesize those workflows into YAML that the GitHub Actions runner expects.
+A type-safe [CDK](https://aws.amazon.com/cdk/) for GitHub Actions. Define workflows as a tree of [constructs](https://github.com/aws/constructs) in TypeScript with compile-time guarantees — invalid runner labels, unknown action inputs, and misconfigured permissions are caught before synthesis, not after a failed CI run.
 
-This project was heavily influenced by [cdk8s](https://github.com/awslabs/cdk8s/) and [cdktf](https://github.com/hashicorp/terraform-cdk/).
+## Why cdkactions
 
-### Contents
+GitHub Actions workflows are YAML files with no type checking, no IDE support beyond schema validation, and no composability beyond composite actions. cdkactions solves this by letting you define workflows in TypeScript where the compiler enforces correctness:
 
-* [Overview](#overview)
-* [Why](#why)
-* [At a glance](#at-a-glance)
-* [Validation workflow](#validation-workflow)
-* [Library](#library)
-* [Getting Started](#getting-started)
-* [Examples](#examples)
-* [License](#license)
+- **Branded nominal types** prevent passing a bare string where a `RunnerLabel`, `Shell`, or `TokenPermission` is expected
+- **Typed expressions** (`Expression<T>`) give you autocomplete on `github.ref`, `runner.os`, and all 11 context objects — with compile-time errors for typos
+- **`Action<TInputs, TOutputs>`** makes third-party action usage type-safe: call directly (`checkoutV4()` or `checkoutV4({ with: { fetchDepth: 0 } })`), and the compiler enforces required inputs, rejects unknown keys, and restricts `.output()` to declared output keys
+- **Construct-based composition** lets you publish reusable stacks, workflows, and jobs as npm packages — not fragile YAML templates
 
-## Overview
+## Quick Start
 
-cdkactions allows you to define GitHub Action Workflows and Jobs as a tree of [constructs](https://github.com/aws/constructs) which are bundled into a `Stack` construct and exposed through a toplevel `App` construct. These constructs can then be synthesized into the actual `.yaml` configuration that GitHub Actions runs.
+```bash
+npm install @factbird/cdkactions constructs
+```
 
-Additionally cdkactions optionally provides a GitHub Actions workflow that ensures the synthesized `.yaml` manifests are up to date with the actual cdkactions configuration.
+```typescript
+import { App, Stack, Workflow, Job, RunnerLabel } from '@factbird/cdkactions';
 
-## Why
+const app = new App();
+const stack = new Stack(app, 'ci');
 
-cdkactions was built because [composite actions](https://docs.github.com/en/free-pro-team@latest/actions/creating-actions/creating-a-composite-run-steps-action) are too restrictive to be of much use. Currently (as of December 2020) composite actions can't call other actions through `uses:` which prevents them from caching, uploading artifacts, and more. Here's the [most relevant issue](https://github.com/actions/runner/issues/646) about composite actions. cdkactions solves these issues by allowing the user to create a fully-featured Stack that can then be published to npm and used within other cdkactions instances.
+const workflow = new Workflow(stack, 'build', {
+  name: 'CI',
+  on: {
+    push: { branches: ['main'] },
+    pullRequest: { branches: ['main'] },
+  },
+});
 
-On top of that, cdkactions provides additional features like strong type-checking as well as significantly better modularity.
+new Job(workflow, 'test', {
+  runsOn: RunnerLabel.UBUNTU_LATEST,
+  steps: [
+    { uses: 'actions/checkout@v4' },
+    { name: 'Install', run: 'npm ci' },
+    { name: 'Test', run: 'npm test' },
+  ],
+});
 
-## At a glance
+app.synth();
+```
 
-![demo](docs/demo.gif)
+Run `npx ts-node main.ts` (or `bun run main.ts`) to produce `.github/workflows/cdkactions_build.yaml`.
 
-## Validation workflow
+## Features
 
-cdkactions provides a validation workflow that ensures `.yaml` manifests are up to date with cdkactions configuration. This workflow can also push updated manifests when it detects any changes by setting the `pushUpdatedManifests` flag to true. However, if this option is enabled you must create a GitHub Actions secret called `CDKACTIONS_TOKEN` that contains a [Personal Access Token](https://github.com/settings/tokens) with the `workflow` scope (This workaround is required because the default GitHub token [doesn't have permission to change workflow files](https://docs.github.com/en/free-pro-team@latest/actions/reference/authentication-in-a-workflow#permissions-for-the-github_token)).
+| Feature | Description | Example |
+|---------|-------------|---------|
+| Matrix builds | Generic `StrategyProps<TMatrix>` with typed `matrix.<key>` access | [01-nodejs-ci-matrix.ts](packages/cdkactions/examples/01-nodejs-ci-matrix.ts) |
+| Docker services | Container jobs with `command` and `entrypoint` | [07-container-services.ts](packages/cdkactions/examples/07-container-services.ts) |
+| Composite actions | Reusable multi-step actions as constructs | [08-composite-action.ts](packages/cdkactions/examples/08-composite-action.ts) |
+| Typed expressions | `github.*`, `runner.*`, comparison operators, built-in functions | [09-expressions-conditions.ts](packages/cdkactions/examples/09-expressions-conditions.ts) |
+| Full permissions | All 16 scopes with restricted subtypes (`idToken: 'write'\|'none'`) | [11-permissions-concurrency.ts](packages/cdkactions/examples/11-permissions-concurrency.ts) |
+| Runner groups | `RunnerGroupConfig`, custom labels, runner registry pattern | [12-multi-platform-runner-groups.ts](packages/cdkactions/examples/12-multi-platform-runner-groups.ts) |
+| Typed action refs | `Action<TInputs, TOutputs>` with compile-time input/output checks | [16-typed-action-refs.ts](packages/cdkactions/examples/16-typed-action-refs.ts) |
+| Validation | Synth-time checks: step mutual exclusion, cron syntax, matrix size | Built-in via `Node.addValidation()` |
 
-## Library
+See all 17 examples in [`packages/cdkactions/examples/`](packages/cdkactions/examples/).
 
-cdkactions also contains a library of additional constructs:
+## Migration from Previous Version
 
-* CheckoutJob - A job that inserts a checkout step as the first step to run.
-* CDKActionsStack - A stack that contains the validation workflow described above.
+### Runner labels
 
-## Getting Started
+```typescript
+// Before
+new Job(workflow, 'build', {
+  runsOn: 'ubuntu-latest',           // bare string — any typo accepted
+  // ...
+});
 
-* [TypeScript](./docs/getting-started/typescript.md)
+// After
+new Job(workflow, 'build', {
+  runsOn: RunnerLabel.UBUNTU_LATEST,  // branded type — typos are compile errors
+  // ...
+});
+```
 
-## Examples
+### Steps
 
-* [TypeScript](./examples/typescript)
+```typescript
+// Before — run and uses on the same interface, no mutual exclusion
+const step: StepsProps = {
+  uses: 'actions/checkout@v4',
+  run: 'echo hi',  // no error, but invalid at runtime
+};
 
-The CI for this repo is also bootstrapped using cdkactions see [the config](./.github/cdk/main.ts) for a more complicated example.
+// After — discriminated union prevents invalid combinations
+const step: RunStep = { run: 'echo hi' };
+const step: UsesStep = { uses: 'actions/checkout@v4' };
+// { run: '...', uses: '...' } is a compile error
+```
+
+### Permissions
+
+```typescript
+// Before — only contents scope
+{ permissions: { contents: 'write' } }
+
+// After — all 16 scopes, restricted subtypes
+{
+  permissions: {
+    contents: 'write',
+    packages: 'read',
+    idToken: 'write',   // only 'write' | 'none' accepted
+    models: 'read',     // only 'read' | 'none' accepted
+  }
+}
+```
+
+### Strategy
+
+```typescript
+// Before
+{ strategy: { matrix: { os: ['ubuntu-latest'] }, fastFail: true } }
+
+// After — generic TMatrix, typed include/exclude, renamed to match GitHub
+{ strategy: { matrix: { os: ['ubuntu-latest'] as const }, failFast: true } }
+```
+
+## Contributing
+
+```bash
+git clone https://github.com/FactbirdHQ/cdkactions.git
+cd cdkactions
+
+# Enter the dev shell (provides Node.js + corepack)
+nix develop --no-pure-eval
+# or with direnv: direnv allow
+
+# Install and build
+bun install
+bun run build
+
+# Run tests
+bun test
+```
 
 ## License
 
