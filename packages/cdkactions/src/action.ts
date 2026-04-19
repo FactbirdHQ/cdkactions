@@ -12,15 +12,11 @@ export type ActionInputs = Record<string, ActionInput>;
 export type ActionOutputs = Record<string, { readonly description?: string }>;
 
 type RequiredInputKeys<T extends ActionInputs> = {
-  [K in keyof T & string]: T[K] extends { required: true } ? K
-    : T[K] extends { default: string } ? never
-    : K;
+  [K in keyof T & string]: T[K] extends { required: true } ? K : T[K] extends { default: string } ? never : K;
 }[keyof T & string];
 
 type OptionalInputKeys<T extends ActionInputs> = {
-  [K in keyof T & string]: T[K] extends { required: true } ? never
-    : T[K] extends { default: string } ? K
-    : never;
+  [K in keyof T & string]: T[K] extends { required: true } ? never : T[K] extends { default: string } ? K : never;
 }[keyof T & string];
 
 type ActionWith<T extends ActionInputs> = {
@@ -29,15 +25,15 @@ type ActionWith<T extends ActionInputs> = {
   readonly [K in OptionalInputKeys<T>]?: string | number | boolean;
 };
 
-type ActionCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutputs> =
-  & ([RequiredInputKeys<TInputs>] extends [never]
-    ? { with?: ActionWith<TInputs> }
-    : { with: ActionWith<TInputs> })
-  & ([keyof TOutputs] extends [never]
-    ? { id?: string }
-    : { id: string });
+type ActionCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutputs> = ([
+  RequiredInputKeys<TInputs>,
+] extends [never]
+  ? { with?: ActionWith<TInputs> }
+  : { with: ActionWith<TInputs> }) &
+  ([keyof TOutputs] extends [never] ? { id?: string } : { id: string });
 
-export interface TypedUsesStep<TOutputs extends ActionOutputs = ActionOutputs> extends Omit<UsesStep, 'run' | 'shell' | 'workingDirectory'> {
+export interface TypedUsesStep<TOutputs extends ActionOutputs = ActionOutputs>
+  extends Omit<UsesStep, 'run' | 'shell' | 'workingDirectory'> {
   output<K extends keyof TOutputs & string>(key: K): Expression<string>;
 }
 
@@ -63,16 +59,19 @@ export class Action<
     return new Action<TInputs, TOutputs>(ref);
   }
 
-  public call(
-    options: StepBase & ActionCallOptions<TInputs, TOutputs>,
-  ): TypedUsesStep<TOutputs> {
-    const { id: stepId, name, 'if': ifProp, env, continueOnError, timeoutMinutes, 'with': withProp } =
-      options as InternalCallInput;
+  public call(options: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs> {
+    const {
+      id: stepId,
+      name,
+      if: ifProp,
+      env,
+      continueOnError,
+      timeoutMinutes,
+      with: withProp,
+    } = options as InternalCallInput;
 
     const serializedWith = withProp
-      ? Object.fromEntries(
-          Object.entries(withProp).map(([k, v]) => [camelToKebab(k), v]),
-        )
+      ? Object.fromEntries(Object.entries(withProp).map(([k, v]) => [camelToKebab(k), v]))
       : undefined;
 
     const step: TypedUsesStep<TOutputs> = {
@@ -96,4 +95,3 @@ export class Action<
     return step;
   }
 }
-
