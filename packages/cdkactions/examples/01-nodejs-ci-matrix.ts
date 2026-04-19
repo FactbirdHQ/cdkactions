@@ -1,5 +1,7 @@
-import { App, Stack, Workflow, Job, RunnerLabel } from '#@/index.js';
-import { checkoutV4 } from '../src/actions.js';
+import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#@/index.js';
+import { checkoutV4, setupNodeV6 } from '../src/actions.js';
+
+const { matrix } = expression;
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -23,11 +25,7 @@ export function create(app?: App) {
     },
     steps: [
       checkoutV4(),
-      {
-        name: 'Setup Node.js',
-        uses: 'actions/setup-node@v4',
-        with: { 'node-version': '${{ matrix.node-version }}' },
-      },
+      setupNodeV6({ id: 'setup-node', with: { nodeVersion: `${matrix.nodeVersion}` } }),
       { name: 'Install', run: 'npm ci' },
       { name: 'Lint', run: 'npm run lint' },
       { name: 'Test', run: 'npm test' },

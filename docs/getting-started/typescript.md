@@ -1,45 +1,132 @@
 # Getting Started (TypeScript)
 
-## Install the CLI
+## Install
 
-The first step to using cdkactions is installing the cdkactions CLI which can be installed using npm or yarn:
-
-``` bash
-npm install -g cdkactions-cli
-yarn global add cdkactions-cli
+```bash
+npm install @factbird/cdkactions constructs
 ```
 
-## Create a New Project
+## Create a workflow
 
-Navigate to the `.github` folder within your git repo and run the following commands:
+Create a file (e.g., `main.ts`) that defines your GitHub Actions workflows:
 
-``` bash
-mkdir -p workflows cdk
-cd cdk
-cdkactions init typescript-app
+```typescript
+import {
+  App, Stack, Workflow, Job, RunnerLabel,
+  checkoutV4, expression, eq, not, and,
+} from '@factbird/cdkactions';
+
+const { github, secrets } = expression;
+
+const app = new App();
+const stack = new Stack(app, 'ci');
+
+const workflow = new Workflow(stack, 'build', {
+  name: 'CI',
+  on: {
+    push: { branches: ['main'] },
+    pullRequest: { branches: ['main'] },
+  },
+});
+
+new Job(workflow, 'test', {
+  runsOn: RunnerLabel.UBUNTU_LATEST,
+  steps: [
+    checkoutV4(),
+    { name: 'Install', run: 'npm ci' },
+    { name: 'Test', run: 'npm test' },
+  ],
+});
+
+app.synth();
 ```
 
-This will:
+Run `npx ts-node main.ts` (or `bun run main.ts`) to produce `.github/workflows/cdkactions_build.yaml`.
 
-* Create a workflows directory if one doesn't already exist
-* Create a cdk directory and add all the required configuration to use cdkactions.
+## Typed expressions
 
-## Use cdkactions
+Context proxies provide autocomplete on all GitHub Actions contexts. Expressions are automatically wrapped in `${{ }}` during synthesis.
 
-The final step is to actually use cdkactions. See the [examples directory](../../examples/typescript/) or the [API guide](../../packages/cdkactions/API.md) for additional information.
+```typescript
+const { github, secrets, env, matrix } = expression;
+
+// Use directly in step config — auto-wrapped during synthesis
+{
+  with: {
+    username: github.actor,        // → ${{ github.actor }}
+    password: secrets.GITHUB_TOKEN, // → ${{ secrets.GITHUB_TOKEN }}
+  },
+}
+
+// Compose with operators
+const isMain = eq(github.ref, 'refs/heads/main');
+const deployCondition = and(isMain, not(eq(github.actor, 'dependabot[bot]')));
+
+// Use in `if` — raw expression without ${{ }} (GitHub auto-evaluates)
+new Job(workflow, 'deploy', {
+  if: deployCondition,
+  // ...
+});
+
+// Template literals — tokens are resolved during synthesis
+{ concurrency: { group: `deploy-${github.ref}` } }
+// → "deploy-${{ github.ref }}"
+```
+
+## Typed action references
+
+Pre-defined actions like `checkoutV4`, `uploadArtifactV4`, and `setupNodeV6` enforce inputs and outputs at compile time.
+
+```typescript
+import { checkoutV4, uploadArtifactV4 } from '@factbird/cdkactions';
+
+// All-optional inputs — parameter is optional
+checkoutV4()
+checkoutV4({ with: { fetchDepth: 0, lfs: true } })
+
+// Required inputs are enforced
+uploadArtifactV4({ id: 'upload', with: { name: 'dist', path: 'dist/' } })
+
+// Typed output access
+const co = checkoutV4({ id: 'co' });
+co.output('commit');  // ✓
+// co.output('foo');  // ✗ compile error
+```
+
+Define your own typed actions:
+
+```typescript
+import { defineAction } from '@factbird/cdkactions';
+
+const myAction = defineAction<
+  { environment: { required: true }; dryRun: { default: 'false' } },
+  { deployUrl: {} }
+>('my-org/deploy-action@v1');
+
+myAction({ id: 'deploy', with: { environment: 'prod' } });
+```
 
 ## Tips & Tricks
 
-When defining a multiline run command for a step inside of a job, a package like [ts-dedent](https://www.npmjs.com/package/ts-dedent) may be useful to strip additional indentation from multiline strings. See the [PyPI Publish example](../../examples/typescript/pypi-publish/) for an example of how to use it.
+When defining a multiline run command for a step, [ts-dedent](https://www.npmjs.com/package/ts-dedent) strips extra indentation from template literals:
 
-## API Reference
+```typescript
+import dedent from 'ts-dedent';
 
-To see a list of all cdkactions constructs and properties see the [API reference](../../packages/cdkactions/API.md)
+{ run: dedent`
+  echo "Step 1"
+  echo "Step 2"
+` }
+```
 
 ## Synthesize manifests
 
-When you make changes to your cdkactions project and want to update the `.yaml` manifests, just run the following command in the `cdk` folder:
+After making changes, regenerate the YAML files:
 
-``` bash
-yarn build
+```bash
+bun run main.ts
 ```
+
+## API Reference
+
+See the [API reference](../../packages/cdkactions/API.md) for all constructs and properties, and the [examples](../../packages/cdkactions/examples/) for complete usage patterns.
