@@ -3,14 +3,11 @@ import { CheckoutJob, checkoutV2, checkoutV3, checkoutV4, Job, RunnerLabel, Stac
 import type { StepConfig } from '#@/index.js';
 import { TestingApp } from './utils.js';
 
-
 test('cdkactionsstack', () => {
   const app = TestingApp({ pushUpdatedManifests: true });
 
   app.synth();
-  expect(fs.readdirSync(app.outdir)).toEqual([
-    'cdkactions_validate.yaml',
-  ]);
+  expect(fs.readdirSync(app.outdir)).toEqual(['cdkactions_validate.yaml']);
 
   expect(fs.readFileSync(`${app.outdir}/cdkactions_validate.yaml`, 'utf-8')).toMatchSnapshot();
 });

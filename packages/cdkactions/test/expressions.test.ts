@@ -1,14 +1,35 @@
 import {
-  // Core type
+  always,
+  cancelled,
+  contains,
   type Expression,
-  // Context accessors
-  github, runner, env, secrets, matrix, needs, steps, inputs, vars, job, strategy,
-  // Comparison operators
-  eq, neq, gt, gte, lt, lte, not,
-  // Built-in functions
-  contains, startsWith, endsWith, format, join, toJSON, fromJSON, hashFiles,
-  // Status check functions
-  success, failure, always, cancelled,
+  endsWith,
+  env,
+  eq,
+  failure,
+  format,
+  fromJSON,
+  github,
+  gt,
+  gte,
+  hashFiles,
+  inputs,
+  job,
+  join,
+  lt,
+  lte,
+  matrix,
+  needs,
+  neq,
+  not,
+  runner,
+  secrets,
+  startsWith,
+  steps,
+  strategy,
+  success,
+  toJSON,
+  vars,
 } from '#@/index.js';
 import { expr } from '#@/expressions.js';
 
@@ -137,7 +158,9 @@ test('endsWith produces correct expression', () => {
 });
 
 test('format produces correct expression', () => {
-  expect(String(format('Hello {0}, {1}!', github.actor, 'world'))).toBe("format('Hello {0}, {1}!', github.actor, 'world')");
+  expect(String(format('Hello {0}, {1}!', github.actor, 'world'))).toBe(
+    "format('Hello {0}, {1}!', github.actor, 'world')",
+  );
 });
 
 test('join produces correct expression without separator', () => {
@@ -164,7 +187,9 @@ test('hashFiles produces correct expression', () => {
 });
 
 test('hashFiles with multiple patterns', () => {
-  expect(String(hashFiles('**/package-lock.json', '**/yarn.lock'))).toBe("hashFiles('**/package-lock.json', '**/yarn.lock')");
+  expect(String(hashFiles('**/package-lock.json', '**/yarn.lock'))).toBe(
+    "hashFiles('**/package-lock.json', '**/yarn.lock')",
+  );
 });
 
 test('success produces correct expression', () => {

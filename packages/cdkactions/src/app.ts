@@ -53,7 +53,9 @@ export class App extends Construct {
     super(undefined as any, '');
     this.outdir = config.outdir ?? '../workflows';
     if (config.createValidateWorkflow) {
-      new CDKActionsStack(this, 'validate', { pushUpdatedManifests: config.pushUpdatedManifests });
+      new CDKActionsStack(this, 'validate', {
+        pushUpdatedManifests: config.pushUpdatedManifests,
+      });
     }
   }
 
@@ -63,7 +65,7 @@ export class App extends Construct {
   public synth(): void {
     const errors = collectValidationErrors(this);
     if (errors.length > 0) {
-      throw new Error(`Validation failed with ${errors.length} error(s):\n${errors.map(e => `  - ${e}`).join('\n')}`);
+      throw new Error(`Validation failed with ${errors.length} error(s):\n${errors.map((e) => `  - ${e}`).join('\n')}`);
     }
 
     if (!fs.existsSync(this.outdir)) {

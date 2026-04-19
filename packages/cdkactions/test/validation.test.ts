@@ -1,9 +1,17 @@
 import { Node } from 'constructs';
-
-import { App, Stack, Workflow, Job, RunnerLabel, CronExpression, validateCronExpression, collectValidationErrors } from '#@/index.js';
-import type { StepConfig, ScheduleEvent, WorkflowProps } from '#@/index.js';
+import type { ScheduleEvent, StepConfig, WorkflowProps } from '#@/index.js';
+import {
+  type App,
+  CronExpression,
+  collectValidationErrors,
+  Job,
+  RunnerLabel,
+  Stack,
+  validateCronExpression,
+  Workflow,
+} from '#@/index.js';
 import { checkoutV4 } from '#@/actions.js';
-import { TestingApp } from './utils.js';
+import { TestingApp } from '#$/utils.js';
 
 function createTestApp(options: { createValidateWorkflow?: boolean } = {}) {
   return TestingApp({ createValidateWorkflow: false, ...options });
@@ -23,11 +31,13 @@ test('step mutual exclusion: run and uses both set', () => {
   const workflow = createTestWorkflow(app);
   new Job(workflow, 'bad-job', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{
-      id: 'bad-step',
-      run: 'echo hello',
-      uses: 'actions/checkout@v4',
-    } as unknown as StepConfig],
+    steps: [
+      {
+        id: 'bad-step',
+        run: 'echo hello',
+        uses: 'actions/checkout@v4',
+      } as unknown as StepConfig,
+    ],
   });
 
   const errors = collectValidationErrors(app);
@@ -41,11 +51,13 @@ test('step mutual exclusion: uses step name in error message', () => {
   const workflow = createTestWorkflow(app);
   new Job(workflow, 'bad-job', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{
-      name: 'My Step',
-      run: 'echo hello',
-      uses: 'actions/checkout@v4',
-    } as unknown as StepConfig],
+    steps: [
+      {
+        name: 'My Step',
+        run: 'echo hello',
+        uses: 'actions/checkout@v4',
+      } as unknown as StepConfig,
+    ],
   });
 
   const errors = collectValidationErrors(app);
@@ -57,10 +69,7 @@ test('step mutual exclusion: valid steps pass', () => {
   const workflow = createTestWorkflow(app);
   new Job(workflow, 'good-job', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [
-      { run: 'echo hello' },
-      checkoutV4.call({}),
-    ],
+    steps: [{ run: 'echo hello' }, checkoutV4.call({})],
   });
 
   const errors = collectValidationErrors(app);
@@ -75,7 +84,7 @@ test('runsOn required when uses not set', () => {
   });
 
   const errors = collectValidationErrors(app);
-  expect(errors.some(e => e.includes("'runsOn' is required"))).toBe(true);
+  expect(errors.some((e) => e.includes("'runsOn' is required"))).toBe(true);
 });
 
 test('runsOn not required when uses (reusable workflow) is set', () => {
@@ -86,7 +95,7 @@ test('runsOn not required when uses (reusable workflow) is set', () => {
   });
 
   const errors = collectValidationErrors(app);
-  expect(errors.filter(e => e.includes("'runsOn' is required"))).toHaveLength(0);
+  expect(errors.filter((e) => e.includes("'runsOn' is required"))).toHaveLength(0);
 });
 
 test('matrix size warning: exceeds 256 combinations', () => {
@@ -106,7 +115,7 @@ test('matrix size warning: exceeds 256 combinations', () => {
   });
 
   const errors = collectValidationErrors(app);
-  expect(errors.some(e => e.includes('exceeding GitHub\'s limit of 256'))).toBe(true);
+  expect(errors.some((e) => e.includes("exceeding GitHub's limit of 256"))).toBe(true);
 });
 
 test('matrix size: within 256 passes', () => {
@@ -139,7 +148,7 @@ test('step limit: exceeds 1000 steps', () => {
   });
 
   const errors = collectValidationErrors(app);
-  expect(errors.some(e => e.includes('exceeding the recommended limit of 1000'))).toBe(true);
+  expect(errors.some((e) => e.includes('exceeding the recommended limit of 1000'))).toBe(true);
 });
 
 test('step limit: exactly 1000 steps passes', () => {
@@ -169,7 +178,7 @@ test('branches and branchesIgnore mutual exclusion on push event', () => {
   } as unknown as Partial<WorkflowProps>);
 
   const errors = collectValidationErrors(app);
-  expect(errors.some(e => e.includes("'branches' and 'branchesIgnore' are mutually exclusive"))).toBe(true);
+  expect(errors.some((e) => e.includes("'branches' and 'branchesIgnore' are mutually exclusive"))).toBe(true);
 });
 
 test('branches and branchesIgnore mutual exclusion on pullRequest event', () => {
@@ -184,7 +193,7 @@ test('branches and branchesIgnore mutual exclusion on pullRequest event', () => 
   } as unknown as Partial<WorkflowProps>);
 
   const errors = collectValidationErrors(app);
-  expect(errors.some(e => e.includes("'branches' and 'branchesIgnore' are mutually exclusive"))).toBe(true);
+  expect(errors.some((e) => e.includes("'branches' and 'branchesIgnore' are mutually exclusive"))).toBe(true);
 });
 
 test('branches without branchesIgnore passes', () => {
@@ -262,7 +271,7 @@ test('cron validation integrated with workflow', () => {
   } as unknown as WorkflowProps);
 
   const errors = collectValidationErrors(app);
-  expect(errors.some(e => e.includes('hour'))).toBe(true);
+  expect(errors.some((e) => e.includes('hour'))).toBe(true);
 });
 
 test('valid cron in workflow passes', () => {
@@ -304,11 +313,13 @@ test('validation error messages are actionable', () => {
   const app = createTestApp();
   const workflow = createTestWorkflow(app);
   new Job(workflow, 'my-job', {
-    steps: [{
-      id: 'conflicting',
-      run: 'echo hello',
-      uses: 'actions/checkout@v4',
-    } as unknown as StepConfig],
+    steps: [
+      {
+        id: 'conflicting',
+        run: 'echo hello',
+        uses: 'actions/checkout@v4',
+      } as unknown as StepConfig,
+    ],
   });
 
   const errors = collectValidationErrors(app);
@@ -328,7 +339,7 @@ test('multiple validation errors collected', () => {
   });
 
   const errors = collectValidationErrors(app);
-  expect(errors.filter(e => e.includes("'runsOn' is required"))).toHaveLength(2);
+  expect(errors.filter((e) => e.includes("'runsOn' is required"))).toHaveLength(2);
 });
 
 test('CronExpression: valid expression creates instance', () => {
