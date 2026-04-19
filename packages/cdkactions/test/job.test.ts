@@ -320,7 +320,7 @@ test('mixed RunStep and UsesStep in same job', () => {
   const job = new Job(TestingWorkflow(), 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
-      checkoutV4.call({}),
+      checkoutV4(),
       { run: 'npm install' },
       { uses: 'actions/setup-node@v4', with: { nodeVersion: '20' } },
       { run: 'npm test', workingDirectory: 'packages/core' },

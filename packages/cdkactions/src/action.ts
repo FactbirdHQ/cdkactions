@@ -37,48 +37,42 @@ export interface TypedUsesStep<TOutputs extends ActionOutputs = ActionOutputs>
   output<K extends keyof TOutputs & string>(key: K): Expression<string>;
 }
 
-interface InternalCallInput extends StepBase {
-  readonly id?: string;
-  readonly with?: Record<string, string | number | boolean>;
-}
+type HasRequiredCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutputs> =
+  [RequiredInputKeys<TInputs>] extends [never]
+    ? [keyof TOutputs] extends [never] ? false : true
+    : true;
 
-export class Action<
-  const TInputs extends ActionInputs = ActionInputs,
-  const TOutputs extends ActionOutputs = ActionOutputs,
-> {
-  public readonly ref: string;
+export type Action<
+  TInputs extends ActionInputs = Record<never, never>,
+  TOutputs extends ActionOutputs = Record<never, never>,
+> = HasRequiredCallOptions<TInputs, TOutputs> extends true
+  ? {
+      (options: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
+      readonly ref: string;
+      readonly uses: string;
+    }
+  : {
+      (options?: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
+      readonly ref: string;
+      readonly uses: string;
+    };
 
-  private constructor(ref: string) {
-    this.ref = ref;
-  }
-
-  static fromReference<
-    TInputs extends ActionInputs = Record<never, never>,
-    TOutputs extends ActionOutputs = Record<never, never>,
-  >(ref: string): Action<TInputs, TOutputs> {
-    return new Action<TInputs, TOutputs>(ref);
-  }
-
-  public call(options: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs> {
-    const {
-      id: stepId,
-      name,
-      if: ifProp,
-      env,
-      continueOnError,
-      timeoutMinutes,
-      with: withProp,
-    } = options as InternalCallInput;
+export function defineAction<
+  TInputs extends ActionInputs = Record<never, never>,
+  TOutputs extends ActionOutputs = Record<never, never>,
+>(ref: string): Action<TInputs, TOutputs> {
+  const fn = (options?: StepBase & ActionCallOptions<TInputs, TOutputs>) => {
+    const { id: stepId, name, if: ifProp, env, continueOnError, timeoutMinutes, with: withProp } = options ?? {};
 
     const serializedWith = withProp
-      ? Object.fromEntries(Object.entries(withProp).map(([k, v]) => [camelToKebab(k), v]))
+      ? Object.fromEntries(Object.entries(withProp).map(([k, v]) => [camelToKebab(k), v])) as Record<string, string | number | boolean>
       : undefined;
 
     const step: TypedUsesStep<TOutputs> = {
       ...(stepId !== undefined && { id: stepId }),
       ...(name !== undefined && { name }),
       ...(ifProp !== undefined && { if: ifProp }),
-      uses: this.ref,
+      uses: ref,
       ...(serializedWith !== undefined && { with: serializedWith }),
       ...(env !== undefined && { env }),
       ...(continueOnError !== undefined && { continueOnError }),
@@ -93,5 +87,7 @@ export class Action<
     Object.defineProperty(step, 'output', { enumerable: false });
 
     return step;
-  }
+  };
+
+  return Object.assign(fn, { ref, uses: ref }) as Action<TInputs, TOutputs>;
 }

@@ -1,5 +1,5 @@
 import {
-  Workflow, Job, RunnerLabel, Action,
+  Workflow, Job, RunnerLabel, defineAction,
   Condition, createMatrixProxy,
 } from '#@/index.js';
 import type {
@@ -40,7 +40,7 @@ const job = new Job(workflow, 'matrix-test', {
 // @ts-expect-error — nonexistent matrix key
 job.matrix.nonexistent;
 
-const _checkoutV4 = Action.fromReference<
+const _checkoutV4 = defineAction<
   {
     repository: { default: '${{ github.repository }}' };
     ref: { default: '' };
@@ -52,7 +52,7 @@ const _checkoutV4 = Action.fromReference<
   }
 >('actions/checkout@v4');
 
-const _uploadArtifactV4 = Action.fromReference<
+const _uploadArtifactV4 = defineAction<
   {
     name: { required: true };
     path: { required: true };
@@ -63,10 +63,10 @@ const _uploadArtifactV4 = Action.fromReference<
 >('actions/upload-artifact@v4');
 
 // @ts-expect-error — unknown input key on typed action ref
-_checkoutV4.call({ id: 'x', with: { branchName: 'main' } });
+_checkoutV4({ id: 'x', with: { branchName: 'main' } });
 
 // @ts-expect-error — missing required input on typed action ref
-_uploadArtifactV4.call({ id: 'x', with: { path: 'dist/' } });
+_uploadArtifactV4({ id: 'x', with: { path: 'dist/' } });
 
 // @ts-expect-error — unknown output key on typed action ref
-_checkoutV4.call({ id: 'x' }).output('digest');
+_checkoutV4({ id: 'x' }).output('digest');

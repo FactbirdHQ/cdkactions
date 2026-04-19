@@ -24,7 +24,7 @@ export function create(app?: App) {
   const build = new Job(workflow, 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
-      checkoutV4.call({}),
+      checkoutV4(),
       { name: 'Build', run: 'npm run build' },
       { uses: 'actions/upload-pages-artifact@v3', with: { path: './dist' } },
     ],

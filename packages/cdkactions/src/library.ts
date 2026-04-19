@@ -59,7 +59,7 @@ export class CDKActionsStack extends Stack {
  */
 export class CheckoutJob<TMatrix extends MatrixDefinition = MatrixDefinition> extends Job<TMatrix> {
   public constructor(scope: Workflow, id: string, config: JobProps<TMatrix>) {
-    const checkoutStep: StepConfig = checkoutV4.call({});
+    const checkoutStep: StepConfig = checkoutV4();
     const steps: StepConfig[] = [checkoutStep, ...(config.steps || [])];
     super(scope, id, { ...config, steps });
   }
