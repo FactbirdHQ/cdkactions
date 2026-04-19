@@ -10,3 +10,4 @@ coverage/
 !.yarn/versions
 *.tsbuildinfo
 .direnv/
+.pre-commit-config.yaml
