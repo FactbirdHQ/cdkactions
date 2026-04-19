@@ -2,8 +2,8 @@ import type { Construct } from 'constructs';
 import { dedent } from 'ts-dedent';
 
 import { checkoutV4 } from '#@/actions.js';
-import { always, github, secrets } from '#@/expressions.js';
-import { Condition, Job, type JobProps, type MatrixDefinition, type StepConfig } from '#@/job.js';
+import { always, expr, type Expression } from '#@/expressions.js';
+import { Job, type JobProps, type MatrixDefinition, type StepConfig } from '#@/job.js';
 import { RunnerLabel } from '#@/nominal.js';
 import { Stack } from '#@/stack.js';
 import { Workflow } from '#@/workflow.js';
@@ -21,7 +21,9 @@ export interface CDKActionsProps {
 export class CDKActionsStack extends Stack {
   public constructor(scope: Construct, id: string, config: CDKActionsProps) {
     super(scope, id);
-    const token = config.pushUpdatedManifests ? secrets.CDKACTIONS_TOKEN : github.token;
+    const token: Expression<string> = config.pushUpdatedManifests
+      ? expr('secrets.CDKACTIONS_TOKEN')
+      : expr('github.token');
     const synth = new Workflow(this, 'validate', {
       name: 'Validate cdkactions manifests',
       on: 'push',
@@ -41,7 +43,7 @@ export class CDKActionsStack extends Stack {
         },
         {
           name: 'Push updated manifests',
-          if: config.pushUpdatedManifests ? always() : Condition.from('false'),
+          if: config.pushUpdatedManifests ? always() : expr<boolean>('false'),
           run: dedent`cd .github/workflows
                 git config user.name github-actions
                 git config user.email github-actions[bot]@users.noreply.github.com

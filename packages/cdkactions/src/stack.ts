@@ -5,6 +5,7 @@ import { Construct, Node } from 'constructs';
 import * as yaml from 'js-yaml';
 
 import type { CompositeAction } from '#@/composite-action.js';
+import { resolveTokens } from '#@/expressions.js';
 import { Workflow } from '#@/workflow.js';
 
 /**
@@ -66,7 +67,7 @@ export class Stack extends Construct {
     for (const child of Node.of(this).children) {
       if (child instanceof Workflow) {
         const workflowOutput = path.join(outdir, child.outputFile);
-        const rawYaml = yaml.dump(child.toGHAction(), yamlOptions);
+        const rawYaml = yaml.dump(resolveTokens(child.toGHAction()), yamlOptions);
 
         fs.writeFileSync(workflowOutput, header + rawYaml);
       }
@@ -77,7 +78,7 @@ export class Stack extends Construct {
       fs.mkdirSync(actionsDir, { recursive: true });
 
       const actionOutput = path.join(actionsDir, 'action.yml');
-      const rawYaml = yaml.dump(action.toGHAction(), yamlOptions);
+      const rawYaml = yaml.dump(resolveTokens(action.toGHAction()), yamlOptions);
 
       fs.writeFileSync(actionOutput, header + rawYaml);
     }

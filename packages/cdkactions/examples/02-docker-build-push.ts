@@ -1,8 +1,7 @@
-import {
-  App, Stack, Workflow, Job, RunnerLabel,
-  github, secrets,
-} from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#@/index.js';
 import { checkoutV4 } from '../src/actions.js';
+
+const { github, secrets } = expression;
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -18,7 +17,7 @@ export function create(app?: App) {
       packages: 'write',
     },
     concurrency: {
-      group: 'docker-${{ github.ref }}',
+      group: `docker-${github.ref}`,
       cancelInProgress: true,
     },
   });
@@ -46,7 +45,7 @@ export function create(app?: App) {
       {
         name: 'Build and push',
         uses: 'docker/build-push-action@v5',
-        with: { push: true, tags: 'ghcr.io/${{ github.repository }}:latest' },
+        with: { push: true, tags: `ghcr.io/${github.repository}:latest` },
       },
     ],
   });

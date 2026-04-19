@@ -1,6 +1,4 @@
-import {
-  App, Stack, Workflow, Job, RunnerLabel,
-} from '#@/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel } from '#@/index.js';
 import { checkoutV4 } from '../src/actions.js';
 
 export function create(app?: App) {
@@ -30,11 +28,7 @@ export function create(app?: App) {
       securityEvents: 'write',
       contents: 'read',
     },
-    steps: [
-      checkoutV4(),
-      { uses: 'github/codeql-action/init@v3' },
-      { uses: 'github/codeql-action/analyze@v3' },
-    ],
+    steps: [checkoutV4(), { uses: 'github/codeql-action/init@v3' }, { uses: 'github/codeql-action/analyze@v3' }],
   });
 
   return _app;

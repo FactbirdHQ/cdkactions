@@ -4,6 +4,12 @@
  * Expressions are branded strings at runtime — no AST, no evaluation, no overhead.
  * The phantom type parameter tracks the runtime shape the expression resolves to,
  * enabling type-safe composition at the TypeScript level.
+ *
+ * Token encoding: expressions embed Unicode noncharacter delimiters (\uFDD0 / \uFDD1)
+ * so they are recognizable in any string context. At synthesis time, resolveTokens()
+ * walks the serialized output and wraps tokens based on field context:
+ *   - `if` fields → raw expression (GitHub Actions auto-evaluates)
+ *   - all other fields → `${{ expression }}`
  */
 
 import { camelToSnake } from '#@/utils.js';
@@ -23,22 +29,54 @@ export type Expression<T = unknown> = string & {
   readonly [ExpressionBrand]: T;
 };
 
-const knownExpressions = new Set<string>();
+const TOKEN_BEGIN = '\uFDD0';
+const TOKEN_END = '\uFDD1';
+const TOKEN_REGEX = new RegExp(`${TOKEN_BEGIN}([^${TOKEN_END}]*)${TOKEN_END}`, 'g');
 
-/**
- * Create an Expression from a raw string.
- */
+/** Extract the raw expression text from a token-delimited string. */
+export function unwrapToken(value: string): string {
+  return value.replaceAll(TOKEN_BEGIN, '').replaceAll(TOKEN_END, '');
+}
+
+/** Create an Expression from a raw string, encoded with token delimiters. */
 export function expr<T = unknown>(value: string): Expression<T> {
-  knownExpressions.add(value);
-  return value as Expression<T>;
+  return `${TOKEN_BEGIN}${value}${TOKEN_END}` as Expression<T>;
 }
 
 export function isExpression(value: unknown): value is Expression {
-  return typeof value === 'string' && knownExpressions.has(value);
+  return typeof value === 'string' && value.includes(TOKEN_BEGIN);
 }
 
-export function wrapExpression(value: string): string {
-  return `\${{ ${value} }}`;
+/**
+ * Resolves token-delimited expressions in a serialized object tree.
+ * Called at synthesis time when the field context is known.
+ *
+ *   - `if` fields → strip delimiters, leave raw expression
+ *   - all other fields → replace tokens with `${{ expression }}`
+ */
+export function resolveTokens(obj: unknown): unknown {
+  if (typeof obj === 'string') {
+    return resolveStringTokens(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => resolveTokens(item));
+  }
+  if (obj !== null && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj).map(([key, value]) => {
+        if (key === 'if') {
+          return [key, typeof value === 'string' ? unwrapToken(value) : resolveTokens(value)];
+        }
+        return [key, resolveTokens(value)];
+      }),
+    );
+  }
+  return obj;
+}
+
+function resolveStringTokens(value: string): string {
+  if (!value.includes(TOKEN_BEGIN)) return value;
+  return value.replace(TOKEN_REGEX, (_, e) => `\${{ ${e} }}`);
 }
 
 /**
@@ -203,44 +241,44 @@ export const job: JobContext = createContextProxy<JobContext>('job');
 export const strategy: StrategyContext = createContextProxy<StrategyContext>('strategy', true);
 
 function formatOperand(value: unknown): string {
-  if (isExpression(value)) return String(value);
+  if (isExpression(value)) return unwrapToken(String(value));
   if (typeof value === 'string') return `'${value}'`;
   return String(value);
 }
 
 /** Equality: produces `<left> == <right>`. */
 export function eq<T>(left: Expression<T>, right: Expression<T> | T): Expression<boolean> {
-  return expr(`${left} == ${formatOperand(right)}`);
+  return expr(`${unwrapToken(left)} == ${formatOperand(right)}`);
 }
 
 /** Inequality: produces `<left> != <right>`. */
 export function neq<T>(left: Expression<T>, right: Expression<T> | T): Expression<boolean> {
-  return expr(`${left} != ${formatOperand(right)}`);
+  return expr(`${unwrapToken(left)} != ${formatOperand(right)}`);
 }
 
 /** Greater than: produces `<left> > <right>`. */
 export function gt(left: Expression<number>, right: Expression<number> | number): Expression<boolean> {
-  return expr(`${left} > ${String(right)}`);
+  return expr(`${unwrapToken(left)} > ${formatOperand(right)}`);
 }
 
 /** Greater than or equal: produces `<left> >= <right>`. */
 export function gte(left: Expression<number>, right: Expression<number> | number): Expression<boolean> {
-  return expr(`${left} >= ${String(right)}`);
+  return expr(`${unwrapToken(left)} >= ${formatOperand(right)}`);
 }
 
 /** Less than: produces `<left> < <right>`. */
 export function lt(left: Expression<number>, right: Expression<number> | number): Expression<boolean> {
-  return expr(`${left} < ${String(right)}`);
+  return expr(`${unwrapToken(left)} < ${formatOperand(right)}`);
 }
 
 /** Less than or equal: produces `<left> <= <right>`. */
 export function lte(left: Expression<number>, right: Expression<number> | number): Expression<boolean> {
-  return expr(`${left} <= ${String(right)}`);
+  return expr(`${unwrapToken(left)} <= ${formatOperand(right)}`);
 }
 
 /** Logical negation: produces `!<expr>`. */
-export function not(expression: Expression<boolean>): Expression<boolean> {
-  return expr(`!${expression}`);
+export function not(e: Expression<boolean>): Expression<boolean> {
+  return expr(`!${unwrapToken(e)}`);
 }
 
 /** Produces `contains(<search>, <item>)`. */
@@ -248,47 +286,41 @@ export function contains(
   search: Expression<string> | Expression<string[]>,
   item: string | Expression<string>,
 ): Expression<boolean> {
-  const i = typeof item === 'string' && !(item as string).includes('.') ? `'${item}'` : String(item);
-  return expr(`contains(${search}, ${i})`);
+  return expr(`contains(${unwrapToken(search)}, ${formatOperand(item)})`);
 }
 
 /** Produces `startsWith(<str>, <value>)`. */
 export function startsWith(str: Expression<string>, value: string | Expression<string>): Expression<boolean> {
-  const v = typeof value === 'string' && !(value as string).includes('.') ? `'${value}'` : String(value);
-  return expr(`startsWith(${str}, ${v})`);
+  return expr(`startsWith(${unwrapToken(str)}, ${formatOperand(value)})`);
 }
 
 /** Produces `endsWith(<str>, <value>)`. */
 export function endsWith(str: Expression<string>, value: string | Expression<string>): Expression<boolean> {
-  const v = typeof value === 'string' && !(value as string).includes('.') ? `'${value}'` : String(value);
-  return expr(`endsWith(${str}, ${v})`);
+  return expr(`endsWith(${unwrapToken(str)}, ${formatOperand(value)})`);
 }
 
 /** Produces `format(<template>, <args...>)`. */
 export function format(template: string, ...args: Array<string | Expression>): Expression<string> {
-  const allArgs = [
-    `'${template}'`,
-    ...args.map((a) => (typeof a === 'string' && !(a as string).includes('.') ? `'${a}'` : String(a))),
-  ];
+  const allArgs = [`'${template}'`, ...args.map((a) => formatOperand(a))];
   return expr(`format(${allArgs.join(', ')})`);
 }
 
 /** Produces `join(<array>, <separator>)`. */
 export function join(array: Expression<string[]>, separator?: string): Expression<string> {
   if (separator !== undefined) {
-    return expr(`join(${array}, '${separator}')`);
+    return expr(`join(${unwrapToken(array)}, '${separator}')`);
   }
-  return expr(`join(${array})`);
+  return expr(`join(${unwrapToken(array)})`);
 }
 
 /** Produces `toJSON(<value>)`. */
 export function toJSON(value: Expression): Expression<string> {
-  return expr(`toJSON(${value})`);
+  return expr(`toJSON(${unwrapToken(value)})`);
 }
 
 /** Produces `fromJSON(<value>)`. */
 export function fromJSON<T = unknown>(value: Expression<string>): Expression<T> {
-  return expr(`fromJSON(${value})`);
+  return expr(`fromJSON(${unwrapToken(value)})`);
 }
 
 /** Produces `hashFiles(<patterns...>)`. */
@@ -316,3 +348,64 @@ export function always(): Expression<boolean> {
 export function cancelled(): Expression<boolean> {
   return expr('cancelled()');
 }
+
+/** Logical AND: produces `(<a> && <b> && ...)`. */
+export function and(...exprs: Expression<boolean>[]): Expression<boolean> {
+  const parts = exprs.map((e) => unwrapToken(String(e))).filter((s) => s.trim() !== '');
+  if (parts.length === 0) return expr('');
+  if (parts.length === 1) return expr(parts[0]);
+  return expr(`(${parts.join(' && ')})`);
+}
+
+/** Logical OR: produces `(<a> || <b> || ...)`. */
+export function or(...exprs: Expression<boolean>[]): Expression<boolean> {
+  const parts = exprs.map((e) => unwrapToken(String(e))).filter((s) => s.trim() !== '');
+  if (parts.length === 0) return expr('');
+  if (parts.length === 1) return expr(parts[0]);
+  return expr(`(${parts.join(' || ')})`);
+}
+
+/**
+ * Expression namespace — callable as `expression<T>(value)` to create raw expressions,
+ * with all operators, status functions, and context proxies as properties.
+ *
+ * ```typescript
+ * import { expression } from '@factbird/cdkactions';
+ * const { and, or, eq, github, secrets } = expression;
+ * ```
+ */
+export const expression = Object.assign(expr, {
+  and,
+  or,
+  eq,
+  neq,
+  gt,
+  gte,
+  lt,
+  lte,
+  not,
+  contains,
+  startsWith,
+  endsWith,
+  format,
+  join,
+  toJSON,
+  fromJSON,
+  hashFiles,
+  success,
+  failure,
+  always,
+  cancelled,
+  isExpression,
+  github,
+  runner,
+  env,
+  secrets,
+  matrix,
+  needs,
+  steps,
+  inputs,
+  vars,
+  job,
+  strategy,
+});
