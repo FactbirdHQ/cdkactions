@@ -35,7 +35,7 @@ jobs:
         run: bun run build
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
       # TODO: Switch to `bun publish` once OIDC lands (https://github.com/oven-sh/bun/pull/29374)
       - name: Publish packages
