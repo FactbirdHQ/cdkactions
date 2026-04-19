@@ -1,10 +1,9 @@
+import type { Construct } from 'constructs';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { Construct } from 'constructs';
-import { Stack, Workflow, App } from '#@/index.js';
-import { TestingApp } from './utils.js';
-
+import { App, Stack, Workflow } from '#@/index.js';
+import { TestingApp } from '#$/utils.js';
 
 test('no params', () => {
   const app = new App();
@@ -20,9 +19,7 @@ test('no validation workflow -> no files', () => {
 test('validation workflow -> 1 file', () => {
   const app = TestingApp();
   app.synth();
-  expect(fs.readdirSync(app.outdir)).toEqual([
-    'cdkactions_validate.yaml',
-  ]);
+  expect(fs.readdirSync(app.outdir)).toEqual(['cdkactions_validate.yaml']);
 });
 
 test('app with 2 workflows -> 2 files', () => {
@@ -37,10 +34,7 @@ test('app with 2 workflows -> 2 files', () => {
   new MyStack(app, 'stack');
   app.synth();
 
-  expect(fs.readdirSync(app.outdir)).toEqual([
-    'cdkactions_one.yaml',
-    'cdkactions_two.yaml',
-  ]);
+  expect(fs.readdirSync(app.outdir)).toEqual(['cdkactions_one.yaml', 'cdkactions_two.yaml']);
 });
 
 test('create directory if not exists', () => {
@@ -48,8 +42,5 @@ test('create directory if not exists', () => {
   fs.rmdirSync(outdir);
   const app = new App({ outdir });
   app.synth();
-  expect(fs.readdirSync(app.outdir)).toEqual([
-    'cdkactions_validate.yaml',
-  ]);
+  expect(fs.readdirSync(app.outdir)).toEqual(['cdkactions_validate.yaml']);
 });
-

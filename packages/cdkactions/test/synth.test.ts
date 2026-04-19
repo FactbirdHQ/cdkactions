@@ -1,12 +1,11 @@
+import type { Construct } from 'constructs';
 import * as fs from 'fs';
-import { Construct } from 'constructs';
 import type { Expression } from '#@/expressions.js';
 import { CheckoutJob } from '#@/library.js';
 import { RunnerLabel } from '#@/nominal.js';
 import { Stack } from '#@/stack.js';
 import { Workflow } from '#@/workflow.js';
 import { TestingApp } from './utils.js';
-
 
 test('complicated stack', () => {
   class MyStack extends Stack {
@@ -24,8 +23,7 @@ test('complicated stack', () => {
             key: 'value',
           },
         },
-      },
-      );
+      });
       new CheckoutJob(build, 'build', {
         runsOn: RunnerLabel.UBUNTU_LATEST,
         steps: [
@@ -34,7 +32,7 @@ test('complicated stack', () => {
             uses: 'actions/cache@v2',
             with: {
               path: '**/files',
-              key: 'v0-${{ hashFiles(\'Dockerfile\') }}',
+              key: "v0-${{ hashFiles('Dockerfile') }}",
             },
           },
           {
@@ -66,9 +64,11 @@ test('complicated stack', () => {
       const schedule = new Workflow(this, 'schedule', {
         name: 'Cron',
         on: {
-          schedule: [{
-            cron: '*/15 * * * *',
-          }],
+          schedule: [
+            {
+              cron: '*/15 * * * *',
+            },
+          ],
         },
       });
       new CheckoutJob(schedule, 'matrix', {

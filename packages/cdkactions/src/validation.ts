@@ -1,54 +1,78 @@
-import { Construct, Node, type IValidation } from 'constructs';
+import { type Construct, type IValidation, Node } from 'constructs';
 
 type Digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
 
 type MinuteValue = `${Digit}` | `${1 | 2 | 3 | 4 | 5}${Digit}`;
 type HourValue = `${Digit}` | `1${Digit}` | `2${'0' | '1' | '2' | '3'}`;
-type DayOfMonthValue =
-  | `${Exclude<Digit, '0'>}`
-  | `${'1' | '2'}${Digit}`
-  | '30'
-  | '31';
+type DayOfMonthValue = `${Exclude<Digit, '0'>}` | `${'1' | '2'}${Digit}` | '30' | '31';
 type MonthValue =
   | `${Exclude<Digit, '0'>}`
   | '10'
   | '11'
   | '12'
-  | 'JAN' | 'FEB' | 'MAR' | 'APR' | 'MAY' | 'JUN'
-  | 'JUL' | 'AUG' | 'SEP' | 'OCT' | 'NOV' | 'DEC';
-type WeekdayValue =
-  | '0' | '1' | '2' | '3' | '4' | '5' | '6'
-  | 'SUN' | 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT';
+  | 'JAN'
+  | 'FEB'
+  | 'MAR'
+  | 'APR'
+  | 'MAY'
+  | 'JUN'
+  | 'JUL'
+  | 'AUG'
+  | 'SEP'
+  | 'OCT'
+  | 'NOV'
+  | 'DEC';
+type WeekdayValue = '0' | '1' | '2' | '3' | '4' | '5' | '6' | 'SUN' | 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT';
 
-type IsAtom<S extends string, V extends string> =
-  S extends V ? true :
-  S extends `*/${infer Step}` ? (Step extends V ? true : false) :
-  S extends `${infer Lo}-${infer Rest}` ? (
-    Rest extends `${infer Hi}/${infer Step}`
-      ? (Lo extends V ? Hi extends V ? Step extends V ? true : false : false : false)
-      : (Lo extends V ? Rest extends V ? true : false : false)
-  ) :
-  false;
-
-type IsField<S extends string, V extends string> =
-  S extends '*' ? true :
-  S extends `${infer Head},${infer Tail}`
-    ? (IsAtom<Head, V> extends true ? IsField<Tail, V> : false)
-    : IsAtom<S, V>;
-
-type IsValidCron<S extends string> =
-  S extends `${infer Min} ${infer R1}`
-    ? R1 extends `${infer Hr} ${infer R2}`
-      ? R2 extends `${infer Dom} ${infer R3}`
-        ? R3 extends `${infer Mon} ${infer Wday}`
-          ? Wday extends `${string} ${string}` ? false
-            : [IsField<Min, MinuteValue>, IsField<Hr, HourValue>, IsField<Dom, DayOfMonthValue>, IsField<Mon, MonthValue>, IsField<Wday, WeekdayValue>] extends [true, true, true, true, true]
+type IsAtom<S extends string, V extends string> = S extends V
+  ? true
+  : S extends `*/${infer Step}`
+    ? Step extends V
+      ? true
+      : false
+    : S extends `${infer Lo}-${infer Rest}`
+      ? Rest extends `${infer Hi}/${infer Step}`
+        ? Lo extends V
+          ? Hi extends V
+            ? Step extends V
               ? true
               : false
+            : false
           : false
+        : Lo extends V
+          ? Rest extends V
+            ? true
+            : false
+          : false
+      : false;
+
+type IsField<S extends string, V extends string> = S extends '*'
+  ? true
+  : S extends `${infer Head},${infer Tail}`
+    ? IsAtom<Head, V> extends true
+      ? IsField<Tail, V>
+      : false
+    : IsAtom<S, V>;
+
+type IsValidCron<S extends string> = S extends `${infer Min} ${infer R1}`
+  ? R1 extends `${infer Hr} ${infer R2}`
+    ? R2 extends `${infer Dom} ${infer R3}`
+      ? R3 extends `${infer Mon} ${infer Wday}`
+        ? Wday extends `${string} ${string}`
+          ? false
+          : [
+                IsField<Min, MinuteValue>,
+                IsField<Hr, HourValue>,
+                IsField<Dom, DayOfMonthValue>,
+                IsField<Mon, MonthValue>,
+                IsField<Wday, WeekdayValue>,
+              ] extends [true, true, true, true, true]
+            ? true
+            : false
         : false
       : false
-    : false;
+    : false
+  : false;
 
 export type ValidCronExpression<S extends string> = IsValidCron<S> extends true ? S : never;
 
@@ -142,7 +166,12 @@ export function validateCronExpression(cron: string | CronExpression): string[] 
 
 export interface JobValidationData {
   readonly id: string;
-  readonly steps: ReadonlyArray<{ readonly id?: string; readonly name?: string; readonly run?: unknown; readonly uses?: unknown }>;
+  readonly steps: ReadonlyArray<{
+    readonly id?: string;
+    readonly name?: string;
+    readonly run?: unknown;
+    readonly uses?: unknown;
+  }>;
   readonly runsOn?: unknown;
   readonly uses?: unknown;
   readonly matrix?: Record<string, ReadonlyArray<unknown>>;
@@ -165,9 +194,7 @@ class JobValidation implements IValidation {
     }
 
     if (!data.runsOn && !data.uses) {
-      errors.push(
-        `Job '${data.id}': 'runsOn' is required unless 'uses' (reusable workflow) is set`,
-      );
+      errors.push(`Job '${data.id}': 'runsOn' is required unless 'uses' (reusable workflow) is set`);
     }
 
     if (data.matrix) {
@@ -189,9 +216,7 @@ class JobValidation implements IValidation {
     }
 
     if (data.steps.length > 1000) {
-      errors.push(
-        `Job '${data.id}': has ${data.steps.length} steps, exceeding the recommended limit of 1000`,
-      );
+      errors.push(`Job '${data.id}': has ${data.steps.length} steps, exceeding the recommended limit of 1000`);
     }
 
     return errors;
@@ -214,7 +239,10 @@ class WorkflowValidation implements IValidation {
     if (typeof on === 'object' && on !== null && !Array.isArray(on)) {
       for (const [name, config] of Object.entries(on as Record<string, unknown>)) {
         if (!config || typeof config !== 'object') continue;
-        const pushLike = config as { branches?: unknown[]; branchesIgnore?: unknown[] };
+        const pushLike = config as {
+          branches?: unknown[];
+          branchesIgnore?: unknown[];
+        };
         if (pushLike.branches?.length && pushLike.branchesIgnore?.length) {
           errors.push(
             `Workflow '${data.name}' event '${name}': 'branches' and 'branchesIgnore' are mutually exclusive`,

@@ -8,8 +8,6 @@
 
 import { camelToSnake } from '#@/utils.js';
 
-// ─── Core Expression Type ──────────────────────────────────────────────────────
-
 declare const ExpressionBrand: unique symbol;
 
 /**
@@ -39,15 +37,6 @@ function isExpression(value: unknown): value is Expression {
   return typeof value === 'string' && knownExpressions.has(value);
 }
 
-// ─── Context Accessor Factory ───────────────────────────────────────────────────
-
-/**
- * Creates a Proxy-based context accessor that returns Expression-typed
- * values for property access. Each property access returns a string of
- * the form `<contextName>.<property>`.
- *
- * At build time the Proxy returns the string; TypeScript sees the interface.
- */
 /**
  * Creates a Proxy-based context accessor that returns Expression-typed
  * values for property access. Each property access returns a string of
@@ -66,8 +55,6 @@ function createContextProxy<T extends object>(contextName: string, rename = fals
     },
   });
 }
-
-// ─── Context Interfaces ─────────────────────────────────────────────────────────
 
 export interface GitHubContext {
   readonly action: Expression<string>;
@@ -178,8 +165,6 @@ export interface StrategyContext {
   readonly maxParallel: Expression<number>;
 }
 
-// ─── Context Instances ──────────────────────────────────────────────────────────
-
 /** GitHub context — properties of the workflow run and triggering event. */
 export const github: GitHubContext = createContextProxy<GitHubContext>('github', true);
 
@@ -212,8 +197,6 @@ export const job: JobContext = createContextProxy<JobContext>('job');
 
 /** Strategy context — matrix strategy metadata. */
 export const strategy: StrategyContext = createContextProxy<StrategyContext>('strategy', true);
-
-// ─── Comparison Operators ───────────────────────────────────────────────────────
 
 function formatOperand(value: unknown): string {
   if (isExpression(value)) return String(value);
@@ -256,8 +239,6 @@ export function not(expression: Expression<boolean>): Expression<boolean> {
   return expr(`!${expression}`);
 }
 
-// ─── Built-in Functions ─────────────────────────────────────────────────────────
-
 /** Produces `contains(<search>, <item>)`. */
 export function contains(
   search: Expression<string> | Expression<string[]>,
@@ -268,28 +249,19 @@ export function contains(
 }
 
 /** Produces `startsWith(<str>, <value>)`. */
-export function startsWith(
-  str: Expression<string>,
-  value: string | Expression<string>,
-): Expression<boolean> {
+export function startsWith(str: Expression<string>, value: string | Expression<string>): Expression<boolean> {
   const v = typeof value === 'string' && !(value as string).includes('.') ? `'${value}'` : String(value);
   return expr(`startsWith(${str}, ${v})`);
 }
 
 /** Produces `endsWith(<str>, <value>)`. */
-export function endsWith(
-  str: Expression<string>,
-  value: string | Expression<string>,
-): Expression<boolean> {
+export function endsWith(str: Expression<string>, value: string | Expression<string>): Expression<boolean> {
   const v = typeof value === 'string' && !(value as string).includes('.') ? `'${value}'` : String(value);
   return expr(`endsWith(${str}, ${v})`);
 }
 
 /** Produces `format(<template>, <args...>)`. */
-export function format(
-  template: string,
-  ...args: Array<string | Expression>
-): Expression<string> {
+export function format(template: string, ...args: Array<string | Expression>): Expression<string> {
   const allArgs = [
     `'${template}'`,
     ...args.map((a) => (typeof a === 'string' && !(a as string).includes('.') ? `'${a}'` : String(a))),
@@ -298,10 +270,7 @@ export function format(
 }
 
 /** Produces `join(<array>, <separator>)`. */
-export function join(
-  array: Expression<string[]>,
-  separator?: string,
-): Expression<string> {
+export function join(array: Expression<string[]>, separator?: string): Expression<string> {
   if (separator !== undefined) {
     return expr(`join(${array}, '${separator}')`);
   }
@@ -323,8 +292,6 @@ export function hashFiles(...patterns: string[]): Expression<string> {
   const args = patterns.map((p) => `'${p}'`).join(', ');
   return expr(`hashFiles(${args})`);
 }
-
-// ─── Status Check Functions ─────────────────────────────────────────────────────
 
 /** Produces `success()` — true when none of the previous steps have failed or been cancelled. */
 export function success(): Expression<boolean> {

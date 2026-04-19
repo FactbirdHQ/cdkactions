@@ -1,17 +1,36 @@
 import {
-  // Core type
+  always,
+  cancelled,
+  contains,
   type Expression,
-  // Context accessors
-  github, runner, env, secrets, matrix, needs, steps, inputs, vars, job, strategy,
-  // Comparison operators
-  eq, neq, gt, gte, lt, lte, not,
-  // Built-in functions
-  contains, startsWith, endsWith, format, join, toJSON, fromJSON, hashFiles,
-  // Status check functions
-  success, failure, always, cancelled,
+  endsWith,
+  env,
+  eq,
+  failure,
+  format,
+  fromJSON,
+  github,
+  gt,
+  gte,
+  hashFiles,
+  inputs,
+  job,
+  join,
+  lt,
+  lte,
+  matrix,
+  needs,
+  neq,
+  not,
+  runner,
+  secrets,
+  startsWith,
+  steps,
+  strategy,
+  success,
+  toJSON,
+  vars,
 } from '#@/index.js';
-
-// ─── Context Accessors ─────────────────────────────────────────────────────────
 
 test('github context returns correct expression strings', () => {
   expect(String(github.ref)).toBe('github.ref');
@@ -93,8 +112,6 @@ test('strategy context returns correct expression strings', () => {
   expect(String(strategy.maxParallel)).toBe('strategy.max_parallel');
 });
 
-// ─── Comparison Operators ───────────────────────────────────────────────────────
-
 test('eq produces correct expression', () => {
   expect(String(eq(github.ref, 'refs/heads/main'))).toBe("github.ref == 'refs/heads/main'");
 });
@@ -127,8 +144,6 @@ test('not produces correct expression', () => {
   expect(String(not(github.refProtected))).toBe('!github.ref_protected');
 });
 
-// ─── Built-in Functions ─────────────────────────────────────────────────────────
-
 test('contains produces correct expression', () => {
   expect(String(contains(github.eventName, 'pull_request'))).toBe("contains(github.event_name, 'pull_request')");
 });
@@ -142,7 +157,9 @@ test('endsWith produces correct expression', () => {
 });
 
 test('format produces correct expression', () => {
-  expect(String(format('Hello {0}, {1}!', github.actor, 'world'))).toBe("format('Hello {0}, {1}!', github.actor, 'world')");
+  expect(String(format('Hello {0}, {1}!', github.actor, 'world'))).toBe(
+    "format('Hello {0}, {1}!', github.actor, 'world')",
+  );
 });
 
 test('join produces correct expression without separator', () => {
@@ -169,10 +186,10 @@ test('hashFiles produces correct expression', () => {
 });
 
 test('hashFiles with multiple patterns', () => {
-  expect(String(hashFiles('**/package-lock.json', '**/yarn.lock'))).toBe("hashFiles('**/package-lock.json', '**/yarn.lock')");
+  expect(String(hashFiles('**/package-lock.json', '**/yarn.lock'))).toBe(
+    "hashFiles('**/package-lock.json', '**/yarn.lock')",
+  );
 });
-
-// ─── Status Check Functions ─────────────────────────────────────────────────────
 
 test('success produces correct expression', () => {
   expect(String(success())).toBe('success()');
@@ -190,8 +207,6 @@ test('cancelled produces correct expression', () => {
   expect(String(cancelled())).toBe('cancelled()');
 });
 
-// ─── Composition ────────────────────────────────────────────────────────────────
-
 test('expressions compose correctly', () => {
   const isMain = eq(github.ref, 'refs/heads/main');
   const isNotBot = neq(github.actor, 'dependabot[bot]');
@@ -199,9 +214,6 @@ test('expressions compose correctly', () => {
   expect(String(isMain)).toBe("github.ref == 'refs/heads/main'");
   expect(String(isNotBot)).toBe("github.actor != 'dependabot[bot]'");
 });
-
-// ─── Type-Level Tests ───────────────────────────────────────────────────────────
-// These verify type constraints at compile time.
 
 // Expression<string> context properties are typed correctly
 const _refType: Expression<string> = github.ref;
