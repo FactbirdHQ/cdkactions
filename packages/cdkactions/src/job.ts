@@ -1,11 +1,11 @@
 import { Construct } from 'constructs';
 
-import { and, expr, type Expression } from '#@/expressions.js';
-import type { RunnerLabel, Shell } from '#@/nominal.js';
-import type { DefaultsProps, StringMap } from '#@/types.js';
-import { renameKeys, type Writable } from '#@/utils.js';
-import { addJobValidation } from '#@/validation.js';
-import type { Permissions, Workflow } from '#@/workflow.js';
+import { and, expr, type Expression } from '#src/expressions.js';
+import type { RunnerLabel, Shell } from '#src/nominal.js';
+import type { DefaultsProps, StringMap } from '#src/types.js';
+import { renameKeys, type Writable } from '#src/utils.js';
+import { addJobValidation } from '#src/validation.js';
+import type { Permissions, Workflow } from '#src/workflow.js';
 
 /**
  * Credentials to connect to a Docker registry with.
@@ -167,12 +167,8 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
   public toGHAction(): any {
     const { uses, runsOn, steps, strategy, ...rest } = this.action;
 
-    const propsIf = this.action.if ? String(this.action.if) : undefined;
-    const instanceIf = this.if ? String(this.if) : undefined;
-    const _if =
-      instanceIf && propsIf
-        ? String(and(expr<boolean>(instanceIf), expr<boolean>(propsIf)))
-        : instanceIf || propsIf || undefined;
+    const conditions = [this.if, this.action.if].filter((c): c is Expression<boolean> => c !== undefined);
+    const _if = conditions.length > 0 ? and(...conditions) : undefined;
 
     let serializedUses: string | undefined;
     if (typeof uses === 'string') {
@@ -209,7 +205,7 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
       const serialized = renameKeys(stepRest, keyMap);
       return {
         ...serialized,
-        ...(stepIf !== undefined ? { if: String(stepIf) } : {}),
+        ...(stepIf !== undefined ? { if: stepIf } : {}),
       };
     });
 

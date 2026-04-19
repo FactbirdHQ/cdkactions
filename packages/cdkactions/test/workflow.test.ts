@@ -15,9 +15,9 @@ import type {
   WorkflowCallOutputProps,
   WorkflowCallSecretProps,
   WorkflowProps,
-} from '#@/index.js';
-import { Job, RunnerLabel, WorkflowDispatchInputType } from '#@/index.js';
-import { TestingWorkflow } from '#$/utils.js';
+} from '#src/index.js';
+import { Job, RunnerLabel, WorkflowDispatchInputType } from '#src/index.js';
+import { TestingWorkflow } from '#test/utils.js';
 
 test('toGHAction', () => {
   const workflow = TestingWorkflow({

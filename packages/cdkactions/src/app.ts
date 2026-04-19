@@ -2,9 +2,9 @@ import * as fs from 'node:fs';
 
 import { Construct, Node } from 'constructs';
 
-import { CDKActionsStack } from '#@/library.js';
-import { Stack } from '#@/stack.js';
-import { collectValidationErrors } from '#@/validation.js';
+import { CDKActionsStack } from '#src/library.js';
+import { Stack } from '#src/stack.js';
+import { collectValidationErrors } from '#src/validation.js';
 
 /**
  * Configuration for a cdkactions app.

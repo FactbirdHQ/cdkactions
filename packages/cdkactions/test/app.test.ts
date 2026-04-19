@@ -2,8 +2,8 @@ import type { Construct } from 'constructs';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { App, Stack, Workflow } from '#@/index.js';
-import { TestingApp } from '#$/utils.js';
+import { App, Stack, Workflow } from '#src/index.js';
+import { TestingApp } from '#test/utils.js';
 
 test('no params', () => {
   const app = new App();

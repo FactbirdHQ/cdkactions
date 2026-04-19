@@ -1,4 +1,4 @@
-import { JobResult, RunnerLabel, Shell, StepConclusion } from '#@/index.js';
+import { JobResult, RunnerLabel, Shell, StepConclusion } from '#src/index.js';
 
 test('RunnerLabel predefined constants have correct string values', () => {
   expect(String(RunnerLabel.UBUNTU_LATEST)).toBe('ubuntu-latest');

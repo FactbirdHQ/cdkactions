@@ -31,8 +31,8 @@ import {
   toJSON,
   unwrapToken,
   vars,
-} from '#@/index.js';
-import { expr } from '#@/expressions.js';
+} from '#src/index.js';
+import { expr } from '#src/expressions.js';
 
 /** Strips token delimiters to check the raw expression text. */
 function raw(e: Expression): string {

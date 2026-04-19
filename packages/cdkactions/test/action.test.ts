@@ -1,4 +1,4 @@
-import { defineAction, expr, secrets, unwrapToken, type TypedUsesStep, type Expression } from '#@/index.js';
+import { defineAction, expr, secrets, unwrapToken, type TypedUsesStep, type Expression } from '#src/index.js';
 
 const allOptionalAction = defineAction<
   {
@@ -217,7 +217,7 @@ import {
   createReleaseV1,
   determinateNixV3,
   installNixActionV31,
-} from '#@/actions.js';
+} from '#src/actions.js';
 
 console.log('\nPre-built action definitions:');
 

@@ -1,12 +1,12 @@
 import type { Construct } from 'constructs';
 import * as fs from 'fs';
-import { secrets } from '#@/expressions.js';
-import type { Expression } from '#@/expressions.js';
-import { CheckoutJob } from '#@/library.js';
-import { RunnerLabel } from '#@/nominal.js';
-import { Stack } from '#@/stack.js';
-import { Workflow } from '#@/workflow.js';
-import { TestingApp } from '#$/utils.js';
+import { secrets } from '#src/expressions.js';
+import type { Expression } from '#src/expressions.js';
+import { CheckoutJob } from '#src/library.js';
+import { RunnerLabel } from '#src/nominal.js';
+import { Stack } from '#src/stack.js';
+import { Workflow } from '#src/workflow.js';
+import { TestingApp } from '#test/utils.js';
 
 test('complicated stack', () => {
   class MyStack extends Stack {

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
-import { CheckoutJob, checkoutV2, checkoutV3, checkoutV4, Job, RunnerLabel, Stack, Workflow } from '#@/index.js';
-import type { StepConfig } from '#@/index.js';
-import { TestingApp } from '#$/utils.js';
+import { CheckoutJob, checkoutV2, checkoutV3, checkoutV4, Job, RunnerLabel, Stack, Workflow } from '#src/index.js';
+import type { StepConfig } from '#src/index.js';
+import { TestingApp } from '#test/utils.js';
 
 test('cdkactionsstack', () => {
   const app = TestingApp({ pushUpdatedManifests: true });

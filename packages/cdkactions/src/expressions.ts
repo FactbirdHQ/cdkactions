@@ -12,7 +12,7 @@
  *   - all other fields → `${{ expression }}`
  */
 
-import { camelToSnake } from '#@/utils.js';
+import { camelToSnake } from '#src/utils.js';
 
 declare const ExpressionBrand: unique symbol;
 
@@ -241,7 +241,7 @@ export const job: JobContext = createContextProxy<JobContext>('job');
 export const strategy: StrategyContext = createContextProxy<StrategyContext>('strategy', true);
 
 function formatOperand(value: unknown): string {
-  if (isExpression(value)) return unwrapToken(String(value));
+  if (isExpression(value)) return unwrapToken(value);
   if (typeof value === 'string') return `'${value}'`;
   return String(value);
 }
@@ -351,7 +351,7 @@ export function cancelled(): Expression<boolean> {
 
 /** Logical AND: produces `(<a> && <b> && ...)`. */
 export function and(...exprs: Expression<boolean>[]): Expression<boolean> {
-  const parts = exprs.map((e) => unwrapToken(String(e))).filter((s) => s.trim() !== '');
+  const parts = exprs.map((e) => unwrapToken(e)).filter((s) => s.trim() !== '');
   if (parts.length === 0) return expr('');
   if (parts.length === 1) return expr(parts[0]);
   return expr(`(${parts.join(' && ')})`);
@@ -359,7 +359,7 @@ export function and(...exprs: Expression<boolean>[]): Expression<boolean> {
 
 /** Logical OR: produces `(<a> || <b> || ...)`. */
 export function or(...exprs: Expression<boolean>[]): Expression<boolean> {
-  const parts = exprs.map((e) => unwrapToken(String(e))).filter((s) => s.trim() !== '');
+  const parts = exprs.map((e) => unwrapToken(e)).filter((s) => s.trim() !== '');
   if (parts.length === 0) return expr('');
   if (parts.length === 1) return expr(parts[0]);
   return expr(`(${parts.join(' || ')})`);

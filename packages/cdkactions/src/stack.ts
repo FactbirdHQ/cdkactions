@@ -4,9 +4,9 @@ import * as path from 'node:path';
 import { Construct, Node } from 'constructs';
 import * as yaml from 'js-yaml';
 
-import type { CompositeAction } from '#@/composite-action.js';
-import { resolveTokens } from '#@/expressions.js';
-import { Workflow } from '#@/workflow.js';
+import type { CompositeAction } from '#src/composite-action.js';
+import { resolveTokens } from '#src/expressions.js';
+import { Workflow } from '#src/workflow.js';
 
 /**
  * Represents a cdkaction stack.

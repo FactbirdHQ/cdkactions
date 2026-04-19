@@ -1,4 +1,4 @@
-import { camelToSnake, renameKeys } from '#@/utils.js';
+import { camelToSnake, renameKeys } from '#src/utils.js';
 
 test('renameKeys', () => {
   const obj = { oldKey: 'value', arr: [{ oldKey: 'different value' }] };

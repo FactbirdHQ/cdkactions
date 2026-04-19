@@ -1,6 +1,6 @@
-import { expr, type Expression } from '#@/expressions.js';
-import type { UsesStep, StepBase } from '#@/job.js';
-import { camelToKebab } from '#@/utils.js';
+import { expr, type Expression } from '#src/expressions.js';
+import type { UsesStep, StepBase } from '#src/job.js';
+import { camelToKebab } from '#src/utils.js';
 
 export interface ActionInput {
   readonly required?: boolean;

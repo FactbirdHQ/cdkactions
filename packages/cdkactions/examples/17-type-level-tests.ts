@@ -1,5 +1,5 @@
-import { Workflow, Job, RunnerLabel, defineAction, createMatrixProxy } from '#@/index.js';
-import type { PermissionsMap, RunStep, UsesStep, StepConfig, Expression } from '#@/index.js';
+import { Workflow, Job, RunnerLabel, defineAction, createMatrixProxy } from '#src/index.js';
+import type { PermissionsMap, RunStep, UsesStep, StepConfig, Expression } from '#src/index.js';
 
 const workflow = undefined as any as Workflow;
 

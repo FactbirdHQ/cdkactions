@@ -10,7 +10,7 @@ import type {
   StepConfig,
   StrategyProps,
   UsesStep,
-} from '#@/index.js';
+} from '#src/index.js';
 import {
   always,
   and,
@@ -24,9 +24,9 @@ import {
   RunnerLabel,
   secrets,
   unwrapToken,
-} from '#@/index.js';
-import { checkoutV4 } from '#@/actions.js';
-import { TestingWorkflow } from '#$/utils.js';
+} from '#src/index.js';
+import { checkoutV4 } from '#src/actions.js';
+import { TestingWorkflow } from '#test/utils.js';
 
 /** Simulate the full serialization pipeline (toGHAction + token resolution). */
 function serialize(job: Job): any {
