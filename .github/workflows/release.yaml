@@ -18,7 +18,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Set version from tag
+      - name: Set version from tag and resolve workspace references
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           for pkg in packages/*/package.json; do
@@ -27,6 +27,16 @@ jobs:
               const pkg = JSON.parse(fs.readFileSync('${pkg}', 'utf8'));
               if (!pkg.private) {
                 pkg.version = '${VERSION}';
+                for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+                  const deps = pkg[depType];
+                  if (!deps) continue;
+                  for (const [name, value] of Object.entries(deps)) {
+                    if (typeof value === 'string' && value.startsWith('workspace:')) {
+                      const range = value.slice('workspace:'.length);
+                      deps[name] = '${VERSION}';
+                    }
+                  }
+                }
                 fs.writeFileSync('${pkg}', JSON.stringify(pkg, null, 2) + '\n');
               }
             "
