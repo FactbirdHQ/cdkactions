@@ -64,7 +64,7 @@ test('2 jobs with same key -> error', () => {
         runsOn: RunnerLabel.UBUNTU_LATEST,
         steps: [],
       }),
-  ).toThrowError("There is already a Construct with name 'job' in Workflow [test]");
+  ).toThrow("There is already a Construct with name 'job' in Workflow [test]");
 });
 
 test('jobs kept in insertion order', () => {
@@ -226,6 +226,7 @@ test('workflow_run includes in_progress type', () => {
   const workflow = TestingWorkflow({
     on: {
       workflowRun: {
+        workflows: ['CI'],
         types: ['completed', 'requested', 'in_progress'],
       },
     },

@@ -1,31 +1,33 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`toGHAction 1`] = `
-Object {
+{
   "continue-on-error": true,
+  "if": undefined,
   "runs-on": "ubuntu-latest",
-  "steps": Array [
-    Object {
+  "steps": [
+    {
       "continue-on-error": false,
       "name": "step",
       "run": "echo hello",
       "timeout-minutes": 5,
       "working-directory": "~/",
     },
-    Object {
+    {
       "name": "External action",
       "uses": "actions/checkout@v2",
-      "with": Object {
+      "with": {
         "booleanValue": false,
         "numberValue": 10,
         "stringValue": "string",
       },
     },
   ],
-  "strategy": Object {
+  "strategy": {
     "fail-fast": true,
     "max-parallel": 11,
   },
   "timeout-minutes": 10,
+  "uses": undefined,
 }
 `;

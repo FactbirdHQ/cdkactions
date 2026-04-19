@@ -10,7 +10,8 @@ import {
   validateCronExpression,
   Workflow,
 } from '#@/index.js';
-import { TestingApp } from './utils.js';
+import { checkoutV4 } from '../src/actions.js';
+import { TestingApp } from '#$/utils.js';
 
 function createTestApp(options: { createValidateWorkflow?: boolean } = {}) {
   return TestingApp({ createValidateWorkflow: false, ...options });
@@ -68,7 +69,7 @@ test('step mutual exclusion: valid steps pass', () => {
   const workflow = createTestWorkflow(app);
   new Job(workflow, 'good-job', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{ run: 'echo hello' }, { uses: 'actions/checkout@v4' }],
+    steps: [{ run: 'echo hello' }, checkoutV4()],
   });
 
   const errors = collectValidationErrors(app);
@@ -354,8 +355,11 @@ test('CronExpression: complex valid expressions', () => {
 });
 
 test('CronExpression: throws on invalid expression', () => {
+  // @ts-expect-error — intentionally invalid cron for runtime validation test
   expect(() => new CronExpression('0 25 * * *')).toThrow('hour');
+  // @ts-expect-error — intentionally invalid cron for runtime validation test
   expect(() => new CronExpression('0 0 * *')).toThrow('must have exactly 5 fields');
+  // @ts-expect-error — intentionally invalid cron for runtime validation test
   expect(() => new CronExpression('60 0 * * *')).toThrow('minute');
 });
 

@@ -23,11 +23,18 @@ export type Expression<T = unknown> = string & {
   readonly [ExpressionBrand]: T;
 };
 
+const knownExpressions = new Set<string>();
+
 /**
  * Create an Expression from a raw string.
  */
 export function expr<T = unknown>(value: string): Expression<T> {
+  knownExpressions.add(value);
   return value as Expression<T>;
+}
+
+function isExpression(value: unknown): value is Expression {
+  return typeof value === 'string' && knownExpressions.has(value);
 }
 
 /**
@@ -191,16 +198,20 @@ export const job: JobContext = createContextProxy<JobContext>('job');
 /** Strategy context — matrix strategy metadata. */
 export const strategy: StrategyContext = createContextProxy<StrategyContext>('strategy', true);
 
+function formatOperand(value: unknown): string {
+  if (isExpression(value)) return String(value);
+  if (typeof value === 'string') return `'${value}'`;
+  return String(value);
+}
+
 /** Equality: produces `<left> == <right>`. */
 export function eq<T>(left: Expression<T>, right: Expression<T> | T): Expression<boolean> {
-  const r = typeof right === 'string' ? `'${right}'` : String(right);
-  return expr(`${left} == ${r}`);
+  return expr(`${left} == ${formatOperand(right)}`);
 }
 
 /** Inequality: produces `<left> != <right>`. */
 export function neq<T>(left: Expression<T>, right: Expression<T> | T): Expression<boolean> {
-  const r = typeof right === 'string' ? `'${right}'` : String(right);
-  return expr(`${left} != ${r}`);
+  return expr(`${left} != ${formatOperand(right)}`);
 }
 
 /** Greater than: produces `<left> > <right>`. */

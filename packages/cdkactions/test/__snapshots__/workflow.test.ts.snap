@@ -1,49 +1,49 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`toGHAction 1`] = `
+{
+  "defaults": {
+    "run": {
+      "working-directory": "~/",
+    },
+  },
+  "jobs": {},
+  "name": "Test",
+  "on": {
+    "issue_comment": {
+      "types": [
+        "created",
+      ],
+    },
+    "pull_request": {
+      "paths": [
+        "test/",
+      ],
+      "paths-ignore": [
+        "ignore-path/",
+      ],
+      "types": [
+        "opened",
+      ],
+    },
+  },
+}
+`;
 
 exports[`manual workflow dispatch 1`] = `
-Object {
-  "jobs": Object {},
+{
+  "jobs": {},
   "name": "Test",
-  "on": Object {
-    "workflow_dispatch": Object {
-      "inputs": Object {
-        "one": Object {
+  "on": {
+    "workflow_dispatch": {
+      "inputs": {
+        "one": {
           "default": "foo",
           "description": "input one",
           "required": false,
           "type": "string",
         },
       },
-    },
-  },
-}
-`;
-
-exports[`toGHAction 1`] = `
-Object {
-  "defaults": Object {
-    "run": Object {
-      "working-directory": "~/",
-    },
-  },
-  "jobs": Object {},
-  "name": "Test",
-  "on": Object {
-    "issue_comment": Object {
-      "types": Array [
-        "created",
-      ],
-    },
-    "pull_request": Object {
-      "paths": Array [
-        "test/",
-      ],
-      "paths-ignore": Array [
-        "ignore-path/",
-      ],
-      "types": Array [
-        "opened",
-      ],
     },
   },
 }

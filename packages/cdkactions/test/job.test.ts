@@ -12,6 +12,7 @@ import type {
   UsesStep,
 } from '#@/index.js';
 import { always, Condition, createMatrixProxy, eq, failure, github, Job, RunnerLabel } from '#@/index.js';
+import { checkoutV4 } from '../src/actions.js';
 
 test('toGHAction', () => {
   const job = new Job(undefined as any, 'test', {
@@ -318,7 +319,7 @@ test('mixed RunStep and UsesStep in same job', () => {
   const job = new Job(undefined as any, 'test', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [
-      { uses: 'actions/checkout@v4' },
+      checkoutV4(),
       { run: 'npm install' },
       { uses: 'actions/setup-node@v4', with: { nodeVersion: '20' } },
       { run: 'npm test', workingDirectory: 'packages/core' },
@@ -448,11 +449,11 @@ const _typedStrategy: StrategyProps<{
 };
 
 // Type-level: include/exclude constrained to matrix value types
-// @ts-expect-error - include entry with invalid os value
 const _invalidInclude: StrategyProps<{
   readonly os: readonly ['ubuntu-latest', 'windows-latest'];
 }> = {
   matrix: { os: ['ubuntu-latest', 'windows-latest'] },
+  // @ts-expect-error - include entry with invalid os value
   include: [{ os: 'macos-latest' }],
 };
 
