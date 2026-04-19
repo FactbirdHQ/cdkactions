@@ -148,7 +148,7 @@ test('lte produces correct expression', () => {
 });
 
 test('not produces correct expression', () => {
-  expect(raw(not(github.refProtected))).toBe('!github.ref_protected');
+  expect(raw(not(github.refProtected))).toBe('!(github.ref_protected)');
 });
 
 test('contains produces correct expression', () => {
