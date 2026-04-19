@@ -1,8 +1,8 @@
 import fs from 'fs-extra';
 import type * as yargs from 'yargs';
 
-import { readConfigSync } from '../../config.js';
-import { shell } from '../../utils.js';
+import { readConfigSync } from '#src/config.ts';
+import { shell } from '#src/utils.ts';
 
 const config = readConfigSync();
 

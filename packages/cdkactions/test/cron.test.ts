@@ -1,4 +1,4 @@
-import type { CronExpression, ParseCronExpression } from '../src/index.js';
+import type { CronExpression, ParseCronExpression } from '#src/index.ts';
 
 type Assert<T extends true> = T;
 type IsEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;

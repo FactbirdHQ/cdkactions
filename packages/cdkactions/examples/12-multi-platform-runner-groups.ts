@@ -1,5 +1,5 @@
 import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#src/index.ts';
-import { checkoutV4 } from '../src/actions.js';
+import { checkoutV4 } from '#src/actions.ts';
 
 const { matrix } = expression;
 
