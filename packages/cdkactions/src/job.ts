@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 
-import { and, expr, type Expression, isExpression } from '#@/expressions.js';
+import { and, expr, type Expression } from '#@/expressions.js';
 import type { RunnerLabel, Shell } from '#@/nominal.js';
 import type { DefaultsProps, StringMap } from '#@/types.js';
 import { renameKeys, type Writable } from '#@/utils.js';
@@ -95,14 +95,6 @@ export function createMatrixProxy<TMatrix extends MatrixDefinition>(_matrix: TMa
       return expr(`matrix.${prop}`);
     },
   });
-}
-
-/**
- * Wraps expression values in an object with `${{ }}` for serialization
- * in non-`if` contexts (e.g. `with:`, `env:`).
- */
-function wrapExpressionValues(obj: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, isExpression(v) ? `\${{ ${v} }}` : v]));
 }
 
 /**
@@ -205,9 +197,7 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     };
 
     let serializedRunsOn: unknown = runsOn;
-    if (isExpression(runsOn)) {
-      serializedRunsOn = `\${{ ${runsOn} }}`;
-    } else if (runsOn && typeof runsOn === 'object' && 'group' in runsOn) {
+    if (runsOn && typeof runsOn === 'object' && 'group' in runsOn) {
       serializedRunsOn = {
         group: runsOn.group,
         ...(runsOn.labels ? { labels: runsOn.labels } : {}),
@@ -217,12 +207,6 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     const serializedSteps = steps?.map((step) => {
       const { if: stepIf, ...stepRest } = step;
       const serialized = renameKeys(stepRest, keyMap);
-      if (serialized.with) {
-        serialized.with = wrapExpressionValues(serialized.with);
-      }
-      if (serialized.env) {
-        serialized.env = wrapExpressionValues(serialized.env);
-      }
       return {
         ...serialized,
         ...(stepIf !== undefined ? { if: String(stepIf) } : {}),
@@ -247,12 +231,6 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     }
 
     const serializedRest = renameKeys(rest, keyMap);
-    if (serializedRest.env) {
-      serializedRest.env = wrapExpressionValues(serializedRest.env);
-    }
-    if (serializedRest.secrets && typeof serializedRest.secrets === 'object') {
-      serializedRest.secrets = wrapExpressionValues(serializedRest.secrets);
-    }
 
     return {
       ...serializedRest,

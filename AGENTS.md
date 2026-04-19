@@ -153,20 +153,19 @@ Individual exports (`eq`, `and`, `github`, etc.) are also available for direct i
 
 Composition uses free functions: `and(a, b)`, `or(a, b)`, `eq(left, right)`, `not(expr)`, etc. These return `Expression<boolean>` values that compose without wrapping.
 
-**Context-aware serialization:** `if:` fields emit raw expression strings (GitHub Actions auto-evaluates them). All other contexts (`with:`, `env:`, `secrets:`, `runs-on:`) auto-wrap `Expression` values in `${{ }}` during serialization. This means you can pass expression values directly — no manual `${{ }}` wrapping needed:
+**Token-based resolution:** Expressions encode themselves with Unicode noncharacter delimiters (`\uFDD0` / `\uFDD1`), making them recognizable in any string context — including template literal interpolation. At synthesis time, `resolveTokens()` walks the serialized output and resolves tokens based on field context:
+
+- `if` fields → strip delimiters, leave raw expression (GitHub Actions auto-evaluates)
+- All other fields → replace tokens with `${{ expression }}`
+
+This means expressions work transparently everywhere — no manual `${{ }}` wrapping needed:
 
 ```typescript
-// Before: manual wrapping
-{ with: { username: '${{ github.actor }}', password: '${{ secrets.GITHUB_TOKEN }}' } }
-
-// After: auto-wrapped during serialization
+// Expressions in with/env are auto-wrapped during synthesis
 { with: { username: github.actor, password: secrets.GITHUB_TOKEN } }
-```
 
-For string interpolation contexts (e.g., concurrency groups, run commands), use `wrap()`:
-```typescript
-import { wrap } from '@factbird/cdkactions';
-{ group: `docker-${wrap(github.ref)}` }
+// Expressions in string interpolation are also auto-resolved
+{ group: `docker-${github.ref}` }  // → "docker-${{ github.ref }}"
 ```
 
 ## Synthesis

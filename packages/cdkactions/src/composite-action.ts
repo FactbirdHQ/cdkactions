@@ -1,6 +1,6 @@
 import type { Construct } from 'constructs';
 
-import type { Expression } from '#@/expressions.js';
+import { expr, type Expression } from '#@/expressions.js';
 import type { StepConfig, UsesStep } from '#@/job.js';
 import { Stack } from '#@/stack.js';
 import type { StringMap } from '#@/types.js';
@@ -157,7 +157,7 @@ export class CompositeAction<
       uses: this.usesPath,
     };
     Object.defineProperty(step, 'output', {
-      value: (key: string) => `\${{ steps.${id}.outputs.${key} }}`,
+      value: (key: string) => String(expr(`steps.${id}.outputs.${key}`)),
       enumerable: false,
     });
 

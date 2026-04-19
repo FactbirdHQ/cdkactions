@@ -1,4 +1,4 @@
-import { expr, type Expression, isExpression } from '#@/expressions.js';
+import { expr, type Expression } from '#@/expressions.js';
 import type { UsesStep, StepBase } from '#@/job.js';
 import { camelToKebab } from '#@/utils.js';
 
@@ -69,12 +69,7 @@ export function defineAction<
     const { id: stepId, name, if: ifProp, env, continueOnError, timeoutMinutes, with: withProp } = options ?? {};
 
     const serializedWith = withProp
-      ? Object.fromEntries(
-          Object.entries<string | number | boolean>(withProp).map(([k, v]) => [
-            camelToKebab(k),
-            isExpression(v) ? `\${{ ${v} }}` : v,
-          ]),
-        )
+      ? Object.fromEntries(Object.entries<string | number | boolean>(withProp).map(([k, v]) => [camelToKebab(k), v]))
       : undefined;
 
     const step: TypedUsesStep<TOutputs> = {
