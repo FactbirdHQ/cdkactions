@@ -12,9 +12,9 @@
     }
   },
   "imports": {
-    "#src/*": {
-      "types": "./src/*",
-      "default": "./dist/*"
+    "#src/*.ts": {
+      "types": "./src/*.ts",
+      "default": "./dist/*.js"
     },
     "#test/*": "./test/*"
   },

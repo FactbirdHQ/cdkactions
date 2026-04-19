@@ -1,12 +1,12 @@
 import type { Construct } from 'constructs';
 import { dedent } from 'ts-dedent';
 
-import { checkoutV4 } from '#src/actions.js';
-import { always, expr, github, secrets } from '#src/expressions.js';
-import { Job, type JobProps, type MatrixDefinition, type StepConfig } from '#src/job.js';
-import { RunnerLabel } from '#src/nominal.js';
-import { Stack } from '#src/stack.js';
-import { Workflow } from '#src/workflow.js';
+import { checkoutV4 } from '#src/actions.ts';
+import { always, expr, github, secrets } from '#src/expressions.ts';
+import { Job, type JobProps, type MatrixDefinition, type StepConfig } from '#src/job.ts';
+import { RunnerLabel } from '#src/nominal.ts';
+import { Stack } from '#src/stack.ts';
+import { Workflow } from '#src/workflow.ts';
 
 /**
  * Configuration for a CDKActionsStack instance.

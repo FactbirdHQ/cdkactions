@@ -12,7 +12,7 @@
  *   - all other fields → `${{ expression }}`
  */
 
-import { camelToSnake } from '#src/utils.js';
+import { camelToSnake } from '#src/utils.ts';
 
 declare const ExpressionBrand: unique symbol;
 

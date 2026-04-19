@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#src/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#src/index.ts';
 import { checkoutV4, uploadArtifactV4, downloadArtifactV4 } from '../src/actions.js';
 
 const { eq, github } = expression;

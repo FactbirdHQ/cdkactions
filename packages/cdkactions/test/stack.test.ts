@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 import * as fs from 'fs';
-import { Stack, Workflow } from '#src/index.js';
+import { Stack, Workflow } from '#src/index.ts';
 import { TestingApp } from '#test/utils.ts';
 
 test('non-workflow children are ignored', () => {

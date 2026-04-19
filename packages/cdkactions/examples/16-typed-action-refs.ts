@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel, defineAction } from '#src/index.js';
+import { App, Stack, Workflow, Job, RunnerLabel, defineAction } from '#src/index.ts';
 
 const checkoutV4 = defineAction<
   {

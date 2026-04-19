@@ -1,11 +1,11 @@
 import { Construct } from 'constructs';
 
-import { and, expr, type Expression } from '#src/expressions.js';
-import type { RunnerLabel, Shell } from '#src/nominal.js';
-import type { DefaultsProps, StringMap } from '#src/types.js';
-import { renameKeys, type Writable } from '#src/utils.js';
-import { addJobValidation } from '#src/validation.js';
-import type { Permissions, Workflow } from '#src/workflow.js';
+import { and, expr, type Expression } from '#src/expressions.ts';
+import type { RunnerLabel, Shell } from '#src/nominal.ts';
+import type { DefaultsProps, StringMap } from '#src/types.ts';
+import { renameKeys, type Writable } from '#src/utils.ts';
+import { addJobValidation } from '#src/validation.ts';
+import type { Permissions, Workflow } from '#src/workflow.ts';
 
 /**
  * Credentials to connect to a Docker registry with.

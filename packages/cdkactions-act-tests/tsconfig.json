@@ -2,9 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "allowImportingTsExtensions": true,
     "paths": {
-      "#src/*": ["./src/*"],
+      "#src/*.ts": ["./src/*.ts"],
       "#test/*": ["./test/*"]
     }
   },

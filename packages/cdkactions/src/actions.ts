@@ -1,4 +1,4 @@
-import { defineAction } from '#src/action.js';
+import { defineAction } from '#src/action.ts';
 
 export const checkoutV2 = defineAction<{
   repository: { default: string };
