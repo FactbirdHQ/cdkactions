@@ -70,3 +70,38 @@ _checkoutV4({ id: 'x' }).outputs.digest;
 job.addOutput('hash', 'hash', 'Build hash');
 
 const _envMap: StringMap = { user: github.actor };
+
+// --- Workflow.inputs proxy type-level tests ---
+
+import { WorkflowDispatchInputType, eq, type WorkflowInputsProxy, type DeepExpression } from '#src/index.ts';
+
+const dispatchWorkflow = new Workflow(undefined as any, 'dispatch', {
+  name: 'Dispatch',
+  on: {
+    workflowDispatch: {
+      inputs: {
+        project: {
+          description: 'Project',
+          required: true,
+          type: WorkflowDispatchInputType.CHOICE,
+          options: ['app', 'api'],
+        },
+        dryRun: {
+          description: 'Dry run',
+          required: false,
+          type: WorkflowDispatchInputType.BOOLEAN,
+        },
+      },
+    },
+  },
+});
+
+// Valid input keys work
+const _project: DeepExpression<string> = dispatchWorkflow.inputs.project;
+const _dryRun: DeepExpression<string> = dispatchWorkflow.inputs.dryRun;
+
+// Works with eq without casts
+const _cond = eq(dispatchWorkflow.inputs.project, 'app');
+
+// @ts-expect-error — nonexistent input key
+dispatchWorkflow.inputs.nonexistent;

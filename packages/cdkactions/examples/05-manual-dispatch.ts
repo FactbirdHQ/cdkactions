@@ -1,6 +1,6 @@
-import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType, expression } from '#src/index.ts';
+import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType, expression, eq } from '#src/index.ts';
 
-const { inputs, github } = expression;
+const { github } = expression;
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -8,7 +8,7 @@ export function create(app?: App) {
 
   const workflow = new Workflow(stack, 'deploy-manual', {
     name: 'Manual Deploy',
-    runName: `Deploy ${inputs.environment} by ${github.actor}`,
+    runName: `Deploy by ${github.actor}`,
     on: {
       workflowDispatch: {
         inputs: {
@@ -42,7 +42,8 @@ export function create(app?: App) {
 
   new Job(workflow, 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    steps: [{ name: 'Deploy', run: 'echo "Deploying..."' }],
+    if: eq(workflow.inputs.logLevel, 'debug'),
+    steps: [{ name: 'Deploy', run: `echo "Deploying to ${workflow.inputs.environment}"` }],
   });
 
   return _app;

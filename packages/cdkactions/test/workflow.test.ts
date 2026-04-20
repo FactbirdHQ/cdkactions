@@ -460,6 +460,40 @@ test('workflow concurrency string form', () => {
   expect(ghAction.concurrency).toBe('deploy-group');
 });
 
+test('workflow inputs proxy generates correct expressions for workflowDispatch', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      workflowDispatch: {
+        inputs: {
+          environment: {
+            description: 'Target environment',
+            required: true,
+            type: WorkflowDispatchInputType.STRING,
+          },
+        },
+      },
+    },
+  });
+  expect(String(workflow.inputs.environment)).toContain('inputs.environment');
+});
+
+test('workflow inputs proxy generates correct expressions for workflowCall', () => {
+  const workflow = TestingWorkflow({
+    on: {
+      workflowCall: {
+        inputs: {
+          nodeVersion: {
+            description: 'Node.js version',
+            required: true,
+            type: WorkflowDispatchInputType.STRING,
+          },
+        },
+      },
+    },
+  });
+  expect(String(workflow.inputs.nodeVersion)).toContain('inputs.nodeVersion');
+});
+
 test('workflow concurrency object with cancelInProgress', () => {
   const workflow = TestingWorkflow({
     on: 'push',
