@@ -1,5 +1,6 @@
 import {
   always,
+  and,
   cancelled,
   contains,
   type Expression,
@@ -246,3 +247,54 @@ void _successType;
 void _failureType;
 void _eqType;
 void _notType;
+
+// --- Recursive proxy tests ---
+
+test('github.event allows deep property access', () => {
+  expect(raw(github.event.comment.body)).toBe('github.event.comment.body');
+  expect(raw(github.event.pull_request.draft)).toBe('github.event.pull_request.draft');
+  expect(raw(github.event.release.tag_name)).toBe('github.event.release.tag_name');
+  expect(raw(github.event.workflow_run.conclusion)).toBe('github.event.workflow_run.conclusion');
+});
+
+test('needs context allows deep property access', () => {
+  expect(raw(needs.build.result)).toBe('needs.build.result');
+  expect(raw(needs.build.outputs.artifact_url)).toBe('needs.build.outputs.artifact_url');
+  expect(raw(needs['my-job'].result)).toBe('needs.my-job.result');
+});
+
+test('steps context allows deep property access', () => {
+  expect(raw(steps.checkout.outputs.ref)).toBe('steps.checkout.outputs.ref');
+  expect(raw(steps.check.outputs.needs_update)).toBe('steps.check.outputs.needs_update');
+  expect(raw(steps.resolve.conclusion)).toBe('steps.resolve.conclusion');
+});
+
+test('job context allows deep property access', () => {
+  expect(raw(job.container.id)).toBe('job.container.id');
+  expect(raw(job.container.network)).toBe('job.container.network');
+});
+
+test('deep proxy values work with eq()', () => {
+  expect(raw(eq(needs.build.result, 'success'))).toBe("needs.build.result == 'success'");
+  expect(raw(eq(steps.check.outputs.needs_update, 'true'))).toBe("steps.check.outputs.needs_update == 'true'");
+});
+
+test('deep proxy values work with neq()', () => {
+  expect(raw(neq(steps.resolve.outputs.skip, 'true'))).toBe("steps.resolve.outputs.skip != 'true'");
+});
+
+test('deep proxy values work with contains()', () => {
+  expect(raw(contains(github.event.comment.body, '@claude'))).toBe("contains(github.event.comment.body, '@claude')");
+});
+
+test('deep proxy values work with not()', () => {
+  expect(raw(not(github.event.pull_request.draft as Expression<boolean>))).toBe('!(github.event.pull_request.draft)');
+});
+
+test('deep proxy values work in composed expressions', () => {
+  const condition = and(
+    eq(github.eventName, 'issue_comment'),
+    contains(github.event.comment.body, '@claude'),
+  );
+  expect(raw(condition)).toBe("(github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))");
+});

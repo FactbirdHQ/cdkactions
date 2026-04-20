@@ -29,13 +29,24 @@ export type Expression<T = unknown> = string & {
   readonly [ExpressionBrand]: T;
 };
 
+/**
+ * A recursive expression type that allows deep property access on object-typed
+ * expressions. For example, `DeepExpression<{ result: string }>` allows `.result`
+ * access, returning `DeepExpression<string>` (which is just `Expression<string>`).
+ */
+export type DeepExpression<T> = Expression<T> &
+  (T extends Record<string, any> ? { readonly [K in keyof T]: DeepExpression<T[K]> } : {});
+
 const TOKEN_BEGIN = '\uFDD0';
 const TOKEN_END = '\uFDD1';
 const TOKEN_REGEX = new RegExp(`${TOKEN_BEGIN}([^${TOKEN_END}]*)${TOKEN_END}`, 'g');
 
+const CONTEXT_PROXY_MARKER = Symbol('cdkactions.contextProxy');
+
 /** Extract the raw expression text from a token-delimited string. */
 export function unwrapToken(value: string): string {
-  return value.replaceAll(TOKEN_BEGIN, '').replaceAll(TOKEN_END, '');
+  const str = typeof value === 'string' ? value : String(value);
+  return str.replaceAll(TOKEN_BEGIN, '').replaceAll(TOKEN_END, '');
 }
 
 /** Create an Expression from a raw string, encoded with token delimiters. */
@@ -44,7 +55,9 @@ export function expr<T = unknown>(value: string): Expression<T> {
 }
 
 export function isExpression(value: unknown): value is Expression {
-  return typeof value === 'string' && value.includes(TOKEN_BEGIN);
+  if (typeof value === 'string') return value.includes(TOKEN_BEGIN);
+  if (value !== null && typeof value === 'object' && CONTEXT_PROXY_MARKER in value) return true;
+  return false;
 }
 
 /**
@@ -58,6 +71,9 @@ export function resolveTokens(obj: unknown): unknown {
   if (typeof obj === 'string') {
     return resolveStringTokens(obj);
   }
+  if (isExpression(obj)) {
+    return resolveStringTokens(String(obj));
+  }
   if (Array.isArray(obj)) {
     return obj.map((item) => resolveTokens(item));
   }
@@ -65,7 +81,9 @@ export function resolveTokens(obj: unknown): unknown {
     return Object.fromEntries(
       Object.entries(obj).map(([key, value]) => {
         if (key === 'if') {
-          return [key, typeof value === 'string' ? unwrapToken(value) : resolveTokens(value)];
+          if (typeof value === 'string') return [key, unwrapToken(value)];
+          if (isExpression(value)) return [key, unwrapToken(String(value))];
+          return [key, resolveTokens(value)];
         }
         return [key, resolveTokens(value)];
       }),
@@ -90,10 +108,26 @@ function resolveStringTokens(value: string): string {
  * preserve the original key.
  */
 function createContextProxy<T extends object>(contextName: string, rename = false): T {
+  const token = expr(contextName);
+
   return new Proxy({} as T, {
-    get(_target, prop: string) {
+    get(_target, prop: string | symbol): unknown {
+      if (prop === CONTEXT_PROXY_MARKER) return true;
+      if (prop === Symbol.toPrimitive) return () => token;
+      if (prop === Symbol.iterator) return token[Symbol.iterator].bind(token);
+      if (typeof prop === 'symbol') return undefined;
+
+      if (prop in String.prototype || prop === 'length') {
+        const val = (token as any)[prop];
+        return typeof val === 'function' ? val.bind(token) : val;
+      }
+
       const key = rename ? camelToSnake(prop) : prop;
-      return expr(`${contextName}.${key}`);
+      return createContextProxy(`${contextName}.${key}`, false);
+    },
+    has(_target, prop) {
+      if (prop === CONTEXT_PROXY_MARKER) return true;
+      return false;
     },
   });
 }
@@ -108,7 +142,7 @@ export interface GitHubContext {
   readonly actorId: Expression<string>;
   readonly apiUrl: Expression<string>;
   readonly baseRef: Expression<string>;
-  readonly event: Expression<object>;
+  readonly event: DeepExpression<Record<string, any>>;
   readonly eventName: Expression<string>;
   readonly graphqlUrl: Expression<string>;
   readonly headRef: Expression<string>;
@@ -166,7 +200,7 @@ export interface MatrixContext {
 
 export interface NeedsContext {
   /** Access a dependent job's context by job ID. */
-  readonly [key: string]: Expression<{
+  readonly [key: string]: DeepExpression<{
     readonly outputs: Record<string, string>;
     readonly result: string;
   }>;
@@ -174,7 +208,7 @@ export interface NeedsContext {
 
 export interface StepsContext {
   /** Access a step's context by step ID. */
-  readonly [key: string]: Expression<{
+  readonly [key: string]: DeepExpression<{
     readonly outputs: Record<string, string>;
     readonly outcome: string;
     readonly conclusion: string;
@@ -192,11 +226,11 @@ export interface VarsContext {
 }
 
 export interface JobContext {
-  readonly container: Expression<{
+  readonly container: DeepExpression<{
     readonly id: string;
     readonly network: string;
   }>;
-  readonly services: Expression<Record<string, { id: string; network: string; ports: Record<string, string> }>>;
+  readonly services: DeepExpression<Record<string, { id: string; network: string; ports: Record<string, string> }>>;
   readonly status: Expression<string>;
 }
 
