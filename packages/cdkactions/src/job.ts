@@ -71,6 +71,25 @@ export type StepConfig = RunStep | UsesStep;
 /** @deprecated Use StepConfig instead. */
 export type StepsProps = StepConfig;
 
+export interface StepRef {
+  output(key: string): Expression<string>;
+}
+
+/**
+ * Wraps a step config with an `output()` method for type-safe step output references.
+ * The step must have an `id` so that outputs can be resolved via `steps.<id>.outputs.<key>`.
+ */
+export function step<T extends StepConfig & { readonly id: string }>(config: T): T & StepRef {
+  const ref: T & StepRef = {
+    ...config,
+    output(key: string): Expression<string> {
+      return expr<string>(`steps.${config.id}.outputs.${key}`);
+    },
+  };
+  Object.defineProperty(ref, 'output', { enumerable: false });
+  return ref;
+}
+
 export type MatrixDefinition = Record<string, ReadonlyArray<string | number | boolean>>;
 
 type MatrixEntry<TMatrix extends MatrixDefinition> = Partial<{

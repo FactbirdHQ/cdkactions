@@ -678,6 +678,27 @@ test('step if with Expression emits without ${{ }} wrapping', () => {
   expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");
 });
 
+test('step() helper returns config with output() method', () => {
+  const { step } = require('#src/index.ts');
+  const s = step({ id: 'deploy', uses: 'actions/deploy-pages@v4' });
+  expect(s.id).toBe('deploy');
+  expect(s.uses).toBe('actions/deploy-pages@v4');
+  expect(unwrapToken(String(s.output('page_url')))).toBe('steps.deploy.outputs.page_url');
+});
+
+test('step() output is non-enumerable', () => {
+  const { step } = require('#src/index.ts');
+  const s = step({ id: 'build', run: 'npm run build' });
+  expect(Object.keys(s)).not.toContain('output');
+});
+
+test('step() output serializes correctly in resolveTokens', () => {
+  const { step } = require('#src/index.ts');
+  const s = step({ id: 'check', uses: 'actions/check@v1' });
+  const resolved = resolveTokens({ url: `${s.output('result')}` });
+  expect((resolved as any).url).toBe('${{ steps.check.outputs.result }}');
+});
+
 // Type-level: JobProps.if accepts Expression<boolean>
 const _jobIfExpr: Pick<JobProps, 'if'> = { if: expr<boolean>('true') };
 

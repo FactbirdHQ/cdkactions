@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel, steps } from '#src/index.ts';
+import { App, Stack, Workflow, Job, RunnerLabel, step } from '#src/index.ts';
 import { checkoutV4 } from '#src/actions.ts';
 
 export function create(app?: App) {
@@ -28,10 +28,12 @@ export function create(app?: App) {
     ],
   });
 
+  const deploymentStep = step({ id: 'deployment', uses: 'actions/deploy-pages@v4' });
+
   const deploy = new Job(workflow, 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    environment: { name: 'github-pages', url: `${steps.deployment.outputs.page_url}` },
-    steps: [{ id: 'deployment', uses: 'actions/deploy-pages@v4' }],
+    environment: { name: 'github-pages', url: `${deploymentStep.output('page_url')}` },
+    steps: [deploymentStep],
   });
   deploy.addDependency(build);
 
