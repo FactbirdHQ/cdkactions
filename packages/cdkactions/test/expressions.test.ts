@@ -3,6 +3,7 @@ import {
   and,
   cancelled,
   contains,
+  type AnyExpression,
   type Expression,
   endsWith,
   env,
@@ -36,7 +37,7 @@ import {
 import { expr } from '#src/expressions.ts';
 
 /** Strips token delimiters to check the raw expression text. */
-function raw(e: Expression): string {
+function raw(e: AnyExpression): string {
   return unwrapToken(String(e));
 }
 
@@ -222,11 +223,11 @@ test('expressions compose correctly', () => {
   expect(raw(isNotBot)).toBe("github.actor != 'dependabot[bot]'");
 });
 
-// Expression<string> context properties are typed correctly
-const _refType: Expression<string> = github.ref;
-const _osType: Expression<string> = runner.os;
-const _boolType: Expression<boolean> = github.refProtected;
-const _numType: Expression<number> = strategy.jobIndex;
+// Context properties are typed as DeepExpression (not string-based)
+const _refType: DeepExpression<string> = github.ref;
+const _osType: DeepExpression<string> = runner.os;
+const _boolType: DeepExpression<boolean> = github.refProtected;
+const _numType: DeepExpression<number> = strategy.jobIndex;
 
 // Status check functions return Expression<boolean>
 const _successType: Expression<boolean> = success();
@@ -243,12 +244,14 @@ import type { InferEventPayload, GitHubContextFor, DeepExpression } from '#src/e
 import type { PullRequestEventPayload, WorkflowRunEventPayload } from '#src/expressions.ts';
 
 type _PRPayload = InferEventPayload<{ pullRequest: null }>;
-const _prDraft: DeepExpression<PullRequestEventPayload['pullRequest']['draft']> =
-  {} as DeepExpression<_PRPayload['pullRequest']['draft']>;
+const _prDraft: DeepExpression<PullRequestEventPayload['pullRequest']['draft']> = {} as DeepExpression<
+  _PRPayload['pullRequest']['draft']
+>;
 
 type _WRPayload = InferEventPayload<{ workflowRun: { workflows: string[] } }>;
-const _wrConclusion: DeepExpression<WorkflowRunEventPayload['workflowRun']['conclusion']> =
-  {} as DeepExpression<_WRPayload['workflowRun']['conclusion']>;
+const _wrConclusion: DeepExpression<WorkflowRunEventPayload['workflowRun']['conclusion']> = {} as DeepExpression<
+  _WRPayload['workflowRun']['conclusion']
+>;
 
 // GitHubContextFor narrows event property
 type _NarrowedCtx = GitHubContextFor<{ pullRequest: null }>;
@@ -318,9 +321,8 @@ test('deep proxy renames camelCase to snake_case on github context', () => {
 });
 
 test('deep proxy values work in composed expressions', () => {
-  const condition = and(
-    eq(github.eventName, 'issue_comment'),
-    contains(github.event.comment.body, '@claude'),
+  const condition = and(eq(github.eventName, 'issue_comment'), contains(github.event.comment.body, '@claude'));
+  expect(raw(condition)).toBe(
+    "(github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))",
   );
-  expect(raw(condition)).toBe("(github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))");
 });

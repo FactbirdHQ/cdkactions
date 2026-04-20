@@ -2,7 +2,7 @@ import assert from 'node:assert';
 
 import { Construct, Node } from 'constructs';
 
-import type { Expression } from '#src/expressions.ts';
+import type { AnyExpression } from '#src/expressions.ts';
 import { type ConcurrencyConfig, Job } from '#src/job.ts';
 import type { DefaultsProps, StringMap } from '#src/types.ts';
 import { camelToSnake, renameKeys, type Writable } from '#src/utils.ts';
@@ -353,7 +353,7 @@ export type WorkflowTrigger =
 
 export interface WorkflowProps {
   readonly name: string;
-  readonly runName?: string | Expression<string>;
+  readonly runName?: string | AnyExpression<string>;
   readonly on: WorkflowTrigger;
   readonly env?: StringMap;
   readonly concurrency?: ConcurrencyConfig;
@@ -391,9 +391,7 @@ export class Workflow<TOn extends WorkflowTrigger = WorkflowTrigger> extends Con
     if (typeof on === 'string') throw new Error();
 
     this.action.on =
-      'workflowRun' in on
-        ? { ...on, workflowRun: { ...on.workflowRun } }
-        : { workflowRun: { workflows: [] } };
+      'workflowRun' in on ? { ...on, workflowRun: { ...on.workflowRun } } : { workflowRun: { workflows: [] } };
 
     (this.action.on as any).workflowRun.workflows ||= [];
     (this.action.on as any).workflowRun.workflows.push(dependee.action.name);

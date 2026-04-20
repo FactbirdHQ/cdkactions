@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 
-import { and, expr, type Expression, github, type GitHubContextFor } from '#src/expressions.ts';
+import { and, expr, type Expression, type AnyExpression, github, type GitHubContextFor } from '#src/expressions.ts';
 import type { RunnerLabel, Shell } from '#src/nominal.ts';
 import type { DefaultsProps, StringMap } from '#src/types.ts';
 import { renameKeys, type Writable } from '#src/utils.ts';
@@ -41,7 +41,9 @@ export interface RunnerGroupConfig {
   readonly labels?: RunnerLabel[];
 }
 
-export type IfCondition<TOn = unknown> = Expression<boolean> | ((github: GitHubContextFor<TOn>) => Expression<boolean>);
+export type IfCondition<TOn = unknown> =
+  | AnyExpression<boolean>
+  | ((github: GitHubContextFor<TOn>) => Expression<boolean>);
 
 export interface StepBase<TOn = unknown> {
   readonly id?: string;
@@ -121,16 +123,19 @@ export function createMatrixProxy<TMatrix extends MatrixDefinition>(_matrix: TMa
 /**
  * Configuration for a single GitHub Action job.
  */
-export interface JobProps<TMatrix extends MatrixDefinition = MatrixDefinition, TOn extends WorkflowTrigger = WorkflowTrigger> {
+export interface JobProps<
+  TMatrix extends MatrixDefinition = MatrixDefinition,
+  TOn extends WorkflowTrigger = WorkflowTrigger,
+> {
   readonly name?: string;
   readonly needs?: string | string[];
-  readonly runsOn?: RunnerLabel | RunnerLabel[] | RunnerGroupConfig | Expression<string>;
+  readonly runsOn?: RunnerLabel | RunnerLabel[] | RunnerGroupConfig | AnyExpression<string>;
   readonly outputs?: StringMap;
   readonly env?: StringMap;
   readonly defaults?: DefaultsProps;
   readonly if?: IfCondition<TOn>;
   readonly steps?: StepConfig<TOn>[];
-  readonly secrets?: Record<string, string | Expression<string>> | 'inherit';
+  readonly secrets?: Record<string, string | AnyExpression<string>> | 'inherit';
   readonly timeoutMinutes?: number;
   readonly strategy?: StrategyProps<TMatrix>;
   readonly continueOnError?: boolean;
@@ -146,10 +151,13 @@ export interface JobProps<TMatrix extends MatrixDefinition = MatrixDefinition, T
 /**
  * Represents a GH Actions job.
  */
-export class Job<TMatrix extends MatrixDefinition = MatrixDefinition, TOn extends WorkflowTrigger = WorkflowTrigger> extends Construct {
+export class Job<
+  TMatrix extends MatrixDefinition = MatrixDefinition,
+  TOn extends WorkflowTrigger = WorkflowTrigger,
+> extends Construct {
   protected readonly action: Writable<JobProps<TMatrix, TOn>>;
   public readonly id: string;
-  public if?: Expression<boolean>;
+  public if?: AnyExpression<boolean>;
   public readonly matrix: MatrixProxy<TMatrix>;
 
   public constructor(scope: Workflow<TOn>, id: string, config: JobProps<TMatrix, TOn>) {
@@ -189,7 +197,7 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition, TOn extend
     const { uses, runsOn, steps, strategy, if: propsIf, ...rest } = this.action;
 
     const resolvedIf = typeof propsIf === 'function' ? propsIf(github as any) : propsIf;
-    const conditions = [this.if, resolvedIf].filter((c): c is Expression<boolean> => c !== undefined);
+    const conditions = [this.if, resolvedIf].filter((c): c is AnyExpression<boolean> => c !== undefined);
     const _if = conditions.length > 0 ? and(...conditions) : undefined;
 
     let serializedUses: string | undefined;

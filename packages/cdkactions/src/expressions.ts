@@ -25,16 +25,27 @@ declare const ExpressionBrand: unique symbol;
  * (string, boolean, number, object), enabling operators to be constrained
  * at the type level.
  */
-export type Expression<T = unknown> = string & {
-  readonly [ExpressionBrand]: T;
-};
+/**
+ * Minimal branded type that both `Expression<T>` and `DeepExpression<T>` extend.
+ * Used as the parameter type for expression functions — accepts any expression form.
+ */
+export type AnyExpression<T = unknown> = { readonly [ExpressionBrand]: T };
+
+export type Expression<T = unknown> = string & AnyExpression<T>;
 
 /**
- * A recursive expression type that allows deep property access on object-typed
- * expressions. For example, `DeepExpression<{ result: string }>` allows `.result`
- * access, returning `DeepExpression<string>` (which is just `Expression<string>`).
+ * A recursive expression type for context proxy nodes.
+ * Unlike `Expression<T>`, this does NOT extend `string` — context proxies
+ * are not real strings and should not expose `String.prototype` methods.
+ *
+ * For object-typed `T`, deep property access is supported:
+ * `DeepExpression<{ result: string }>` allows `.result` access,
+ * returning `DeepExpression<string>`.
+ *
+ * Both `Expression<T>` and `DeepExpression<T>` share the same brand,
+ * so `Expression<T>` is assignable to `DeepExpression<T>` (for leaf types).
  */
-export type DeepExpression<T> = Expression<T> &
+export type DeepExpression<T> = AnyExpression<T> &
   (T extends Record<string, any> ? { readonly [K in keyof T]: DeepExpression<T[K]> } : {});
 
 const TOKEN_BEGIN = '\uFDD0';
@@ -44,7 +55,7 @@ const TOKEN_REGEX = new RegExp(`${TOKEN_BEGIN}([^${TOKEN_END}]*)${TOKEN_END}`, '
 const CONTEXT_PROXY_MARKER = Symbol('cdkactions.contextProxy');
 
 /** Extract the raw expression text from a token-delimited string. */
-export function unwrapToken(value: string): string {
+export function unwrapToken(value: string | AnyExpression): string {
   const str = typeof value === 'string' ? value : String(value);
   return str.replaceAll(TOKEN_BEGIN, '').replaceAll(TOKEN_END, '');
 }
@@ -54,7 +65,7 @@ export function expr<T = unknown>(value: string): Expression<T> {
   return `${TOKEN_BEGIN}${value}${TOKEN_END}` as Expression<T>;
 }
 
-export function isExpression(value: unknown): value is Expression {
+export function isExpression(value: unknown): value is AnyExpression {
   if (typeof value === 'string') return value.includes(TOKEN_BEGIN);
   if (value !== null && typeof value === 'object' && CONTEXT_PROXY_MARKER in value) return true;
   return false;
@@ -133,69 +144,69 @@ function createContextProxy<T extends object>(contextName: string, rename = fals
 }
 
 export interface GitHubContext {
-  readonly action: Expression<string>;
-  readonly actionPath: Expression<string>;
-  readonly actionRef: Expression<string>;
-  readonly actionRepository: Expression<string>;
-  readonly actionStatus: Expression<string>;
-  readonly actor: Expression<string>;
-  readonly actorId: Expression<string>;
-  readonly apiUrl: Expression<string>;
-  readonly baseRef: Expression<string>;
+  readonly action: DeepExpression<string>;
+  readonly actionPath: DeepExpression<string>;
+  readonly actionRef: DeepExpression<string>;
+  readonly actionRepository: DeepExpression<string>;
+  readonly actionStatus: DeepExpression<string>;
+  readonly actor: DeepExpression<string>;
+  readonly actorId: DeepExpression<string>;
+  readonly apiUrl: DeepExpression<string>;
+  readonly baseRef: DeepExpression<string>;
   readonly event: DeepExpression<Record<string, any>>;
-  readonly eventName: Expression<string>;
-  readonly graphqlUrl: Expression<string>;
-  readonly headRef: Expression<string>;
-  readonly job: Expression<string>;
-  readonly path: Expression<string>;
-  readonly ref: Expression<string>;
-  readonly refName: Expression<string>;
-  readonly refProtected: Expression<boolean>;
-  readonly refType: Expression<'branch' | 'tag'>;
-  readonly repository: Expression<string>;
-  readonly repositoryId: Expression<string>;
-  readonly repositoryOwner: Expression<string>;
-  readonly repositoryOwnerId: Expression<string>;
-  readonly repositoryUrl: Expression<string>;
-  readonly retentionDays: Expression<string>;
-  readonly runId: Expression<string>;
-  readonly runNumber: Expression<string>;
-  readonly runAttempt: Expression<string>;
-  readonly secretSource: Expression<string>;
-  readonly serverUrl: Expression<string>;
-  readonly sha: Expression<string>;
-  readonly token: Expression<string>;
-  readonly triggeringActor: Expression<string>;
-  readonly workflow: Expression<string>;
-  readonly workflowRef: Expression<string>;
-  readonly workflowSha: Expression<string>;
-  readonly workspace: Expression<string>;
+  readonly eventName: DeepExpression<string>;
+  readonly graphqlUrl: DeepExpression<string>;
+  readonly headRef: DeepExpression<string>;
+  readonly job: DeepExpression<string>;
+  readonly path: DeepExpression<string>;
+  readonly ref: DeepExpression<string>;
+  readonly refName: DeepExpression<string>;
+  readonly refProtected: DeepExpression<boolean>;
+  readonly refType: DeepExpression<'branch' | 'tag'>;
+  readonly repository: DeepExpression<string>;
+  readonly repositoryId: DeepExpression<string>;
+  readonly repositoryOwner: DeepExpression<string>;
+  readonly repositoryOwnerId: DeepExpression<string>;
+  readonly repositoryUrl: DeepExpression<string>;
+  readonly retentionDays: DeepExpression<string>;
+  readonly runId: DeepExpression<string>;
+  readonly runNumber: DeepExpression<string>;
+  readonly runAttempt: DeepExpression<string>;
+  readonly secretSource: DeepExpression<string>;
+  readonly serverUrl: DeepExpression<string>;
+  readonly sha: DeepExpression<string>;
+  readonly token: DeepExpression<string>;
+  readonly triggeringActor: DeepExpression<string>;
+  readonly workflow: DeepExpression<string>;
+  readonly workflowRef: DeepExpression<string>;
+  readonly workflowSha: DeepExpression<string>;
+  readonly workspace: DeepExpression<string>;
 }
 
 export interface RunnerContext {
-  readonly name: Expression<string>;
-  readonly os: Expression<string>;
-  readonly arch: Expression<string>;
-  readonly temp: Expression<string>;
-  readonly toolCache: Expression<string>;
-  readonly debug: Expression<string>;
-  readonly environment: Expression<string>;
+  readonly name: DeepExpression<string>;
+  readonly os: DeepExpression<string>;
+  readonly arch: DeepExpression<string>;
+  readonly temp: DeepExpression<string>;
+  readonly toolCache: DeepExpression<string>;
+  readonly debug: DeepExpression<string>;
+  readonly environment: DeepExpression<string>;
 }
 
 export interface EnvContext {
   /** Access an environment variable by name. */
-  readonly [key: string]: Expression<string>;
+  readonly [key: string]: DeepExpression<string>;
 }
 
 export interface SecretsContext {
-  readonly GITHUB_TOKEN: Expression<string>;
+  readonly GITHUB_TOKEN: DeepExpression<string>;
   /** Access a secret by name. */
-  readonly [key: string]: Expression<string>;
+  readonly [key: string]: DeepExpression<string>;
 }
 
 export interface MatrixContext {
   /** Access a matrix variable by name. */
-  readonly [key: string]: Expression<unknown>;
+  readonly [key: string]: DeepExpression<unknown>;
 }
 
 export interface NeedsContext {
@@ -217,12 +228,12 @@ export interface StepsContext {
 
 export interface InputsContext {
   /** Access a workflow input by name. */
-  readonly [key: string]: Expression<unknown>;
+  readonly [key: string]: DeepExpression<string>;
 }
 
 export interface VarsContext {
   /** Access a configuration variable by name. */
-  readonly [key: string]: Expression<string>;
+  readonly [key: string]: DeepExpression<string>;
 }
 
 export interface JobContext {
@@ -231,14 +242,14 @@ export interface JobContext {
     readonly network: string;
   }>;
   readonly services: DeepExpression<Record<string, { id: string; network: string; ports: Record<string, string> }>>;
-  readonly status: Expression<string>;
+  readonly status: DeepExpression<string>;
 }
 
 export interface StrategyContext {
-  readonly failFast: Expression<boolean>;
-  readonly jobIndex: Expression<number>;
-  readonly jobTotal: Expression<number>;
-  readonly maxParallel: Expression<number>;
+  readonly failFast: DeepExpression<boolean>;
+  readonly jobIndex: DeepExpression<number>;
+  readonly jobTotal: DeepExpression<number>;
+  readonly maxParallel: DeepExpression<number>;
 }
 
 // --- Event payload types ---
@@ -278,7 +289,12 @@ export interface IssuesEventPayload extends Record<string, any> {
 }
 
 export interface ReleaseEventPayload extends Record<string, any> {
-  readonly release: { readonly tagName: string; readonly body: string | null; readonly name: string | null; [key: string]: any };
+  readonly release: {
+    readonly tagName: string;
+    readonly body: string | null;
+    readonly name: string | null;
+    [key: string]: any;
+  };
 }
 
 export interface WorkflowRunEventPayload extends Record<string, any> {
@@ -369,66 +385,66 @@ function formatOperand(value: unknown): string {
 }
 
 /** Equality: produces `<left> == <right>`. */
-export function eq<T>(left: Expression<T>, right: Expression<T> | T): Expression<boolean> {
+export function eq<T>(left: AnyExpression<T>, right: AnyExpression<T> | T): Expression<boolean> {
   return expr(`${unwrapToken(left)} == ${formatOperand(right)}`);
 }
 
 /** Inequality: produces `<left> != <right>`. */
-export function neq<T>(left: Expression<T>, right: Expression<T> | T): Expression<boolean> {
+export function neq<T>(left: AnyExpression<T>, right: AnyExpression<T> | T): Expression<boolean> {
   return expr(`${unwrapToken(left)} != ${formatOperand(right)}`);
 }
 
 /** Greater than: produces `<left> > <right>`. */
-export function gt(left: Expression<number>, right: Expression<number> | number): Expression<boolean> {
+export function gt(left: AnyExpression<number>, right: AnyExpression<number> | number): Expression<boolean> {
   return expr(`${unwrapToken(left)} > ${formatOperand(right)}`);
 }
 
 /** Greater than or equal: produces `<left> >= <right>`. */
-export function gte(left: Expression<number>, right: Expression<number> | number): Expression<boolean> {
+export function gte(left: AnyExpression<number>, right: AnyExpression<number> | number): Expression<boolean> {
   return expr(`${unwrapToken(left)} >= ${formatOperand(right)}`);
 }
 
 /** Less than: produces `<left> < <right>`. */
-export function lt(left: Expression<number>, right: Expression<number> | number): Expression<boolean> {
+export function lt(left: AnyExpression<number>, right: AnyExpression<number> | number): Expression<boolean> {
   return expr(`${unwrapToken(left)} < ${formatOperand(right)}`);
 }
 
 /** Less than or equal: produces `<left> <= <right>`. */
-export function lte(left: Expression<number>, right: Expression<number> | number): Expression<boolean> {
+export function lte(left: AnyExpression<number>, right: AnyExpression<number> | number): Expression<boolean> {
   return expr(`${unwrapToken(left)} <= ${formatOperand(right)}`);
 }
 
-/** Logical negation: produces `!<expr>`. */
-export function not(e: Expression<boolean>): Expression<boolean> {
+/** Logical negation: produces `!(expr)`. */
+export function not(e: AnyExpression<boolean>): Expression<boolean> {
   return expr(`!(${unwrapToken(e)})`);
 }
 
 /** Produces `contains(<search>, <item>)`. */
 export function contains(
-  search: Expression<string> | Expression<string[]>,
-  item: string | Expression<string>,
+  search: AnyExpression<string> | AnyExpression<string[]>,
+  item: string | AnyExpression<string>,
 ): Expression<boolean> {
   return expr(`contains(${unwrapToken(search)}, ${formatOperand(item)})`);
 }
 
 /** Produces `startsWith(<str>, <value>)`. */
-export function startsWith(str: Expression<string>, value: string | Expression<string>): Expression<boolean> {
+export function startsWith(str: AnyExpression<string>, value: string | AnyExpression<string>): Expression<boolean> {
   return expr(`startsWith(${unwrapToken(str)}, ${formatOperand(value)})`);
 }
 
 /** Produces `endsWith(<str>, <value>)`. */
-export function endsWith(str: Expression<string>, value: string | Expression<string>): Expression<boolean> {
+export function endsWith(str: AnyExpression<string>, value: string | AnyExpression<string>): Expression<boolean> {
   return expr(`endsWith(${unwrapToken(str)}, ${formatOperand(value)})`);
 }
 
 /** Produces `format(<template>, <args...>)`. */
-export function format(template: string, ...args: Array<string | Expression>): Expression<string> {
+export function format(template: string, ...args: Array<string | AnyExpression>): Expression<string> {
   const allArgs = [`'${template}'`, ...args.map((a) => formatOperand(a))];
   return expr(`format(${allArgs.join(', ')})`);
 }
 
 /** Produces `join(<array>, <separator>)`. */
-export function join(array: Expression<string[]>, separator?: string): Expression<string> {
+export function join(array: AnyExpression<string[]>, separator?: string): Expression<string> {
   if (separator !== undefined) {
     return expr(`join(${unwrapToken(array)}, '${separator}')`);
   }
@@ -436,12 +452,12 @@ export function join(array: Expression<string[]>, separator?: string): Expressio
 }
 
 /** Produces `toJSON(<value>)`. */
-export function toJSON(value: Expression): Expression<string> {
+export function toJSON(value: AnyExpression): Expression<string> {
   return expr(`toJSON(${unwrapToken(value)})`);
 }
 
 /** Produces `fromJSON(<value>)`. */
-export function fromJSON<T = unknown>(value: Expression<string>): Expression<T> {
+export function fromJSON<T = unknown>(value: AnyExpression<string>): Expression<T> {
   return expr(`fromJSON(${unwrapToken(value)})`);
 }
 
@@ -472,7 +488,7 @@ export function cancelled(): Expression<boolean> {
 }
 
 /** Logical AND: produces `(<a> && <b> && ...)`. */
-export function and(...exprs: Expression<boolean>[]): Expression<boolean> {
+export function and(...exprs: AnyExpression<boolean>[]): Expression<boolean> {
   const parts = exprs.map((e) => unwrapToken(e)).filter((s) => s.trim() !== '');
   if (parts.length === 0) return expr('');
   if (parts.length === 1) return expr(parts[0]);
@@ -480,7 +496,7 @@ export function and(...exprs: Expression<boolean>[]): Expression<boolean> {
 }
 
 /** Logical OR: produces `(<a> || <b> || ...)`. */
-export function or(...exprs: Expression<boolean>[]): Expression<boolean> {
+export function or(...exprs: AnyExpression<boolean>[]): Expression<boolean> {
   const parts = exprs.map((e) => unwrapToken(e)).filter((s) => s.trim() !== '');
   if (parts.length === 0) return expr('');
   if (parts.length === 1) return expr(parts[0]);
