@@ -1,7 +1,9 @@
 import {
   always,
+  and,
   cancelled,
   contains,
+  type AnyExpression,
   type Expression,
   endsWith,
   env,
@@ -35,7 +37,7 @@ import {
 import { expr } from '#src/expressions.ts';
 
 /** Strips token delimiters to check the raw expression text. */
-function raw(e: Expression): string {
+function raw(e: AnyExpression): string {
   return unwrapToken(String(e));
 }
 
@@ -221,11 +223,11 @@ test('expressions compose correctly', () => {
   expect(raw(isNotBot)).toBe("github.actor != 'dependabot[bot]'");
 });
 
-// Expression<string> context properties are typed correctly
-const _refType: Expression<string> = github.ref;
-const _osType: Expression<string> = runner.os;
-const _boolType: Expression<boolean> = github.refProtected;
-const _numType: Expression<number> = strategy.jobIndex;
+// Context properties are typed as DeepExpression (not string-based)
+const _refType: DeepExpression<string> = github.ref;
+const _osType: DeepExpression<string> = runner.os;
+const _boolType: DeepExpression<boolean> = github.refProtected;
+const _numType: DeepExpression<number> = strategy.jobIndex;
 
 // Status check functions return Expression<boolean>
 const _successType: Expression<boolean> = success();
@@ -237,6 +239,24 @@ const _eqType: Expression<boolean> = eq(github.ref, 'main');
 // not accepts and returns Expression<boolean>
 const _notType: Expression<boolean> = not(github.refProtected);
 
+// Type-level: InferEventPayload narrows event type correctly
+import type { InferEventPayload, GitHubContextFor, DeepExpression } from '#src/expressions.ts';
+import type { PullRequestEventPayload, WorkflowRunEventPayload } from '#src/expressions.ts';
+
+type _PRPayload = InferEventPayload<{ pullRequest: null }>;
+const _prDraft: DeepExpression<PullRequestEventPayload['pullRequest']['draft']> = {} as DeepExpression<
+  _PRPayload['pullRequest']['draft']
+>;
+
+type _WRPayload = InferEventPayload<{ workflowRun: { workflows: string[] } }>;
+const _wrConclusion: DeepExpression<WorkflowRunEventPayload['workflowRun']['conclusion']> = {} as DeepExpression<
+  _WRPayload['workflowRun']['conclusion']
+>;
+
+// GitHubContextFor narrows event property
+type _NarrowedCtx = GitHubContextFor<{ pullRequest: null }>;
+const _narrowedEvent: DeepExpression<PullRequestEventPayload> = {} as _NarrowedCtx['event'];
+
 // Suppress unused variable warnings
 void _refType;
 void _osType;
@@ -246,3 +266,63 @@ void _successType;
 void _failureType;
 void _eqType;
 void _notType;
+void _prDraft;
+void _wrConclusion;
+void _narrowedEvent;
+
+// --- Recursive proxy tests ---
+
+test('github.event allows deep property access', () => {
+  expect(raw(github.event.comment.body)).toBe('github.event.comment.body');
+  expect(raw(github.event.pull_request.draft)).toBe('github.event.pull_request.draft');
+  expect(raw(github.event.release.tag_name)).toBe('github.event.release.tag_name');
+  expect(raw(github.event.workflow_run.conclusion)).toBe('github.event.workflow_run.conclusion');
+});
+
+test('needs context allows deep property access', () => {
+  expect(raw(needs.build.result)).toBe('needs.build.result');
+  expect(raw(needs.build.outputs.artifact_url)).toBe('needs.build.outputs.artifact_url');
+  expect(raw(needs['my-job'].result)).toBe('needs.my-job.result');
+});
+
+test('steps context allows deep property access', () => {
+  expect(raw(steps.checkout.outputs.ref)).toBe('steps.checkout.outputs.ref');
+  expect(raw(steps.check.outputs.needs_update)).toBe('steps.check.outputs.needs_update');
+  expect(raw(steps.resolve.conclusion)).toBe('steps.resolve.conclusion');
+});
+
+test('job context allows deep property access', () => {
+  expect(raw(job.container.id)).toBe('job.container.id');
+  expect(raw(job.container.network)).toBe('job.container.network');
+});
+
+test('deep proxy values work with eq()', () => {
+  expect(raw(eq(needs.build.result, 'success'))).toBe("needs.build.result == 'success'");
+  expect(raw(eq(steps.check.outputs.needs_update, 'true'))).toBe("steps.check.outputs.needs_update == 'true'");
+});
+
+test('deep proxy values work with neq()', () => {
+  expect(raw(neq(steps.resolve.outputs.skip, 'true'))).toBe("steps.resolve.outputs.skip != 'true'");
+});
+
+test('deep proxy values work with contains()', () => {
+  expect(raw(contains(github.event.comment.body, '@claude'))).toBe("contains(github.event.comment.body, '@claude')");
+});
+
+test('deep proxy values work with not()', () => {
+  expect(raw(not(github.event.pull_request.draft as Expression<boolean>))).toBe('!(github.event.pull_request.draft)');
+});
+
+test('deep proxy renames camelCase to snake_case on github context', () => {
+  expect(raw(github.event.pullRequest.draft)).toBe('github.event.pull_request.draft');
+  expect(raw(github.event.workflowRun.conclusion)).toBe('github.event.workflow_run.conclusion');
+  expect(raw(github.event.workflowRun.headBranch)).toBe('github.event.workflow_run.head_branch');
+  expect(raw(github.event.release.tagName)).toBe('github.event.release.tag_name');
+});
+
+test('deep proxy values work in composed expressions', () => {
+  const condition = and(eq(github.eventName, 'issue_comment'), contains(github.event.comment.body, '@claude'));
+  expect(raw(condition)).toBe(
+    "(github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))",
+  );
+});

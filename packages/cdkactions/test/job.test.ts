@@ -678,8 +678,57 @@ test('step if with Expression emits without ${{ }} wrapping', () => {
   expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");
 });
 
+test('step() helper returns config with output() method', () => {
+  const { step } = require('#src/index.ts');
+  const s = step({ id: 'deploy', uses: 'actions/deploy-pages@v4' });
+  expect(s.id).toBe('deploy');
+  expect(s.uses).toBe('actions/deploy-pages@v4');
+  expect(unwrapToken(String(s.output('page_url')))).toBe('steps.deploy.outputs.page_url');
+});
+
+test('step() output is non-enumerable', () => {
+  const { step } = require('#src/index.ts');
+  const s = step({ id: 'build', run: 'npm run build' });
+  expect(Object.keys(s)).not.toContain('output');
+});
+
+test('step() output serializes correctly in resolveTokens', () => {
+  const { step } = require('#src/index.ts');
+  const s = step({ id: 'check', uses: 'actions/check@v1' });
+  const resolved = resolveTokens({ url: `${s.output('result')}` });
+  expect((resolved as any).url).toBe('${{ steps.check.outputs.result }}');
+});
+
+test('job if with function form resolves to expression', () => {
+  const job = new Job(TestingWorkflow(), 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    if: (gh) => eq(gh.eventName, 'push'),
+    steps: [{ name: 'Run', run: 'echo ok' }],
+  });
+  const ghAction = serialize(job);
+  expect(ghAction.if).toBe("github.event_name == 'push'");
+});
+
+test('step if with function form resolves to expression', () => {
+  const job = new Job(TestingWorkflow(), 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [
+      {
+        name: 'Run',
+        run: 'echo ok',
+        if: (gh) => eq(gh.eventName, 'push'),
+      },
+    ],
+  });
+  const ghAction = serialize(job);
+  expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");
+});
+
 // Type-level: JobProps.if accepts Expression<boolean>
 const _jobIfExpr: Pick<JobProps, 'if'> = { if: expr<boolean>('true') };
+
+// Type-level: JobProps.if accepts function form
+const _jobIfFn: Pick<JobProps, 'if'> = { if: (gh) => eq(gh.eventName, 'push') };
 
 // Type-level: JobProps.if rejects raw string
 // @ts-expect-error - raw string should not be assignable to Expression<boolean>

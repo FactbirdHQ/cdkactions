@@ -1,4 +1,4 @@
-import { expr, type Expression } from '#src/expressions.ts';
+import { expr, type Expression, type AnyExpression } from '#src/expressions.ts';
 import type { UsesStep, StepBase } from '#src/job.ts';
 import { camelToKebab } from '#src/utils.ts';
 
@@ -19,10 +19,12 @@ type OptionalInputKeys<T extends ActionInputs> = {
   [K in keyof T & string]: T[K] extends { required: true } ? never : T[K] extends { default: string } ? K : never;
 }[keyof T & string];
 
+type ActionInputValue = string | number | boolean | AnyExpression;
+
 type ActionWith<T extends ActionInputs> = {
-  readonly [K in RequiredInputKeys<T>]: string | number | boolean;
+  readonly [K in RequiredInputKeys<T>]: ActionInputValue;
 } & {
-  readonly [K in OptionalInputKeys<T>]?: string | number | boolean;
+  readonly [K in OptionalInputKeys<T>]?: ActionInputValue;
 };
 
 type ActionCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutputs> = ([

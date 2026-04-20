@@ -2,7 +2,7 @@ import assert from 'node:assert';
 
 import { Construct, Node } from 'constructs';
 
-import type { Expression } from '#src/expressions.ts';
+import type { AnyExpression } from '#src/expressions.ts';
 import { type ConcurrencyConfig, Job } from '#src/job.ts';
 import type { DefaultsProps, StringMap } from '#src/types.ts';
 import { camelToSnake, renameKeys, type Writable } from '#src/utils.ts';
@@ -341,18 +341,20 @@ export interface PermissionsMap {
 
 export type Permissions = PermissionsMap | 'read-all' | 'write-all';
 
+export type WorkflowTrigger =
+  | Events
+  | Array<Events>
+  | EventMap
+  | ScheduleEvent
+  | WorkflowRunEvent
+  | WorkflowDispatchEvent
+  | MergeGroupEvent
+  | WorkflowCallEvent;
+
 export interface WorkflowProps {
   readonly name: string;
-  readonly runName?: string | Expression<string>;
-  readonly on:
-    | Events
-    | Array<Events>
-    | EventMap
-    | ScheduleEvent
-    | WorkflowRunEvent
-    | WorkflowDispatchEvent
-    | MergeGroupEvent
-    | WorkflowCallEvent;
+  readonly runName?: string | AnyExpression<string>;
+  readonly on: WorkflowTrigger;
   readonly env?: StringMap;
   readonly concurrency?: ConcurrencyConfig;
   readonly defaults?: DefaultsProps;
@@ -368,14 +370,14 @@ function isPushEvent(on: WorkflowProps['on']): on is { push: NonNullable<EventMa
 const excessSpaces = /[\s{2,}]/g;
 const whiteSeparators = /[\n\t]/g;
 
-export class Workflow extends Construct {
+export class Workflow<TOn extends WorkflowTrigger = WorkflowTrigger> extends Construct {
   public readonly outputFile: string;
-  private readonly action: Writable<WorkflowProps>;
+  private readonly action: Writable<Omit<WorkflowProps, 'on'> & { on: TOn }>;
 
-  public constructor(scope: Construct, id: string, config: WorkflowProps) {
+  public constructor(scope: Construct, id: string, config: Omit<WorkflowProps, 'on'> & { readonly on: TOn }) {
     const sanitizedId = id.replace(excessSpaces, '-').replace(whiteSeparators, '').trim().toLowerCase();
     super(scope, id);
-    this.action = config;
+    this.action = config as Writable<Omit<WorkflowProps, 'on'> & { on: TOn }>;
     this.outputFile = `cdkactions_${sanitizedId}.yaml`;
     addWorkflowValidation(this, () => ({
       name: this.action.name,
@@ -383,37 +385,41 @@ export class Workflow extends Construct {
     }));
   }
 
-  public addDependency(dependee: Workflow) {
-    if (Array.isArray(this.action.on)) throw new Error();
-    if (typeof this.action.on === 'string') throw new Error();
+  public addDependency(dependee: Workflow<any>) {
+    const on: any = this.action.on;
+    if (Array.isArray(on)) throw new Error();
+    if (typeof on === 'string') throw new Error();
 
     this.action.on =
-      'workflowRun' in this.action.on
-        ? { ...this.action.on, workflowRun: { ...this.action.on.workflowRun } }
-        : { workflowRun: { workflows: [] } };
+      'workflowRun' in on ? { ...on, workflowRun: { ...on.workflowRun } } : { workflowRun: { workflows: [] } };
 
-    this.action.on.workflowRun.workflows ||= [];
-    this.action.on.workflowRun.workflows.push(dependee.action.name);
+    (this.action.on as any).workflowRun.workflows ||= [];
+    (this.action.on as any).workflowRun.workflows.push(dependee.action.name);
 
     return this;
   }
 
   public toGHAction(): any {
-    if (isPushEvent(this.action.on)) {
-      if (this.action.on.push.paths) {
-        this.action.on.push.paths.unshift(`.github/workflows/${this.outputFile}`);
+    const on: any = this.action.on;
+
+    if (isPushEvent(on)) {
+      if (on.push.paths) {
+        on.push.paths.unshift(`.github/workflows/${this.outputFile}`);
       }
     }
 
-    if (typeof this.action.on !== 'string' && 'workflowRun' in this.action.on) {
-      assert(this.action.on.workflowRun.workflows?.length, `${this.action.name} must specify workflows it depends on`);
+    if (typeof on !== 'string' && 'workflowRun' in on) {
+      assert(on.workflowRun.workflows?.length, `${this.action.name} must specify workflows it depends on`);
     }
 
-    if (typeof this.action.on === 'object' && !Array.isArray(this.action.on) && 'schedule' in this.action.on) {
-      this.action.on.schedule = this.action.on.schedule.map((entry) => ({
-        ...entry,
-        cron: entry.cron instanceof CronExpression ? entry.cron.toString() : entry.cron,
-      }));
+    if (typeof on === 'object' && !Array.isArray(on) && 'schedule' in on) {
+      (this.action as any).on = {
+        ...on,
+        schedule: on.schedule.map((entry: any) => ({
+          ...entry,
+          cron: entry.cron instanceof CronExpression ? entry.cron.toString() : entry.cron,
+        })),
+      };
     }
 
     const workflow = renameKeys(this.action, {

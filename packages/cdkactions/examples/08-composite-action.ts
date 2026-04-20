@@ -1,8 +1,14 @@
-import { App, Stack, Workflow, Job, RunnerLabel, Shell, CompositeAction, hashFiles } from '#src/index.ts';
+import { App, Stack, Workflow, Job, RunnerLabel, Shell, CompositeAction, hashFiles, step } from '#src/index.ts';
 
 export function create(app?: App) {
   const _app = app ?? new App();
   const stack = new Stack(_app, 'composite');
+
+  const cacheStep = step({
+    id: 'cache',
+    uses: 'actions/cache@v4',
+    with: { path: 'node_modules', key: `deps-${hashFiles('package-lock.json')}` },
+  } as const);
 
   const setupAction = new CompositeAction('setup-project', {
     name: 'Setup Project',
@@ -12,14 +18,10 @@ export function create(app?: App) {
       registry: { description: 'npm registry URL', required: false, default: 'https://registry.npmjs.org' },
     },
     outputs: {
-      cacheHit: { description: 'Whether cache was hit', value: '${{ steps.cache.outputs.cache-hit }}' },
+      cacheHit: { description: 'Whether cache was hit', value: cacheStep.output('cache-hit') },
     },
     steps: [
-      {
-        id: 'cache',
-        uses: 'actions/cache@v4',
-        with: { path: 'node_modules', key: `deps-${hashFiles('package-lock.json')}` },
-      },
+      cacheStep,
       { name: 'Install', run: 'npm ci', shell: Shell.BASH },
     ],
   } as const);
@@ -34,13 +36,13 @@ export function create(app?: App) {
     steps: [],
   });
 
-  const step = setupAction.asStep(workflow, {
+  const setupStep = setupAction.asStep(workflow, {
     id: 'setup',
     with: { nodeVersion: '20' },
   });
 
   // Verify typed output accessor works
-  const _cacheHit: string = step.output('cacheHit');
+  const _cacheHit: string = setupStep.output('cacheHit');
 
   return _app;
 }

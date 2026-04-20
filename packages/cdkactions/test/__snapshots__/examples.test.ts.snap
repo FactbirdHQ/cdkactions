@@ -354,7 +354,7 @@ on:
       - main
 jobs:
   deploy:
-    if: (github.ref == 'refs/heads/main' && !(github.actor == 'dependabot[bot]'))
+    if: (github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]')
     runs-on: ubuntu-latest
     steps:
       - name: Deploy
@@ -388,10 +388,13 @@ jobs:
 name: Deploy
 on:
   workflow_run:
+    types:
+      - completed
     workflows:
       - CI
 jobs:
   deploy:
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy

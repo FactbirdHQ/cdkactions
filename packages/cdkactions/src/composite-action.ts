@@ -1,6 +1,6 @@
 import type { Construct } from 'constructs';
 
-import { expr, type Expression } from '#src/expressions.ts';
+import { expr, type AnyExpression } from '#src/expressions.ts';
 import type { StepConfig, UsesStep } from '#src/job.ts';
 import { Stack } from '#src/stack.ts';
 import type { StringMap } from '#src/types.ts';
@@ -95,7 +95,7 @@ type AsStepOptions<
 > = {
   env?: StringMap;
   name?: string;
-  if?: Expression<boolean>;
+  if?: AnyExpression<boolean>;
 } & ([keyof TOutputs] extends [never] ? { id?: string } : { id: string }) &
   ([RequiredInputKeys<T>] extends [never] ? { with?: CompositeActionWith<T> } : { with: CompositeActionWith<T> });
 

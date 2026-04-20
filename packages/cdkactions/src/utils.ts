@@ -12,6 +12,9 @@ export const renameKeys = (obj: any, newKeys: StringMap) => {
   if (typeof obj !== 'object') {
     return obj;
   }
+  if (typeof obj[Symbol.toPrimitive] === 'function') {
+    return String(obj);
+  }
   const keyValues = Object.keys(obj).map((key) => {
     const newKey = newKeys[key] || key;
     const oldValue = obj[key];
