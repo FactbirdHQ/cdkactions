@@ -1,8 +1,10 @@
+import type { AnyExpression } from '#src/expressions.ts';
+
 /**
- * A generic string to string map.
+ * A generic string to string map. Values may be plain strings or expression proxies.
  */
 export interface StringMap {
-  readonly [key: string]: string;
+  readonly [key: string]: string | AnyExpression<string>;
 }
 
 /**

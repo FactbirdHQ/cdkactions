@@ -18,12 +18,9 @@ export function create(app?: App) {
       registry: { description: 'npm registry URL', required: false, default: 'https://registry.npmjs.org' },
     },
     outputs: {
-      cacheHit: { description: 'Whether cache was hit', value: cacheStep.output('cache-hit') },
+      cacheHit: { description: 'Whether cache was hit', value: cacheStep.outputs['cache-hit'] },
     },
-    steps: [
-      cacheStep,
-      { name: 'Install', run: 'npm ci', shell: Shell.BASH },
-    ],
+    steps: [cacheStep, { name: 'Install', run: 'npm ci', shell: Shell.BASH }],
   } as const);
 
   const workflow = new Workflow(stack, 'ci', {
@@ -42,7 +39,7 @@ export function create(app?: App) {
   });
 
   // Verify typed output accessor works
-  const _cacheHit: string = setupStep.output('cacheHit');
+  const _cacheHit: string = setupStep.outputs.cacheHit;
 
   return _app;
 }

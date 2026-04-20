@@ -39,7 +39,7 @@ export interface CompositeActionOutputProps {
    * The value of the output, typically a context expression like
    * `${{ steps.step-id.outputs.field }}`.
    */
-  readonly value: string;
+  readonly value: string | AnyExpression<string>;
 }
 
 /**
@@ -84,9 +84,9 @@ type OptionalInputKeys<T extends Record<string, CompositeActionInputProps>> = {
 }[keyof T & string];
 
 type CompositeActionWith<T extends Record<string, CompositeActionInputProps>> = {
-  readonly [K in RequiredInputKeys<T>]: string | number | boolean;
+  readonly [K in RequiredInputKeys<T>]: string | number | boolean | AnyExpression;
 } & {
-  readonly [K in OptionalInputKeys<T>]?: string | number | boolean;
+  readonly [K in OptionalInputKeys<T>]?: string | number | boolean | AnyExpression;
 };
 
 type AsStepOptions<
@@ -100,7 +100,7 @@ type AsStepOptions<
   ([RequiredInputKeys<T>] extends [never] ? { with?: CompositeActionWith<T> } : { with: CompositeActionWith<T> });
 
 type CompositeActionStepRef<TOutputs extends Record<string, CompositeActionOutputProps>> = UsesStep & {
-  output<K extends keyof TOutputs & string>(key: K): string;
+  readonly outputs: { readonly [K in keyof TOutputs & string]: string };
 };
 
 /**
@@ -151,13 +151,20 @@ export class CompositeAction<
     const options = args[0];
     const id = options?.id;
 
+    const outputs = new Proxy({} as CompositeActionStepRef<TOutputs>['outputs'], {
+      get(_target, prop: string | symbol): unknown {
+        if (typeof prop === 'symbol') return undefined;
+        return String(expr(`steps.${id}.outputs.${prop}`));
+      },
+    });
+
     const step: UsesStep = {
       name: this.config.name,
       ...options,
       uses: this.usesPath,
     };
-    Object.defineProperty(step, 'output', {
-      value: (key: string) => String(expr(`steps.${id}.outputs.${key}`)),
+    Object.defineProperty(step, 'outputs', {
+      value: outputs,
       enumerable: false,
     });
 

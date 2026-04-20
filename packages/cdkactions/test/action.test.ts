@@ -181,25 +181,25 @@ test('multi-word camelCase keys convert correctly', () => {
   });
 });
 
-test('output() returns expression string for known output key', () => {
+test('output returns expression string for known output key', () => {
   const step = allOptionalAction({ id: 'co' });
-  const ref = step.output('ref');
-  expect(unwrapToken(ref as string)).toBe('steps.co.outputs.ref');
+  const ref = step.outputs.ref;
+  expect(unwrapToken(ref)).toBe('steps.co.outputs.ref');
 });
 
-test('output() returns expression for another known output key', () => {
+test('output returns expression for another known output key', () => {
   const step = allOptionalAction({ id: 'co' });
-  const commit = step.output('commit');
-  expect(unwrapToken(commit as string)).toBe('steps.co.outputs.commit');
+  const commit = step.outputs.commit;
+  expect(unwrapToken(commit)).toBe('steps.co.outputs.commit');
 });
 
-test('output() on uploadArtifact returns correct expression', () => {
+test('output on uploadArtifact returns correct expression', () => {
   const step = uploadArtifactV4({
     id: 'upload',
     with: { name: 'dist', path: 'dist/' },
   });
-  expect(unwrapToken(step.output('artifactId') as string)).toBe('steps.upload.outputs.artifactId');
-  expect(unwrapToken(step.output('artifactUrl') as string)).toBe('steps.upload.outputs.artifactUrl');
+  expect(unwrapToken(step.outputs.artifactId)).toBe('steps.upload.outputs.artifactId');
+  expect(unwrapToken(step.outputs.artifactUrl)).toBe('steps.upload.outputs.artifactUrl');
 });
 
 import {
@@ -238,7 +238,7 @@ test('setupNodeV6 produces correct uses and serializes inputs', () => {
 
 test('setupNodeV6 output returns expression', () => {
   const step = setupNodeV6({ id: 'node' });
-  expect(unwrapToken(step.output('cacheHit') as string)).toBe('steps.node.outputs.cacheHit');
+  expect(unwrapToken(step.outputs.cacheHit)).toBe('steps.node.outputs.cacheHit');
 });
 
 test('setupGoV6 ref is correct', () => {
@@ -319,10 +319,10 @@ console.log('\nType-level tests (compile-time checks):');
 
 const _validStep: TypedUsesStep<{ ref: {}; commit: {} }> = allOptionalAction({ id: 'co' });
 
-const _outputRef: Expression<string> = _validStep.output('ref');
+const _outputRef: Expression<string> = _validStep.outputs.ref;
 
 // @ts-expect-error — 'nonexistent' is not an output
-allOptionalAction({ id: 'co' }).output('nonexistent');
+allOptionalAction({ id: 'co' }).outputs.nonexistent;
 
 // @ts-expect-error — 'branchName' is not a valid input
 allOptionalAction({ id: 'co', with: { branchName: 'main' } });

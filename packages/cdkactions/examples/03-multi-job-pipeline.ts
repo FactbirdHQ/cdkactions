@@ -13,7 +13,7 @@ export function create(app?: App) {
   const upload = uploadArtifactV4({ id: 'upload', with: { name: 'dist', path: 'dist/' } });
   const build = new Job(workflow, 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    outputs: { artifact_id: `${upload.output('artifactId')}` },
+    outputs: { artifact_id: upload.outputs.artifactId },
     steps: [checkoutV4(), { name: 'Build', run: 'npm run build' }, upload],
   });
 

@@ -1,5 +1,5 @@
-import { Workflow, Job, RunnerLabel, defineAction, createMatrixProxy } from '#src/index.ts';
-import type { PermissionsMap, RunStep, UsesStep, StepConfig, Expression } from '#src/index.ts';
+import { Workflow, Job, RunnerLabel, defineAction, createMatrixProxy, github } from '#src/index.ts';
+import type { PermissionsMap, RunStep, UsesStep, StepConfig, Expression, StringMap } from '#src/index.ts';
 
 const workflow = undefined as any as Workflow;
 
@@ -64,4 +64,9 @@ _checkoutV4({ id: 'x', with: { branchName: 'main' } });
 _uploadArtifactV4({ id: 'x', with: { path: 'dist/' } });
 
 // @ts-expect-error — unknown output key on typed action ref
-_checkoutV4({ id: 'x' }).output('digest');
+_checkoutV4({ id: 'x' }).outputs.digest;
+
+// @ts-expect-error — addOutput not available on non-workflowCall workflows
+job.addOutput('hash', 'hash', 'Build hash');
+
+const _envMap: StringMap = { user: github.actor };

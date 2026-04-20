@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType, expr } from '#src/index.ts';
+import { App, Stack, Workflow, Job, RunnerLabel, WorkflowDispatchInputType } from '#src/index.ts';
 import { checkoutV4 } from '#src/actions.ts';
 
 export function create(app?: App) {
@@ -22,12 +22,6 @@ export function create(app?: App) {
             default: true,
           },
         },
-        outputs: {
-          buildHash: {
-            description: 'SHA of the build output',
-            value: `${expr('jobs.build.outputs.hash')}`,
-          },
-        },
         secrets: {
           npmToken: { required: true },
           sentryDsn: { required: false },
@@ -39,7 +33,7 @@ export function create(app?: App) {
   new Job(reusable, 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
     steps: [checkoutV4(), { name: 'Build', run: 'npm run build' }],
-  });
+  }).addOutput('buildHash', 'hash', 'SHA of the build output');
 
   const caller = new Workflow(stack, 'release', {
     name: 'Release',

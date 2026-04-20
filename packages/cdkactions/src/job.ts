@@ -5,7 +5,7 @@ import type { RunnerLabel, Shell } from '#src/nominal.ts';
 import type { DefaultsProps, StringMap } from '#src/types.ts';
 import { renameKeys, type Writable } from '#src/utils.ts';
 import { addJobValidation } from '#src/validation.ts';
-import type { Permissions, Workflow, WorkflowTrigger } from '#src/workflow.ts';
+import type { Permissions, Workflow, WorkflowCallEvent, WorkflowTrigger } from '#src/workflow.ts';
 
 /**
  * Credentials to connect to a Docker registry with.
@@ -32,7 +32,7 @@ export interface ServiceProps extends DockerProps {
   readonly entrypoint?: string;
 }
 
-export type EnvironmentConfig = string | { readonly name: string; readonly url?: string };
+export type EnvironmentConfig = string | { readonly name: string; readonly url?: string | AnyExpression<string> };
 
 export type ConcurrencyConfig = string | { readonly group: string; readonly cancelInProgress?: boolean };
 
@@ -64,7 +64,7 @@ export interface RunStep<TOn = unknown> extends StepBase<TOn> {
 
 export interface UsesStep<TOn = unknown> extends StepBase<TOn> {
   readonly uses: string;
-  readonly with?: { [key: string]: string | number | boolean };
+  readonly with?: { [key: string]: string | number | boolean | AnyExpression };
   readonly run?: never;
   readonly shell?: never;
   readonly workingDirectory?: never;
@@ -76,21 +76,26 @@ export type StepConfig<TOn = unknown> = RunStep<TOn> | UsesStep<TOn>;
 export type StepsProps = StepConfig;
 
 export interface StepRef {
-  output(key: string): Expression<string>;
+  readonly outputs: Record<string, Expression<string>>;
 }
 
 /**
- * Wraps a step config with an `output()` method for type-safe step output references.
+ * Wraps a step config with an `outputs` proxy for type-safe step output references.
  * The step must have an `id` so that outputs can be resolved via `steps.<id>.outputs.<key>`.
  */
 export function step<T extends StepConfig<any> & { readonly id: string }>(config: T): T & StepRef {
+  const outputs = new Proxy({} as Record<string, Expression<string>>, {
+    get(_target, prop: string | symbol): unknown {
+      if (typeof prop === 'symbol') return undefined;
+      return expr<string>(`steps.${config.id}.outputs.${prop}`);
+    },
+  });
+
   const ref: T & StepRef = {
     ...config,
-    output(key: string): Expression<string> {
-      return expr<string>(`steps.${config.id}.outputs.${key}`);
-    },
+    outputs,
   };
-  Object.defineProperty(ref, 'output', { enumerable: false });
+  Object.defineProperty(ref, 'outputs', { enumerable: false });
   return ref;
 }
 
@@ -145,7 +150,7 @@ export interface JobProps<
   readonly environment?: EnvironmentConfig;
   readonly concurrency?: ConcurrencyConfig;
   readonly uses?: Workflow<any> | string;
-  readonly with?: { [key: string]: string | number | boolean };
+  readonly with?: { [key: string]: string | number | boolean | AnyExpression };
 }
 
 /**
@@ -159,12 +164,21 @@ export class Job<
   public readonly id: string;
   public if?: AnyExpression<boolean>;
   public readonly matrix: MatrixProxy<TMatrix>;
+  public readonly outputs: Record<string, Expression<string>>;
+  private readonly workflow: Workflow<TOn>;
 
   public constructor(scope: Workflow<TOn>, id: string, config: JobProps<TMatrix, TOn>) {
     super(scope, id);
     this.id = id;
+    this.workflow = scope;
     this.action = config as Writable<JobProps<TMatrix, TOn>>;
     this.matrix = createMatrixProxy((config.strategy?.matrix ?? {}) as TMatrix);
+    this.outputs = new Proxy({} as Record<string, Expression<string>>, {
+      get(_target, prop: string | symbol): unknown {
+        if (typeof prop === 'symbol') return undefined;
+        return expr<string>(`jobs.${id}.outputs.${prop}`);
+      },
+    });
     addJobValidation(this, () => ({
       id: this.id,
       steps: this.steps,
@@ -267,6 +281,14 @@ export class Job<
       ...(serializedStrategy ? { strategy: serializedStrategy } : {}),
       ...(serializedSteps ? { steps: serializedSteps } : {}),
     };
+  }
+
+  public addOutput(
+    ...args: [TOn] extends [WorkflowCallEvent] ? [name: string, outputKey: string, description: string] : never
+  ): this {
+    const [name, outputKey, description] = args;
+    this.workflow.registerOutput(name, description, this.outputs[outputKey]);
+    return this;
   }
 
   public addDependency(

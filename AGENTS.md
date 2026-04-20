@@ -36,6 +36,34 @@ Walk up the construct tree to find the enclosing Stack. Used by `CompositeAction
 - `Job.addDependency(job)` → adds to `needs` array
 - `Workflow.addDependency(workflow)` → sets up `workflow_run` trigger
 
+### Key Pattern: `Job.outputs` and `Job.addOutput`
+
+`Job.outputs` is a Proxy that generates `jobs.<id>.outputs.<key>` expressions on property access:
+
+```typescript
+const buildJob = new Job(workflow, 'build', { ... });
+// buildJob.outputs.hash → Expression<string> for "jobs.build.outputs.hash"
+```
+
+`Job.addOutput(name, outputKey, description)` registers a workflow-level output on `workflowCall` triggers. It is only callable when the parent workflow uses `workflowCall` (enforced at the type level):
+
+```typescript
+new Job(reusable, 'build', { ... })
+  .addOutput('buildHash', 'hash', 'SHA of the build output');
+```
+
+### Key Pattern: Step `outputs` proxy
+
+Steps wrapped with `step()`, `defineAction()`, or `CompositeAction.asStep()` expose an `outputs` proxy for type-safe step output references:
+
+```typescript
+const deploy = step({ id: 'deploy', uses: 'actions/deploy-pages@v4' });
+deploy.outputs.page_url  // → Expression<string> for "steps.deploy.outputs.page_url"
+
+const co = checkoutV4({ id: 'co' });
+co.outputs.ref  // → typed Expression<string>
+```
+
 ## TypeScript Conventions
 
 ### Property Naming
@@ -124,7 +152,7 @@ This pattern allows strict enforcement of valid runner labels at the type level 
 
 External GitHub Actions are defined centrally with full input/output type safety using `defineAction<TInputs, TOutputs>(ref)`. The generic type parameters capture the action's input schema (required vs optional, defaults) and output schema. Pre-defined action references (e.g., `checkoutV2`, `checkoutV3`, `checkoutV4`) live in `src/actions.ts`.
 
-Actions are **directly callable** — `checkoutV4()` or `checkoutV4({ with: { fetchDepth: 0 } })`. When all inputs are optional and there are no outputs, the parameter is optional. The return is a `TypedUsesStep<TOutputs>` — a subtype of `UsesStep` with a typed `.output(key)` accessor. This slots seamlessly into the `StepConfig` union. Each action also exposes `.ref` and `.uses` properties for the raw reference string.
+Actions are **directly callable** — `checkoutV4()` or `checkoutV4({ with: { fetchDepth: 0 } })`. When all inputs are optional and there are no outputs, the parameter is optional. The return is a `TypedUsesStep<TOutputs>` — a subtype of `UsesStep` with a typed `.outputs` proxy for property-based output access. This slots seamlessly into the `StepConfig` union. Each action also exposes `.ref` and `.uses` properties for the raw reference string.
 
 Key design rules:
 - Input keys use **camelCase** in TypeScript, serialized to **kebab-case** in YAML (e.g., `fetchDepth` → `fetch-depth`)
@@ -161,12 +189,14 @@ Composition uses free functions: `and(a, b)`, `or(a, b)`, `eq(left, right)`, `no
 This means expressions work transparently everywhere — no manual `${{ }}` wrapping needed:
 
 ```typescript
-// Expressions in with/env are auto-wrapped during synthesis
+// Context proxies (DeepExpression<string>) are accepted directly in with/env/outputs
 { with: { username: github.actor, password: secrets.GITHUB_TOKEN } }
 
 // Expressions in string interpolation are also auto-resolved
 { group: `docker-${github.ref}` }  // → "docker-${{ github.ref }}"
 ```
+
+**Type hierarchy:** `Expression<T>` extends `string` (usable anywhere strings are). `DeepExpression<T>` does NOT extend `string` — this hides `String.prototype` methods from autocomplete on context proxies. Instead, all value-accepting positions (`StringMap`, `with`, `env`, `outputs`, `EnvironmentConfig.url`, etc.) explicitly accept `AnyExpression` alongside `string`.
 
 ## Synthesis
 

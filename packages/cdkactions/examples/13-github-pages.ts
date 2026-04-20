@@ -32,7 +32,7 @@ export function create(app?: App) {
 
   const deploy = new Job(workflow, 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    environment: { name: 'github-pages', url: deploymentStep.output('page_url') },
+    environment: { name: 'github-pages', url: deploymentStep.outputs.page_url },
     steps: [deploymentStep],
   });
   deploy.addDependency(build);
