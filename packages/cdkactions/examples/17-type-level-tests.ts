@@ -71,8 +71,6 @@ job.addOutput('hash', 'hash', 'Build hash');
 
 const _envMap: StringMap = { user: github.actor };
 
-// --- Workflow.inputs proxy type-level tests ---
-
 import { WorkflowDispatchInputType, eq, type WorkflowInputsProxy, type DeepExpression } from '#src/index.ts';
 
 const dispatchWorkflow = new Workflow(undefined as any, 'dispatch', {
@@ -96,11 +94,8 @@ const dispatchWorkflow = new Workflow(undefined as any, 'dispatch', {
   },
 });
 
-// Valid input keys work
 const _project: DeepExpression<string> = dispatchWorkflow.inputs.project;
 const _dryRun: DeepExpression<string> = dispatchWorkflow.inputs.dryRun;
-
-// Works with eq without casts
 const _cond = eq(dispatchWorkflow.inputs.project, 'app');
 
 // @ts-expect-error — nonexistent input key

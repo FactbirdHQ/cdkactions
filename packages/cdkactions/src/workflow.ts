@@ -2,8 +2,7 @@ import assert from 'node:assert';
 
 import { Construct, Node } from 'constructs';
 
-import type { AnyExpression, DeepExpression } from '#src/expressions.ts';
-import { expr } from '#src/expressions.ts';
+import { expr, type AnyExpression, type DeepExpression } from '#src/expressions.ts';
 import { type ConcurrencyConfig, Job } from '#src/job.ts';
 import type { DefaultsProps, StringMap } from '#src/types.ts';
 import { camelToSnake, renameKeys, type Writable } from '#src/utils.ts';
