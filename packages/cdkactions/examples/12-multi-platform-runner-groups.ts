@@ -22,7 +22,7 @@ export function create(app?: App) {
     },
     continueOnError: true,
     timeoutMinutes: 60,
-    steps: [checkoutV4(), (matrix) => ({ name: 'Build', run: `make build ARCH=${matrix.arch}` })],
+    steps: (matrix) => [checkoutV4(), { name: 'Build', run: `make build ARCH=${matrix.arch}` }],
   });
 
   return _app;

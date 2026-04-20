@@ -21,9 +21,9 @@ export function create(app?: App) {
       },
       failFast: false,
     },
-    steps: [
+    steps: (matrix) => [
       checkoutV4(),
-      (matrix) => setupNodeV6({ id: 'setup-node', with: { nodeVersion: `${matrix.nodeVersion}` } }),
+      setupNodeV6({ id: 'setup-node', with: { nodeVersion: `${matrix.nodeVersion}` } }),
       { name: 'Install', run: 'npm ci' },
       { name: 'Lint', run: 'npm run lint' },
       { name: 'Test', run: 'npm test' },

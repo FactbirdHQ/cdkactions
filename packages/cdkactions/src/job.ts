@@ -72,10 +72,6 @@ export interface UsesStep<TOn = unknown> extends StepBase<TOn> {
 
 export type StepConfig<TOn = unknown> = RunStep<TOn> | UsesStep<TOn>;
 
-export type StepEntry<TMatrix extends MatrixDefinition = MatrixDefinition, TOn = unknown> =
-  | StepConfig<TOn>
-  | ((matrix: MatrixProxy<TMatrix>) => StepConfig<TOn>);
-
 /** @deprecated Use StepConfig instead. */
 export type StepsProps = StepConfig;
 
@@ -143,7 +139,7 @@ export interface JobProps<
   readonly env?: StringMap;
   readonly defaults?: DefaultsProps;
   readonly if?: IfCondition<TOn>;
-  readonly steps?: StepEntry<TMatrix, TOn>[];
+  readonly steps?: StepConfig<TOn>[] | ((matrix: MatrixProxy<TMatrix>) => StepConfig<TOn>[]);
   readonly secrets?: Record<string, string | AnyExpression<string>> | 'inherit';
   readonly timeoutMinutes?: number;
   readonly strategy?: StrategyProps<TMatrix>;
@@ -207,12 +203,19 @@ export class Job<
     return this.action.name;
   }
 
+  private resolveSteps(): StepConfig<TOn>[] {
+    const steps = this.action.steps;
+    if (!steps) return [];
+    if (typeof steps === 'function') return steps(this.matrix);
+    return steps as StepConfig<TOn>[];
+  }
+
   get steps(): StepConfig<TOn>[] {
-    return (this.action.steps || []).map((s) => (typeof s === 'function' ? s(this.matrix) : s)) as StepConfig<TOn>[];
+    return this.resolveSteps();
   }
 
   public toGHAction(): any {
-    const { uses, runsOn, steps, strategy, if: propsIf, ...rest } = this.action;
+    const { uses, runsOn, steps: _steps, strategy, if: propsIf, ...rest } = this.action;
 
     const resolvedIf = typeof propsIf === 'function' ? propsIf(github as any) : propsIf;
     const conditions = [this.if, resolvedIf].filter((c): c is AnyExpression<boolean> => c !== undefined);
@@ -248,16 +251,19 @@ export class Job<
       };
     }
 
-    const serializedSteps = steps?.map((s) => {
-      const resolved = typeof s === 'function' ? s(this.matrix) : s;
-      const { if: stepIf, ...stepRest } = resolved;
-      const resolvedStepIf = typeof stepIf === 'function' ? stepIf(github as any) : stepIf;
-      const serialized = renameKeys(stepRest, keyMap);
-      return {
-        ...serialized,
-        ...(resolvedStepIf !== undefined ? { if: resolvedStepIf } : {}),
-      };
-    });
+    const resolvedSteps = this.resolveSteps();
+    const serializedSteps =
+      resolvedSteps.length > 0
+        ? resolvedSteps.map((s) => {
+            const { if: stepIf, ...stepRest } = s;
+            const resolvedStepIf = typeof stepIf === 'function' ? stepIf(github as any) : stepIf;
+            const serialized = renameKeys(stepRest, keyMap);
+            return {
+              ...serialized,
+              ...(resolvedStepIf !== undefined ? { if: resolvedStepIf } : {}),
+            };
+          })
+        : undefined;
 
     let serializedStrategy: Record<string, unknown> | undefined;
     if (strategy) {
