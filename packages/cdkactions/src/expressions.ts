@@ -46,7 +46,13 @@ export type Expression<T = unknown> = string & AnyExpression<T>;
  * so `Expression<T>` is assignable to `DeepExpression<T>` (for leaf types).
  */
 export type DeepExpression<T> = AnyExpression<T> &
-  (T extends Record<string, any> ? { readonly [K in keyof T]: DeepExpression<T[K]> } : {});
+  (0 extends 1 & T
+    ? { readonly [key: string]: any }
+    : T extends readonly any[]
+      ? {}
+      : T extends object
+        ? { readonly [K in keyof T]: DeepExpression<T[K]> }
+        : {});
 
 const TOKEN_BEGIN = '\uFDD0';
 const TOKEN_END = '\uFDD1';
@@ -256,61 +262,58 @@ export interface StrategyContext {
 // Describe what github.event contains at runtime for each trigger type.
 // All extend Record<string, any> for access to unlisted properties.
 
-export interface PullRequestEventPayload extends Record<string, any> {
+export interface PullRequestEventPayload {
   readonly pullRequest: {
     readonly draft: boolean;
     readonly title: string;
     readonly body: string | null;
     readonly number: number;
     readonly merged: boolean;
-    readonly head: { readonly ref: string; readonly sha: string; [key: string]: any };
-    readonly base: { readonly ref: string; readonly sha: string; [key: string]: any };
-    [key: string]: any;
+    readonly head: { readonly ref: string; readonly sha: string };
+    readonly base: { readonly ref: string; readonly sha: string };
   };
 }
 
-export interface IssueCommentEventPayload extends Record<string, any> {
-  readonly comment: { readonly body: string; readonly id: number; [key: string]: any };
-  readonly issue: { readonly title: string; readonly body: string | null; readonly number: number; [key: string]: any };
+export interface IssueCommentEventPayload {
+  readonly comment: { readonly body: string; readonly id: number };
+  readonly issue: { readonly title: string; readonly body: string | null; readonly number: number };
 }
 
-export interface PullRequestReviewEventPayload extends Record<string, any> {
-  readonly review: { readonly body: string | null; readonly state: string; [key: string]: any };
+export interface PullRequestReviewEventPayload {
+  readonly review: { readonly body: string | null; readonly state: string };
   readonly pullRequest: PullRequestEventPayload['pullRequest'];
 }
 
-export interface PullRequestReviewCommentEventPayload extends Record<string, any> {
-  readonly comment: { readonly body: string; [key: string]: any };
+export interface PullRequestReviewCommentEventPayload {
+  readonly comment: { readonly body: string };
   readonly pullRequest: PullRequestEventPayload['pullRequest'];
 }
 
-export interface IssuesEventPayload extends Record<string, any> {
-  readonly issue: { readonly title: string; readonly body: string | null; readonly number: number; [key: string]: any };
+export interface IssuesEventPayload {
+  readonly issue: { readonly title: string; readonly body: string | null; readonly number: number };
 }
 
-export interface ReleaseEventPayload extends Record<string, any> {
+export interface ReleaseEventPayload {
   readonly release: {
     readonly tagName: string;
     readonly body: string | null;
     readonly name: string | null;
-    [key: string]: any;
   };
 }
 
-export interface WorkflowRunEventPayload extends Record<string, any> {
+export interface WorkflowRunEventPayload {
   readonly workflowRun: {
     readonly conclusion: string | null;
     readonly name: string;
     readonly headBranch: string;
-    [key: string]: any;
   };
 }
 
-export interface PushEventPayload extends Record<string, any> {
+export interface PushEventPayload {
   readonly ref: string;
   readonly before: string;
   readonly after: string;
-  readonly commits: Array<{ readonly id: string; readonly message: string; [key: string]: any }>;
+  readonly commits: Array<{ readonly id: string; readonly message: string }>;
 }
 
 interface EventPayloadMap {
