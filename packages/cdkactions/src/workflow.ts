@@ -2,7 +2,8 @@ import assert from 'node:assert';
 
 import { Construct, Node } from 'constructs';
 
-import type { AnyExpression } from '#src/expressions.ts';
+import type { AnyExpression, DeepExpression } from '#src/expressions.ts';
+import { expr } from '#src/expressions.ts';
 import { type ConcurrencyConfig, Job } from '#src/job.ts';
 import type { DefaultsProps, StringMap } from '#src/types.ts';
 import { camelToSnake, renameKeys, type Writable } from '#src/utils.ts';
@@ -351,6 +352,16 @@ export type WorkflowTrigger =
   | MergeGroupEvent
   | WorkflowCallEvent;
 
+type ExtractWorkflowInputs<TOn> = TOn extends { workflowDispatch: { inputs: infer I extends Record<string, any> } }
+  ? I
+  : TOn extends { workflowCall: { inputs: infer I extends Record<string, any> } }
+    ? I
+    : Record<string, unknown>;
+
+export type WorkflowInputsProxy<TOn> = {
+  readonly [K in keyof ExtractWorkflowInputs<TOn>]: DeepExpression<string>;
+};
+
 export interface WorkflowProps {
   readonly name: string;
   readonly runName?: string | AnyExpression<string>;
@@ -372,6 +383,7 @@ const whiteSeparators = /[\n\t]/g;
 
 export class Workflow<TOn extends WorkflowTrigger = WorkflowTrigger> extends Construct {
   public readonly outputFile: string;
+  public readonly inputs: WorkflowInputsProxy<TOn>;
   private readonly action: Writable<Omit<WorkflowProps, 'on'> & { on: TOn }>;
 
   public constructor(scope: Construct, id: string, config: Omit<WorkflowProps, 'on'> & { readonly on: TOn }) {
@@ -379,6 +391,12 @@ export class Workflow<TOn extends WorkflowTrigger = WorkflowTrigger> extends Con
     super(scope, id);
     this.action = config as Writable<Omit<WorkflowProps, 'on'> & { on: TOn }>;
     this.outputFile = `cdkactions_${sanitizedId}.yaml`;
+    this.inputs = new Proxy({} as WorkflowInputsProxy<TOn>, {
+      get(_target, prop: string | symbol): unknown {
+        if (typeof prop === 'symbol') return undefined;
+        return expr<string>(`inputs.${prop}`);
+      },
+    });
     addWorkflowValidation(this, () => ({
       name: this.action.name,
       on: this.action.on,
