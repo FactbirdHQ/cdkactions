@@ -278,7 +278,7 @@ export function lte(left: Expression<number>, right: Expression<number> | number
 
 /** Logical negation: produces `!<expr>`. */
 export function not(e: Expression<boolean>): Expression<boolean> {
-  return expr(`!${unwrapToken(e)}`);
+  return expr(`!(${unwrapToken(e)})`);
 }
 
 /** Produces `contains(<search>, <item>)`. */
