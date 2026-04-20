@@ -1,4 +1,4 @@
-import { App, Stack, Workflow, Job, RunnerLabel, Shell, CompositeAction, hashFiles } from '#src/index.ts';
+import { App, Stack, Workflow, Job, RunnerLabel, Shell, CompositeAction, hashFiles, steps } from '#src/index.ts';
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -12,7 +12,7 @@ export function create(app?: App) {
       registry: { description: 'npm registry URL', required: false, default: 'https://registry.npmjs.org' },
     },
     outputs: {
-      cacheHit: { description: 'Whether cache was hit', value: '${{ steps.cache.outputs.cache-hit }}' },
+      cacheHit: { description: 'Whether cache was hit', value: `${steps.cache.outputs['cache-hit']}` },
     },
     steps: [
       {
