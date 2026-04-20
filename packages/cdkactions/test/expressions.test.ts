@@ -243,12 +243,12 @@ import type { InferEventPayload, GitHubContextFor, DeepExpression } from '#src/e
 import type { PullRequestEventPayload, WorkflowRunEventPayload } from '#src/expressions.ts';
 
 type _PRPayload = InferEventPayload<{ pullRequest: null }>;
-const _prDraft: DeepExpression<PullRequestEventPayload['pull_request']['draft']> =
-  {} as DeepExpression<_PRPayload['pull_request']['draft']>;
+const _prDraft: DeepExpression<PullRequestEventPayload['pullRequest']['draft']> =
+  {} as DeepExpression<_PRPayload['pullRequest']['draft']>;
 
 type _WRPayload = InferEventPayload<{ workflowRun: { workflows: string[] } }>;
-const _wrConclusion: DeepExpression<WorkflowRunEventPayload['workflow_run']['conclusion']> =
-  {} as DeepExpression<_WRPayload['workflow_run']['conclusion']>;
+const _wrConclusion: DeepExpression<WorkflowRunEventPayload['workflowRun']['conclusion']> =
+  {} as DeepExpression<_WRPayload['workflowRun']['conclusion']>;
 
 // GitHubContextFor narrows event property
 type _NarrowedCtx = GitHubContextFor<{ pullRequest: null }>;
@@ -308,6 +308,13 @@ test('deep proxy values work with contains()', () => {
 
 test('deep proxy values work with not()', () => {
   expect(raw(not(github.event.pull_request.draft as Expression<boolean>))).toBe('!(github.event.pull_request.draft)');
+});
+
+test('deep proxy renames camelCase to snake_case on github context', () => {
+  expect(raw(github.event.pullRequest.draft)).toBe('github.event.pull_request.draft');
+  expect(raw(github.event.workflowRun.conclusion)).toBe('github.event.workflow_run.conclusion');
+  expect(raw(github.event.workflowRun.headBranch)).toBe('github.event.workflow_run.head_branch');
+  expect(raw(github.event.release.tagName)).toBe('github.event.release.tag_name');
 });
 
 test('deep proxy values work in composed expressions', () => {

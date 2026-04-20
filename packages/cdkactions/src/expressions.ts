@@ -123,7 +123,7 @@ function createContextProxy<T extends object>(contextName: string, rename = fals
       }
 
       const key = rename ? camelToSnake(prop) : prop;
-      return createContextProxy(`${contextName}.${key}`, false);
+      return createContextProxy(`${contextName}.${key}`, rename);
     },
     has(_target, prop) {
       if (prop === CONTEXT_PROXY_MARKER) return true;
@@ -246,7 +246,7 @@ export interface StrategyContext {
 // All extend Record<string, any> for access to unlisted properties.
 
 export interface PullRequestEventPayload extends Record<string, any> {
-  readonly pull_request: {
+  readonly pullRequest: {
     readonly draft: boolean;
     readonly title: string;
     readonly body: string | null;
@@ -265,12 +265,12 @@ export interface IssueCommentEventPayload extends Record<string, any> {
 
 export interface PullRequestReviewEventPayload extends Record<string, any> {
   readonly review: { readonly body: string | null; readonly state: string; [key: string]: any };
-  readonly pull_request: PullRequestEventPayload['pull_request'];
+  readonly pullRequest: PullRequestEventPayload['pullRequest'];
 }
 
 export interface PullRequestReviewCommentEventPayload extends Record<string, any> {
   readonly comment: { readonly body: string; [key: string]: any };
-  readonly pull_request: PullRequestEventPayload['pull_request'];
+  readonly pullRequest: PullRequestEventPayload['pullRequest'];
 }
 
 export interface IssuesEventPayload extends Record<string, any> {
@@ -278,14 +278,14 @@ export interface IssuesEventPayload extends Record<string, any> {
 }
 
 export interface ReleaseEventPayload extends Record<string, any> {
-  readonly release: { readonly tag_name: string; readonly body: string | null; readonly name: string | null; [key: string]: any };
+  readonly release: { readonly tagName: string; readonly body: string | null; readonly name: string | null; [key: string]: any };
 }
 
 export interface WorkflowRunEventPayload extends Record<string, any> {
-  readonly workflow_run: {
+  readonly workflowRun: {
     readonly conclusion: string | null;
     readonly name: string;
-    readonly head_branch: string;
+    readonly headBranch: string;
     [key: string]: any;
   };
 }
