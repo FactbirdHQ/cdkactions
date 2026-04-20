@@ -86,15 +86,15 @@ new Job(workflow, 'push', {
 
 ## Typed Action References
 
-Pre-defined actions enforce required inputs, reject unknown keys, and give typed `.output()` access — all at compile time.
+Pre-defined actions enforce required inputs, reject unknown keys, and give typed `.outputs` proxy access — all at compile time.
 
 ```typescript
 import { checkoutV4, uploadArtifactV4, setupNodeV6 } from '@factbird/cdkactions';
 
 // Callable — all-optional inputs means the parameter is optional
 const co = checkoutV4({ id: 'co', with: { fetchDepth: 0 } });
-co.output('commit'); // ✓ declared output
-// co.output('digest'); // ✗ compile error — not a declared output
+co.outputs.commit; // ✓ declared output
+// co.outputs.digest; // ✗ compile error — not a declared output
 
 // Required inputs are enforced
 const upload = uploadArtifactV4({
@@ -104,7 +104,7 @@ const upload = uploadArtifactV4({
 
 new Job(workflow, 'build', {
   runsOn: RunnerLabel.UBUNTU_LATEST,
-  outputs: { artifact_id: `${upload.output('artifactId')}` },
+  outputs: { artifact_id: `${upload.outputs.artifactId}` },
   steps: [co, setupNodeV6({ id: 'node', with: { nodeVersion: '22' } }), upload],
 });
 ```
@@ -127,7 +127,7 @@ const myAction = defineAction<
 | Matrix builds | Generic `StrategyProps<TMatrix>` with typed `matrix.<key>` access | [01-nodejs-ci-matrix.ts](packages/cdkactions/examples/01-nodejs-ci-matrix.ts) |
 | Docker build & push | Concurrency, permissions, context proxies for credentials | [02-docker-build-push.ts](packages/cdkactions/examples/02-docker-build-push.ts) |
 | Multi-job pipelines | Job dependencies, typed artifact upload/download, conditional deploy | [03-multi-job-pipeline.ts](packages/cdkactions/examples/03-multi-job-pipeline.ts) |
-| Manual dispatch | `workflowDispatch` with typed inputs (choice, boolean, environment) | [05-manual-dispatch.ts](packages/cdkactions/examples/05-manual-dispatch.ts) |
+| Manual dispatch | `workflowDispatch` with typed `workflow.inputs` proxy (choice, boolean, environment) | [05-manual-dispatch.ts](packages/cdkactions/examples/05-manual-dispatch.ts) |
 | Reusable workflows | `workflowCall` with inputs, outputs, and secrets | [06-reusable-workflow.ts](packages/cdkactions/examples/06-reusable-workflow.ts) |
 | Docker services | Container jobs with `command` and `entrypoint` | [07-container-services.ts](packages/cdkactions/examples/07-container-services.ts) |
 | Composite actions | Reusable multi-step actions as constructs | [08-composite-action.ts](packages/cdkactions/examples/08-composite-action.ts) |
