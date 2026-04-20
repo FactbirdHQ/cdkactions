@@ -1,7 +1,5 @@
-import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#src/index.ts';
+import { App, Stack, Workflow, Job, RunnerLabel, eq } from '#src/index.ts';
 import { checkoutV4, uploadArtifactV4, downloadArtifactV4 } from '#src/actions.ts';
-
-const { eq, github } = expression;
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -27,7 +25,7 @@ export function create(app?: App) {
 
   const deploy = new Job(workflow, 'deploy', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
-    if: eq(github.ref, 'refs/heads/main'),
+    if: (github) => eq(github.ref, 'refs/heads/main'),
     environment: 'production',
     steps: [
       downloadArtifactV4({ name: 'Download artifact', with: { name: 'dist' } }),
