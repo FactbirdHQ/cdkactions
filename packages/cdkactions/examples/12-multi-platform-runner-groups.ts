@@ -1,7 +1,5 @@
-import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#src/index.ts';
+import { App, Stack, Workflow, Job, RunnerLabel, createMatrixProxy } from '#src/index.ts';
 import { checkoutV4 } from '#src/actions.ts';
-
-const { matrix } = expression;
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -12,19 +10,22 @@ export function create(app?: App) {
     on: { push: { branches: ['main'] } },
   });
 
+  const matrixDef = {
+    os: ['ubuntu-latest', 'macos-latest', 'windows-latest'],
+    arch: ['x64', 'arm64'],
+  } as const;
+  const m = createMatrixProxy(matrixDef);
+
   new Job(workflow, 'build', {
     runsOn: { group: 'large-runners', labels: [RunnerLabel.custom('linux-x64-8core')] },
     strategy: {
-      matrix: {
-        os: ['ubuntu-latest', 'macos-latest', 'windows-latest'] as const,
-        arch: ['x64', 'arm64'] as const,
-      },
+      matrix: matrixDef,
       failFast: false,
       maxParallel: 4,
     },
     continueOnError: true,
     timeoutMinutes: 60,
-    steps: [checkoutV4(), { name: 'Build', run: `make build ARCH=${matrix.arch}` }],
+    steps: [checkoutV4(), { name: 'Build', run: `make build ARCH=${m.arch}` }],
   });
 
   return _app;

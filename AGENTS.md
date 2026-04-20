@@ -168,7 +168,7 @@ Organizations define all their action references in a shared module (e.g., `acti
 
 Expressions are branded strings (`Expression<T>`) with a phantom type parameter tracking the runtime value type. They are zero-cost at runtime — no AST, no parsing.
 
-Context accessors (e.g., `github`, `runner`, `secrets`, `matrix`) use `Proxy` objects created once at module load to generate expression strings like `github.ref` on property access.
+Context accessors (e.g., `github`, `runner`, `secrets`) use `Proxy` objects created once at module load to generate expression strings like `github.ref` on property access. `inputs` and `matrix` are not global — they are typed construct-level proxies on `Workflow.inputs` and `Job.matrix` respectively, inferred from the construct's configuration.
 
 All expression functions and context proxies are available via the `expression` namespace:
 
