@@ -183,7 +183,7 @@ export interface StepsContext {
 
 export interface InputsContext {
   /** Access a workflow input by name. */
-  readonly [key: string]: Expression<unknown>;
+  readonly [key: string]: Expression<string>;
 }
 
 export interface VarsContext {
