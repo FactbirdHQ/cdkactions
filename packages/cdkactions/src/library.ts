@@ -3,7 +3,7 @@ import { dedent } from 'ts-dedent';
 
 import { checkoutV4 } from '#src/actions.ts';
 import { always, expr, github, secrets } from '#src/expressions.ts';
-import { Job, type JobProps, type MatrixDefinition, type StepConfig } from '#src/job.ts';
+import { Job, type JobProps, type MatrixDefinition, type StepEntry } from '#src/job.ts';
 import { RunnerLabel } from '#src/nominal.ts';
 import { Stack } from '#src/stack.ts';
 import { Workflow } from '#src/workflow.ts';
@@ -59,8 +59,8 @@ export class CDKActionsStack extends Stack {
  */
 export class CheckoutJob<TMatrix extends MatrixDefinition = MatrixDefinition> extends Job<TMatrix> {
   public constructor(scope: Workflow, id: string, config: JobProps<TMatrix>) {
-    const checkoutStep: StepConfig = checkoutV4();
-    const steps: StepConfig[] = [checkoutStep, ...(config.steps || [])];
+    const checkoutStep: StepEntry<TMatrix> = checkoutV4();
+    const steps: StepEntry<TMatrix>[] = [checkoutStep, ...(config.steps || [])];
     super(scope, id, { ...config, steps });
   }
 }

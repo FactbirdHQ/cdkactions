@@ -72,6 +72,10 @@ export interface UsesStep<TOn = unknown> extends StepBase<TOn> {
 
 export type StepConfig<TOn = unknown> = RunStep<TOn> | UsesStep<TOn>;
 
+export type StepEntry<TMatrix extends MatrixDefinition = MatrixDefinition, TOn = unknown> =
+  | StepConfig<TOn>
+  | ((matrix: MatrixProxy<TMatrix>) => StepConfig<TOn>);
+
 /** @deprecated Use StepConfig instead. */
 export type StepsProps = StepConfig;
 
@@ -139,7 +143,7 @@ export interface JobProps<
   readonly env?: StringMap;
   readonly defaults?: DefaultsProps;
   readonly if?: IfCondition<TOn>;
-  readonly steps?: StepConfig<TOn>[];
+  readonly steps?: StepEntry<TMatrix, TOn>[];
   readonly secrets?: Record<string, string | AnyExpression<string>> | 'inherit';
   readonly timeoutMinutes?: number;
   readonly strategy?: StrategyProps<TMatrix>;
@@ -204,7 +208,7 @@ export class Job<
   }
 
   get steps(): StepConfig<TOn>[] {
-    return (this.action.steps || []) as StepConfig<TOn>[];
+    return (this.action.steps || []).map((s) => (typeof s === 'function' ? s(this.matrix) : s)) as StepConfig<TOn>[];
   }
 
   public toGHAction(): any {
@@ -245,7 +249,8 @@ export class Job<
     }
 
     const serializedSteps = steps?.map((s) => {
-      const { if: stepIf, ...stepRest } = s;
+      const resolved = typeof s === 'function' ? s(this.matrix) : s;
+      const { if: stepIf, ...stepRest } = resolved;
       const resolvedStepIf = typeof stepIf === 'function' ? stepIf(github as any) : stepIf;
       const serialized = renameKeys(stepRest, keyMap);
       return {
