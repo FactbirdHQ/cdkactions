@@ -18,7 +18,7 @@ export function create(app?: App) {
       registry: { description: 'npm registry URL', required: false, default: 'https://registry.npmjs.org' },
     },
     outputs: {
-      cacheHit: { description: 'Whether cache was hit', value: `${cacheStep.output('cache-hit')}` },
+      cacheHit: { description: 'Whether cache was hit', value: cacheStep.output('cache-hit') },
     },
     steps: [
       cacheStep,
