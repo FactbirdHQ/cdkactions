@@ -210,13 +210,14 @@ on:
           - error
         required: true
         type: choice
-run-name: Deploy \${{ inputs.environment }} by \${{ github.actor }}
+run-name: Deploy by \${{ github.actor }}
 jobs:
   deploy:
+    if: inputs.logLevel == 'debug'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy
-        run: echo "Deploying..."
+        run: echo "Deploying to \${{ inputs.environment }}"
 "
 ,
 }
