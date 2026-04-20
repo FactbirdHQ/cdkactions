@@ -1,11 +1,11 @@
 import { Construct } from 'constructs';
 
-import { and, expr, type Expression } from '#src/expressions.ts';
+import { and, expr, type Expression, github, type GitHubContextFor } from '#src/expressions.ts';
 import type { RunnerLabel, Shell } from '#src/nominal.ts';
 import type { DefaultsProps, StringMap } from '#src/types.ts';
 import { renameKeys, type Writable } from '#src/utils.ts';
 import { addJobValidation } from '#src/validation.ts';
-import type { Permissions, Workflow } from '#src/workflow.ts';
+import type { Permissions, Workflow, WorkflowTrigger } from '#src/workflow.ts';
 
 /**
  * Credentials to connect to a Docker registry with.
@@ -41,16 +41,18 @@ export interface RunnerGroupConfig {
   readonly labels?: RunnerLabel[];
 }
 
-export interface StepBase {
+export type IfCondition<TOn = unknown> = Expression<boolean> | ((github: GitHubContextFor<TOn>) => Expression<boolean>);
+
+export interface StepBase<TOn = unknown> {
   readonly id?: string;
   readonly name?: string;
-  readonly if?: Expression<boolean>;
+  readonly if?: IfCondition<TOn>;
   readonly env?: StringMap;
   readonly continueOnError?: boolean;
   readonly timeoutMinutes?: number;
 }
 
-export interface RunStep extends StepBase {
+export interface RunStep<TOn = unknown> extends StepBase<TOn> {
   readonly run: string;
   readonly shell?: Shell;
   readonly workingDirectory?: string;
@@ -58,7 +60,7 @@ export interface RunStep extends StepBase {
   readonly with?: never;
 }
 
-export interface UsesStep extends StepBase {
+export interface UsesStep<TOn = unknown> extends StepBase<TOn> {
   readonly uses: string;
   readonly with?: { [key: string]: string | number | boolean };
   readonly run?: never;
@@ -66,7 +68,7 @@ export interface UsesStep extends StepBase {
   readonly workingDirectory?: never;
 }
 
-export type StepConfig = RunStep | UsesStep;
+export type StepConfig<TOn = unknown> = RunStep<TOn> | UsesStep<TOn>;
 
 /** @deprecated Use StepConfig instead. */
 export type StepsProps = StepConfig;
@@ -79,7 +81,7 @@ export interface StepRef {
  * Wraps a step config with an `output()` method for type-safe step output references.
  * The step must have an `id` so that outputs can be resolved via `steps.<id>.outputs.<key>`.
  */
-export function step<T extends StepConfig & { readonly id: string }>(config: T): T & StepRef {
+export function step<T extends StepConfig<any> & { readonly id: string }>(config: T): T & StepRef {
   const ref: T & StepRef = {
     ...config,
     output(key: string): Expression<string> {
@@ -119,15 +121,15 @@ export function createMatrixProxy<TMatrix extends MatrixDefinition>(_matrix: TMa
 /**
  * Configuration for a single GitHub Action job.
  */
-export interface JobProps<TMatrix extends MatrixDefinition = MatrixDefinition> {
+export interface JobProps<TMatrix extends MatrixDefinition = MatrixDefinition, TOn extends WorkflowTrigger = WorkflowTrigger> {
   readonly name?: string;
   readonly needs?: string | string[];
   readonly runsOn?: RunnerLabel | RunnerLabel[] | RunnerGroupConfig | Expression<string>;
   readonly outputs?: StringMap;
   readonly env?: StringMap;
   readonly defaults?: DefaultsProps;
-  readonly if?: Expression<boolean>;
-  readonly steps?: StepConfig[];
+  readonly if?: IfCondition<TOn>;
+  readonly steps?: StepConfig<TOn>[];
   readonly secrets?: Record<string, string | Expression<string>> | 'inherit';
   readonly timeoutMinutes?: number;
   readonly strategy?: StrategyProps<TMatrix>;
@@ -137,23 +139,23 @@ export interface JobProps<TMatrix extends MatrixDefinition = MatrixDefinition> {
   readonly permissions?: Permissions;
   readonly environment?: EnvironmentConfig;
   readonly concurrency?: ConcurrencyConfig;
-  readonly uses?: Workflow | string;
+  readonly uses?: Workflow<any> | string;
   readonly with?: { [key: string]: string | number | boolean };
 }
 
 /**
  * Represents a GH Actions job.
  */
-export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Construct {
-  protected readonly action: Writable<JobProps<TMatrix>>;
+export class Job<TMatrix extends MatrixDefinition = MatrixDefinition, TOn extends WorkflowTrigger = WorkflowTrigger> extends Construct {
+  protected readonly action: Writable<JobProps<TMatrix, TOn>>;
   public readonly id: string;
   public if?: Expression<boolean>;
   public readonly matrix: MatrixProxy<TMatrix>;
 
-  public constructor(scope: Workflow, id: string, config: JobProps<TMatrix>) {
+  public constructor(scope: Workflow<TOn>, id: string, config: JobProps<TMatrix, TOn>) {
     super(scope, id);
     this.id = id;
-    this.action = config as Writable<JobProps<TMatrix>>;
+    this.action = config as Writable<JobProps<TMatrix, TOn>>;
     this.matrix = createMatrixProxy((config.strategy?.matrix ?? {}) as TMatrix);
     addJobValidation(this, () => ({
       id: this.id,
@@ -179,14 +181,15 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
     return this.action.name;
   }
 
-  get steps(): StepConfig[] {
-    return (this.action.steps || []) as StepConfig[];
+  get steps(): StepConfig<TOn>[] {
+    return (this.action.steps || []) as StepConfig<TOn>[];
   }
 
   public toGHAction(): any {
-    const { uses, runsOn, steps, strategy, ...rest } = this.action;
+    const { uses, runsOn, steps, strategy, if: propsIf, ...rest } = this.action;
 
-    const conditions = [this.if, this.action.if].filter((c): c is Expression<boolean> => c !== undefined);
+    const resolvedIf = typeof propsIf === 'function' ? propsIf(github as any) : propsIf;
+    const conditions = [this.if, resolvedIf].filter((c): c is Expression<boolean> => c !== undefined);
     const _if = conditions.length > 0 ? and(...conditions) : undefined;
 
     let serializedUses: string | undefined;
@@ -219,12 +222,13 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
       };
     }
 
-    const serializedSteps = steps?.map((step) => {
-      const { if: stepIf, ...stepRest } = step;
+    const serializedSteps = steps?.map((s) => {
+      const { if: stepIf, ...stepRest } = s;
+      const resolvedStepIf = typeof stepIf === 'function' ? stepIf(github as any) : stepIf;
       const serialized = renameKeys(stepRest, keyMap);
       return {
         ...serialized,
-        ...(stepIf !== undefined ? { if: stepIf } : {}),
+        ...(resolvedStepIf !== undefined ? { if: resolvedStepIf } : {}),
       };
     });
 
@@ -258,7 +262,7 @@ export class Job<TMatrix extends MatrixDefinition = MatrixDefinition> extends Co
   }
 
   public addDependency(
-    dependee: Job,
+    dependee: Job<any, any>,
     options?: {
       condition?: 'success' | 'failure' | 'always' | 'completed';
     },

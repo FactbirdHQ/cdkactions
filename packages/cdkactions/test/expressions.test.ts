@@ -238,6 +238,22 @@ const _eqType: Expression<boolean> = eq(github.ref, 'main');
 // not accepts and returns Expression<boolean>
 const _notType: Expression<boolean> = not(github.refProtected);
 
+// Type-level: InferEventPayload narrows event type correctly
+import type { InferEventPayload, GitHubContextFor, DeepExpression } from '#src/expressions.ts';
+import type { PullRequestEventPayload, WorkflowRunEventPayload } from '#src/expressions.ts';
+
+type _PRPayload = InferEventPayload<{ pullRequest: null }>;
+const _prDraft: DeepExpression<PullRequestEventPayload['pull_request']['draft']> =
+  {} as DeepExpression<_PRPayload['pull_request']['draft']>;
+
+type _WRPayload = InferEventPayload<{ workflowRun: { workflows: string[] } }>;
+const _wrConclusion: DeepExpression<WorkflowRunEventPayload['workflow_run']['conclusion']> =
+  {} as DeepExpression<_WRPayload['workflow_run']['conclusion']>;
+
+// GitHubContextFor narrows event property
+type _NarrowedCtx = GitHubContextFor<{ pullRequest: null }>;
+const _narrowedEvent: DeepExpression<PullRequestEventPayload> = {} as _NarrowedCtx['event'];
+
 // Suppress unused variable warnings
 void _refType;
 void _osType;
@@ -247,6 +263,9 @@ void _successType;
 void _failureType;
 void _eqType;
 void _notType;
+void _prDraft;
+void _wrConclusion;
+void _narrowedEvent;
 
 // --- Recursive proxy tests ---
 

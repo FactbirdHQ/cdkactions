@@ -241,6 +241,94 @@ export interface StrategyContext {
   readonly maxParallel: Expression<number>;
 }
 
+// --- Event payload types ---
+// Describe what github.event contains at runtime for each trigger type.
+// All extend Record<string, any> for access to unlisted properties.
+
+export interface PullRequestEventPayload extends Record<string, any> {
+  readonly pull_request: {
+    readonly draft: boolean;
+    readonly title: string;
+    readonly body: string | null;
+    readonly number: number;
+    readonly merged: boolean;
+    readonly head: { readonly ref: string; readonly sha: string; [key: string]: any };
+    readonly base: { readonly ref: string; readonly sha: string; [key: string]: any };
+    [key: string]: any;
+  };
+}
+
+export interface IssueCommentEventPayload extends Record<string, any> {
+  readonly comment: { readonly body: string; readonly id: number; [key: string]: any };
+  readonly issue: { readonly title: string; readonly body: string | null; readonly number: number; [key: string]: any };
+}
+
+export interface PullRequestReviewEventPayload extends Record<string, any> {
+  readonly review: { readonly body: string | null; readonly state: string; [key: string]: any };
+  readonly pull_request: PullRequestEventPayload['pull_request'];
+}
+
+export interface PullRequestReviewCommentEventPayload extends Record<string, any> {
+  readonly comment: { readonly body: string; [key: string]: any };
+  readonly pull_request: PullRequestEventPayload['pull_request'];
+}
+
+export interface IssuesEventPayload extends Record<string, any> {
+  readonly issue: { readonly title: string; readonly body: string | null; readonly number: number; [key: string]: any };
+}
+
+export interface ReleaseEventPayload extends Record<string, any> {
+  readonly release: { readonly tag_name: string; readonly body: string | null; readonly name: string | null; [key: string]: any };
+}
+
+export interface WorkflowRunEventPayload extends Record<string, any> {
+  readonly workflow_run: {
+    readonly conclusion: string | null;
+    readonly name: string;
+    readonly head_branch: string;
+    [key: string]: any;
+  };
+}
+
+export interface PushEventPayload extends Record<string, any> {
+  readonly ref: string;
+  readonly before: string;
+  readonly after: string;
+  readonly commits: Array<{ readonly id: string; readonly message: string; [key: string]: any }>;
+}
+
+interface EventPayloadMap {
+  pullRequest: PullRequestEventPayload;
+  pullRequestTarget: PullRequestEventPayload;
+  pullRequestReview: PullRequestReviewEventPayload;
+  pullRequestReviewComment: PullRequestReviewCommentEventPayload;
+  issueComment: IssueCommentEventPayload;
+  issues: IssuesEventPayload;
+  release: ReleaseEventPayload;
+  workflowRun: WorkflowRunEventPayload;
+  push: PushEventPayload;
+}
+
+/**
+ * Infers the event payload type from the workflow's `on` configuration.
+ * Produces a union of matching payload types for multi-event triggers,
+ * or Record<string, any> for unmapped events.
+ */
+export type InferEventPayload<TOn> = TOn extends string | string[]
+  ? Record<string, any>
+  : TOn extends object
+    ? keyof TOn & keyof EventPayloadMap extends never
+      ? Record<string, any>
+      : EventPayloadMap[keyof TOn & keyof EventPayloadMap]
+    : Record<string, any>;
+
+/**
+ * A GitHubContext with `event` narrowed based on the workflow's trigger configuration.
+ */
+export type GitHubContextFor<TOn> = Omit<GitHubContext, 'event'> & {
+  readonly event: DeepExpression<InferEventPayload<TOn>>;
+};
+
 /** GitHub context — properties of the workflow run and triggering event. */
 export const github: GitHubContext = createContextProxy<GitHubContext>('github', true);
 

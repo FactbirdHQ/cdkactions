@@ -699,8 +699,36 @@ test('step() output serializes correctly in resolveTokens', () => {
   expect((resolved as any).url).toBe('${{ steps.check.outputs.result }}');
 });
 
+test('job if with function form resolves to expression', () => {
+  const job = new Job(TestingWorkflow(), 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    if: (gh) => eq(gh.eventName, 'push'),
+    steps: [{ name: 'Run', run: 'echo ok' }],
+  });
+  const ghAction = serialize(job);
+  expect(ghAction.if).toBe("github.event_name == 'push'");
+});
+
+test('step if with function form resolves to expression', () => {
+  const job = new Job(TestingWorkflow(), 'test', {
+    runsOn: RunnerLabel.UBUNTU_LATEST,
+    steps: [
+      {
+        name: 'Run',
+        run: 'echo ok',
+        if: (gh) => eq(gh.eventName, 'push'),
+      },
+    ],
+  });
+  const ghAction = serialize(job);
+  expect(ghAction.steps[0].if).toBe("github.event_name == 'push'");
+});
+
 // Type-level: JobProps.if accepts Expression<boolean>
 const _jobIfExpr: Pick<JobProps, 'if'> = { if: expr<boolean>('true') };
+
+// Type-level: JobProps.if accepts function form
+const _jobIfFn: Pick<JobProps, 'if'> = { if: (gh) => eq(gh.eventName, 'push') };
 
 // Type-level: JobProps.if rejects raw string
 // @ts-expect-error - raw string should not be assignable to Expression<boolean>
