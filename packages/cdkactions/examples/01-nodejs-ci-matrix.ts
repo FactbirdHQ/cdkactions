@@ -1,7 +1,5 @@
-import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#src/index.ts';
+import { App, Stack, Workflow, Job, RunnerLabel } from '#src/index.ts';
 import { checkoutV4, setupNodeV6 } from '#src/actions.ts';
-
-const { matrix } = expression;
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -23,7 +21,7 @@ export function create(app?: App) {
       },
       failFast: false,
     },
-    steps: [
+    steps: (matrix) => [
       checkoutV4(),
       setupNodeV6({ id: 'setup-node', with: { nodeVersion: `${matrix.nodeVersion}` } }),
       { name: 'Install', run: 'npm ci' },

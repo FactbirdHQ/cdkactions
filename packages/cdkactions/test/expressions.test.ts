@@ -15,12 +15,10 @@ import {
   gt,
   gte,
   hashFiles,
-  inputs,
   job,
   join,
   lt,
   lte,
-  matrix,
   needs,
   neq,
   not,
@@ -84,11 +82,6 @@ test('secrets context returns correct expression strings', () => {
   expect(raw(secrets.MY_SECRET)).toBe('secrets.MY_SECRET');
 });
 
-test('matrix context returns correct expression strings', () => {
-  expect(raw(matrix.os)).toBe('matrix.os');
-  expect(raw(matrix.node)).toBe('matrix.node');
-});
-
 test('needs context returns correct expression strings', () => {
   expect(raw(needs.build)).toBe('needs.build');
   expect(raw(needs.test)).toBe('needs.test');
@@ -97,11 +90,6 @@ test('needs context returns correct expression strings', () => {
 test('steps context returns correct expression strings', () => {
   expect(raw(steps.checkout)).toBe('steps.checkout');
   expect(raw(steps.build)).toBe('steps.build');
-});
-
-test('inputs context returns correct expression strings', () => {
-  expect(raw(inputs.environment)).toBe('inputs.environment');
-  expect(raw(inputs.dryRun)).toBe('inputs.dryRun');
 });
 
 test('vars context returns correct expression strings', () => {
@@ -172,12 +160,12 @@ test('format produces correct expression', () => {
 });
 
 test('join produces correct expression without separator', () => {
-  const arr = matrix.os as unknown as Expression<string[]>;
+  const arr = expr<string[]>('matrix.os');
   expect(raw(join(arr))).toBe('join(matrix.os)');
 });
 
 test('join produces correct expression with separator', () => {
-  const arr = matrix.os as unknown as Expression<string[]>;
+  const arr = expr<string[]>('matrix.os');
   expect(raw(join(arr, ', '))).toBe("join(matrix.os, ', ')");
 });
 

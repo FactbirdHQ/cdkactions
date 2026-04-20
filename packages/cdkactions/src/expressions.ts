@@ -210,11 +210,6 @@ export interface SecretsContext {
   readonly [key: string]: DeepExpression<string>;
 }
 
-export interface MatrixContext {
-  /** Access a matrix variable by name. */
-  readonly [key: string]: DeepExpression<unknown>;
-}
-
 export interface NeedsContext {
   /** Access a dependent job's context by job ID. */
   readonly [key: string]: DeepExpression<{
@@ -230,11 +225,6 @@ export interface StepsContext {
     readonly outcome: string;
     readonly conclusion: string;
   }>;
-}
-
-export interface InputsContext {
-  /** Access a workflow input by name. */
-  readonly [key: string]: DeepExpression<string>;
 }
 
 export interface VarsContext {
@@ -360,17 +350,11 @@ export const env: EnvContext = createContextProxy<EnvContext>('env');
 /** Secrets context. Keys are passed through as-is. */
 export const secrets: SecretsContext = createContextProxy<SecretsContext>('secrets');
 
-/** Matrix context — current matrix combination values. Keys are passed through as-is. */
-export const matrix: MatrixContext = createContextProxy<MatrixContext>('matrix');
-
 /** Needs context — outputs and results of dependent jobs. Keys are passed through as-is. */
 export const needs: NeedsContext = createContextProxy<NeedsContext>('needs');
 
 /** Steps context — outputs and status of previous steps. Keys are passed through as-is. */
 export const steps: StepsContext = createContextProxy<StepsContext>('steps');
-
-/** Inputs context — workflow dispatch or reusable workflow inputs. Keys are passed through as-is. */
-export const inputs: InputsContext = createContextProxy<InputsContext>('inputs');
 
 /** Configuration variables context. Keys are passed through as-is. */
 export const vars: VarsContext = createContextProxy<VarsContext>('vars');
@@ -542,10 +526,8 @@ export const expression = Object.assign(expr, {
   runner,
   env,
   secrets,
-  matrix,
   needs,
   steps,
-  inputs,
   vars,
   job,
   strategy,

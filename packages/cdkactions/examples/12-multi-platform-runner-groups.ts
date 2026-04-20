@@ -1,7 +1,5 @@
-import { App, Stack, Workflow, Job, RunnerLabel, expression } from '#src/index.ts';
+import { App, Stack, Workflow, Job, RunnerLabel } from '#src/index.ts';
 import { checkoutV4 } from '#src/actions.ts';
-
-const { matrix } = expression;
 
 export function create(app?: App) {
   const _app = app ?? new App();
@@ -24,7 +22,7 @@ export function create(app?: App) {
     },
     continueOnError: true,
     timeoutMinutes: 60,
-    steps: [checkoutV4(), { name: 'Build', run: `make build ARCH=${matrix.arch}` }],
+    steps: (matrix) => [checkoutV4(), { name: 'Build', run: `make build ARCH=${matrix.arch}` }],
   });
 
   return _app;
