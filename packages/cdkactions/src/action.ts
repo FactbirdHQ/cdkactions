@@ -36,7 +36,7 @@ type ActionCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutp
 
 export interface TypedUsesStep<TOutputs extends ActionOutputs = ActionOutputs>
   extends Omit<UsesStep, 'run' | 'shell' | 'workingDirectory'> {
-  output<K extends keyof TOutputs & string>(key: K): Expression<string>;
+  readonly outputs: { readonly [K in keyof TOutputs & string]: Expression<string> };
 }
 
 type HasRequiredCallOptions<TInputs extends ActionInputs, TOutputs extends ActionOutputs> = [
@@ -71,8 +71,18 @@ export function defineAction<
     const { id: stepId, name, if: ifProp, env, continueOnError, timeoutMinutes, with: withProp } = options ?? {};
 
     const serializedWith = withProp
-      ? Object.fromEntries(Object.entries<string | number | boolean>(withProp).map(([k, v]) => [camelToKebab(k), v]))
+      ? Object.fromEntries(Object.entries<ActionInputValue>(withProp).map(([k, v]) => [camelToKebab(k), v]))
       : undefined;
+
+    const outputs = new Proxy({} as TypedUsesStep<TOutputs>['outputs'], {
+      get(_target, prop: string | symbol): unknown {
+        if (typeof prop === 'symbol') return undefined;
+        if (!stepId) {
+          throw new Error('Cannot access outputs on a step without an id');
+        }
+        return expr<string>(`steps.${stepId}.outputs.${prop}`);
+      },
+    });
 
     const step: TypedUsesStep<TOutputs> = {
       ...(stepId !== undefined && { id: stepId }),
@@ -83,14 +93,9 @@ export function defineAction<
       ...(env !== undefined && { env }),
       ...(continueOnError !== undefined && { continueOnError }),
       ...(timeoutMinutes !== undefined && { timeoutMinutes }),
-      output<K extends keyof TOutputs & string>(key: K): Expression<string> {
-        if (!stepId) {
-          throw new Error('Cannot access outputs on a step without an id');
-        }
-        return expr<string>(`steps.${stepId}.outputs.${key}`);
-      },
+      outputs,
     };
-    Object.defineProperty(step, 'output', { enumerable: false });
+    Object.defineProperty(step, 'outputs', { enumerable: false });
 
     return step;
   };

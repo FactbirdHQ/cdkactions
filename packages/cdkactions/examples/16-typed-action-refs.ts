@@ -65,9 +65,9 @@ export function create(app?: App) {
     with: { name: 'dist', path: 'dist/' },
   });
 
-  co.output('commit');
-  node.output('cacheHit');
-  upload.output('artifactId');
+  co.outputs.commit;
+  node.outputs.cacheHit;
+  upload.outputs.artifactId;
 
   new Job(workflow, 'build', {
     runsOn: RunnerLabel.UBUNTU_LATEST,
@@ -84,4 +84,4 @@ checkoutV4({ id: 'x', with: { branchName: 'main' } });
 uploadArtifactV4({ id: 'x', with: { path: 'dist/' } });
 
 // @ts-expect-error — 'digest' is not an output of checkout
-checkoutV4({ id: 'x' }).output('digest');
+checkoutV4({ id: 'x' }).outputs.digest;

@@ -267,7 +267,7 @@ export interface WorkflowCallSecretProps {
 
 export interface WorkflowCallOutputProps {
   readonly description: string;
-  readonly value: string;
+  readonly value: string | AnyExpression<string>;
 }
 
 export interface WorkflowCallEventProps {
@@ -383,6 +383,15 @@ export class Workflow<TOn extends WorkflowTrigger = WorkflowTrigger> extends Con
       name: this.action.name,
       on: this.action.on,
     }));
+  }
+
+  public registerOutput(name: string, description: string, value: string | AnyExpression<string>): void {
+    const on = this.action.on as any;
+    if (!on?.workflowCall) {
+      throw new Error('Workflow outputs are only supported on workflowCall triggers');
+    }
+    on.workflowCall.outputs ??= {};
+    on.workflowCall.outputs[name] = { description, value };
   }
 
   public addDependency(dependee: Workflow<any>) {

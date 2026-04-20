@@ -1,11 +1,9 @@
-import type { StringMap } from '#src/types.ts';
-
 export type Writable<T> = T extends Function ? T : T extends object ? { -readonly [K in keyof T]: Writable<T[K]> } : T;
 
 /**
  * A helper function to recursively rename keys within an object
  */
-export const renameKeys = (obj: any, newKeys: StringMap) => {
+export const renameKeys = (obj: any, newKeys: Record<string, string>) => {
   if (obj === null) {
     return null;
   }
