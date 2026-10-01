@@ -14,6 +14,10 @@
     enable = true;
     config.programs.biome.enable = true;
     config.programs.biome.formatCommand = "format";
+    # treefmt-nix only knows the schemas of Biome 1.x and 2.3.x and falls back
+    # to 2.1.2 for anything else, which rejects options 2.4 accepts. The schema
+    # shipped in the Biome source always matches pkgs.biome.
+    config.programs.biome.validate.schema = "${pkgs.biome.src}/packages/@biomejs/biome/configuration_schema.json";
     config.programs.biome.settings = {
       formatter = {
         indentStyle = "space";
