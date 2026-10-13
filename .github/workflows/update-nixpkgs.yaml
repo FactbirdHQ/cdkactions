@@ -1,0 +1,23 @@
+name: Update nixpkgs
+
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v23
+      - uses: DeterminateSystems/update-flake-lock@v29
+        with:
+          inputs: nixpkgs
+          branch: chore/update-nixpkgs
+          commit-msg: "chore(nix): update nixpkgs"
+          pr-title: "chore(nix): update nixpkgs"
