@@ -129,6 +129,24 @@ const cachixActionV16 = defineAction<{ name: { required: true }; authToken: { de
 );
 ```
 
+### Pinning an action to a commit
+
+A tag such as `@v7` can be moved by whoever controls the action's repository. `.pinned(sha, version)` returns the same typed action at an exact commit, so its steps emit `uses: <action>@<sha>` and keep their typed inputs and outputs. `sha` must be the full 40-character lowercase hex commit, or `pinned()` throws while the app synthesizes. `version` names the release tag at that commit and never reaches the YAML.
+
+```typescript
+import { checkoutV7, createGithubAppTokenV3, secrets } from '@factbird/cdkactions';
+
+const checkout = checkoutV7.pinned('3d3c42e5aac5ba805825da76410c181273ba90b1', 'v7.0.1');
+const appToken = createGithubAppTokenV3.pinned('64ab729a6294000f5aa4a4bc0b73d1f32bc45510', 'v3.3.0');
+
+const token = appToken({ id: 'app-token', with: { clientId: secrets.APP_ID, privateKey: secrets.APP_PEM } });
+const steps = [token, checkout({ id: 'checkout', with: { token: token.outputs.token, fetchDepth: 0 } })];
+// uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
+// uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+```
+
+Keep each pin in one shared module so a bump touches one line.
+
 ## Features
 
 | Feature | Description | Example |
