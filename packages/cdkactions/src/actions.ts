@@ -151,9 +151,9 @@ export const cacheV4 = defineAction<
     saveAlways: { default: string };
   },
   {
-    cacheHit: {};
+    'cache-hit': { description: string };
   }
->('actions/cache@v4');
+>('actions/cache@v4', { verbatimInputs: ['enableCrossOsArchive'] });
 
 export const setupNodeV6 = defineAction<
   {
@@ -266,16 +266,74 @@ export const setupRubyV1 = defineAction<
 export const createGithubAppTokenV3 = defineAction<
   {
     clientId: { default: string };
+    appId: { default: string };
     privateKey: { required: true };
     owner: { default: string };
     repositories: { default: string };
+    enterprise: { default: string };
     skipTokenRevoke: { default: string };
     githubApiUrl: { default: string };
+    permissionActions: { default: string };
+    permissionAdministration: { default: string };
+    permissionArtifactMetadata: { default: string };
+    permissionAttestations: { default: string };
+    permissionChecks: { default: string };
+    permissionCodeQuality: { default: string };
+    permissionCodespaces: { default: string };
+    permissionContents: { default: string };
+    permissionCustomPropertiesForOrganizations: { default: string };
+    permissionDependabotSecrets: { default: string };
+    permissionDeployments: { default: string };
+    permissionDiscussions: { default: string };
+    permissionEmailAddresses: { default: string };
+    permissionEnterpriseCustomPropertiesForOrganizations: { default: string };
+    permissionEnvironments: { default: string };
+    permissionFollowers: { default: string };
+    permissionGitSshKeys: { default: string };
+    permissionGpgKeys: { default: string };
+    permissionInteractionLimits: { default: string };
+    permissionIssues: { default: string };
+    permissionMembers: { default: string };
+    permissionMergeQueues: { default: string };
+    permissionMetadata: { default: string };
+    permissionOrganizationAdministration: { default: string };
+    permissionOrganizationAnnouncementBanners: { default: string };
+    permissionOrganizationCopilotAgentSettings: { default: string };
+    permissionOrganizationCopilotSeatManagement: { default: string };
+    permissionOrganizationCustomOrgRoles: { default: string };
+    permissionOrganizationCustomProperties: { default: string };
+    permissionOrganizationCustomRoles: { default: string };
+    permissionOrganizationEvents: { default: string };
+    permissionOrganizationExternalPropertiesForRepos: { default: string };
+    permissionOrganizationHooks: { default: string };
+    permissionOrganizationPackages: { default: string };
+    permissionOrganizationPersonalAccessTokenRequests: { default: string };
+    permissionOrganizationPersonalAccessTokens: { default: string };
+    permissionOrganizationPlan: { default: string };
+    permissionOrganizationProjects: { default: string };
+    permissionOrganizationSecrets: { default: string };
+    permissionOrganizationSelfHostedRunners: { default: string };
+    permissionOrganizationUserBlocking: { default: string };
+    permissionPackages: { default: string };
+    permissionPages: { default: string };
+    permissionProfile: { default: string };
+    permissionPullRequests: { default: string };
+    permissionRepositoryCustomProperties: { default: string };
+    permissionRepositoryHooks: { default: string };
+    permissionRepositoryProjects: { default: string };
+    permissionSecretScanningAlerts: { default: string };
+    permissionSecrets: { default: string };
+    permissionSecurityEvents: { default: string };
+    permissionSingleFile: { default: string };
+    permissionStarring: { default: string };
+    permissionStatuses: { default: string };
+    permissionVulnerabilityAlerts: { default: string };
+    permissionWorkflows: { default: string };
   },
   {
     token: { description: string };
-    installationId: { description: string };
-    appSlug: { description: string };
+    'installation-id': { description: string };
+    'app-slug': { description: string };
   }
 >('actions/create-github-app-token@v3');
 
@@ -368,10 +426,13 @@ export const determinateNixV3 = defineAction<{
   sourceRevision: { default: string };
   sourceTag: { default: string };
   sourceUrl: { default: string };
+  sourceChecksumsUrl: { default: string };
+  sourceChecksumsSha256: { default: string };
   backtrace: { default: string };
   diagnosticEndpoint: { default: string };
   logDirectives: { default: string };
   logger: { default: string };
+  _internalStrictMode: { default: string };
 }>('DeterminateSystems/determinate-nix-action@v3');
 
 export const installNixActionV31 = defineAction<{
@@ -383,3 +444,281 @@ export const installNixActionV31 = defineAction<{
   enable_kvm: { default: string };
   set_as_trusted_user: { default: string };
 }>('cachix/install-nix-action@v31');
+
+export const checkoutV7 = defineAction<
+  {
+    repository: { default: string };
+    ref: { default: string };
+    token: { default: string };
+    sshKey: { default: string };
+    sshKnownHosts: { default: string };
+    sshStrict: { default: string };
+    sshUser: { default: string };
+    persistCredentials: { default: string };
+    path: { default: string };
+    clean: { default: string };
+    filter: { default: string };
+    sparseCheckout: { default: string };
+    sparseCheckoutConeMode: { default: string };
+    fetchDepth: { default: string };
+    fetchTags: { default: string };
+    showProgress: { default: string };
+    lfs: { default: string };
+    submodules: { default: string };
+    setSafeDirectory: { default: string };
+    githubServerUrl: { default: string };
+    allowUnsafePrCheckout: { default: string };
+  },
+  {
+    ref: { description: string };
+    commit: { description: string };
+  }
+>('actions/checkout@v7');
+
+export const nixInstallerActionV23 = defineAction<{
+  backtrace: { default: string };
+  determinate: { default: string };
+  extraArgs: { default: string };
+  extraConf: { default: string };
+  flakehub: { default: string };
+  forceNoSystemd: { default: string };
+  githubToken: { default: string };
+  githubServerUrl: { default: string };
+  init: { default: string };
+  jobStatus: { default: string };
+  kvm: { default: string };
+  localRoot: { default: string };
+  logDirectives: { default: string };
+  logger: { default: string };
+  sslCertFile: { default: string };
+  proxy: { default: string };
+  macCaseSensitive: { default: string };
+  macEncrypt: { default: string };
+  macRootDisk: { default: string };
+  macVolumeLabel: { default: string };
+  modifyProfile: { default: string };
+  nixBuildGroupId: { default: string };
+  nixBuildGroupName: { default: string };
+  nixBuildUserBase: { default: string };
+  nixBuildUserCount: { default: string };
+  nixBuildUserPrefix: { default: string };
+  sourceBinary: { default: string };
+  sourceBranch: { default: string };
+  sourcePr: { default: string };
+  sourceRevision: { default: string };
+  sourceTag: { default: string };
+  sourceUrl: { default: string };
+  sourceChecksumsUrl: { default: string };
+  sourceChecksumsSha256: { default: string };
+  nixPackageUrl: { default: string };
+  planner: { default: string };
+  reinstall: { default: string };
+  startDaemon: { default: string };
+  diagnosticEndpoint: { default: string };
+  trustRunnerUser: { default: string };
+  summarize: { default: string };
+  nixInstallerBranch: { default: string };
+  nixInstallerPr: { default: string };
+  nixInstallerRevision: { default: string };
+  nixInstallerTag: { default: string };
+  nixInstallerUrl: { default: string };
+  _internalStrictMode: { default: string };
+}>('DeterminateSystems/nix-installer-action@v23');
+
+export const updateFlakeLockV29 = defineAction<
+  {
+    inputs: { default: string };
+    token: { default: string };
+    commitMsg: { default: string };
+    base: { default: string };
+    branch: { default: string };
+    pushToFork: { default: string };
+    pathToFlakeDir: { default: string };
+    prTitle: { default: string };
+    prBody: { default: string };
+    prLabels: { default: string };
+    prAssignees: { default: string };
+    prReviewers: { default: string };
+    gitAuthorName: { default: string };
+    gitAuthorEmail: { default: string };
+    gitCommitterName: { default: string };
+    gitCommitterEmail: { default: string };
+    signCommits: { default: string };
+    gpgPrivateKey: { default: string };
+    gpgFingerprint: { default: string };
+    gpgPassphrase: { default: string };
+    nixOptions: { default: string };
+    _internalStrictMode: { default: string };
+  },
+  {
+    'pull-request-number': { description: string };
+    'pull-request-url': { description: string };
+    'pull-request-operation': { description: string };
+  }
+>('DeterminateSystems/update-flake-lock@v29');
+
+export const createPullRequestV8 = defineAction<
+  {
+    token: { default: string };
+    branchToken: { default: string };
+    path: { default: string };
+    addPaths: { default: string };
+    commitMessage: { default: string };
+    committer: { default: string };
+    author: { default: string };
+    signoff: { default: string };
+    branch: { default: string };
+    deleteBranch: { default: string };
+    branchSuffix: { default: string };
+    base: { default: string };
+    pushToFork: { default: string };
+    signCommits: { default: string };
+    title: { default: string };
+    body: { default: string };
+    bodyPath: { default: string };
+    labels: { default: string };
+    assignees: { default: string };
+    reviewers: { default: string };
+    teamReviewers: { default: string };
+    milestone: { default: string };
+    draft: { default: string };
+    maintainerCanModify: { default: string };
+  },
+  {
+    'pull-request-number': { description: string };
+    'pull-request-url': { description: string };
+    'pull-request-operation': { description: string };
+    'pull-request-head-sha': { description: string };
+    'pull-request-branch': { description: string };
+  }
+>('peter-evans/create-pull-request@v8');
+
+export const cachixActionV16 = defineAction<{
+  name: { required: true };
+  extraPullNames: { default: string };
+  authToken: { default: string };
+  signingKey: { default: string };
+  skipPush: { default: string };
+  useDaemon: { default: string };
+  pathsToPush: { default: string };
+  pushFilter: { default: string };
+  skipAddingSubstituter: { default: string };
+  cachixArgs: { default: string };
+  cachixBin: { default: string };
+  installCommand: { default: string };
+}>('cachix/cachix-action@v16', {
+  verbatimInputs: [
+    'extraPullNames',
+    'authToken',
+    'signingKey',
+    'skipPush',
+    'useDaemon',
+    'pathsToPush',
+    'pushFilter',
+    'skipAddingSubstituter',
+    'cachixArgs',
+    'cachixBin',
+    'installCommand',
+  ],
+});
+
+export const configureAwsCredentialsV6 = defineAction<
+  {
+    awsRegion: { required: true };
+    awsProfile: { default: string };
+    overwriteAwsProfile: { default: string };
+    roleToAssume: { default: string };
+    awsAccessKeyId: { default: string };
+    awsSecretAccessKey: { default: string };
+    awsSessionToken: { default: string };
+    webIdentityTokenFile: { default: string };
+    roleChaining: { default: string };
+    audience: { default: string };
+    httpProxy: { default: string };
+    noProxy: { default: string };
+    maskAwsAccountId: { default: string };
+    roleDurationSeconds: { default: string };
+    roleExternalId: { default: string };
+    roleSessionName: { default: string };
+    roleSkipSessionTagging: { default: string };
+    transitiveTagKeys: { default: string };
+    inlineSessionPolicy: { default: string };
+    managedSessionPolicies: { default: string };
+    outputCredentials: { default: string };
+    outputEnvCredentials: { default: string };
+    unsetCurrentCredentials: { default: string };
+    disableRetry: { default: string };
+    retryMaxAttempts: { default: string };
+    specialCharactersWorkaround: { default: string };
+    useExistingCredentials: { default: string };
+    allowedAccountIds: { default: string };
+    forceSkipOidc: { default: string };
+    actionTimeoutS: { default: string };
+    customTags: { default: string };
+    stsEndpoint: { default: string };
+    translateEnvVariables: { default: string };
+  },
+  {
+    'aws-account-id': { description: string };
+    'aws-access-key-id': { description: string };
+    'aws-secret-access-key': { description: string };
+    'aws-session-token': { description: string };
+    'aws-expiration': { description: string };
+  }
+>('aws-actions/configure-aws-credentials@v6');
+
+export const setupBunV2 = defineAction<
+  {
+    bunVersion: { default: string };
+    bunVersionFile: { default: string };
+    bunDownloadUrl: { default: string };
+    registries: { default: string };
+    registryUrl: { default: string };
+    scope: { default: string };
+    noCache: { default: string };
+    token: { default: string };
+  },
+  {
+    'bun-version': { description: string };
+    'bun-revision': { description: string };
+    'bun-path': { description: string };
+    'bun-download-url': { description: string };
+    'cache-hit': { description: string };
+  }
+>('oven-sh/setup-bun@v2');
+
+export const uploadArtifactV7 = defineAction<
+  {
+    name: { default: string };
+    path: { required: true };
+    ifNoFilesFound: { default: string };
+    retentionDays: { default: string };
+    compressionLevel: { default: string };
+    overwrite: { default: string };
+    includeHiddenFiles: { default: string };
+    archive: { default: string };
+  },
+  {
+    'artifact-id': { description: string };
+    'artifact-url': { description: string };
+    'artifact-digest': { description: string };
+  }
+>('actions/upload-artifact@v7');
+
+export const downloadArtifactV8 = defineAction<
+  {
+    name: { default: string };
+    artifactIds: { default: string };
+    path: { default: string };
+    pattern: { default: string };
+    mergeMultiple: { default: string };
+    githubToken: { default: string };
+    repository: { default: string };
+    runId: { default: string };
+    skipDecompress: { default: string };
+    digestMismatch: { default: string };
+  },
+  {
+    'download-path': { description: string };
+  }
+>('actions/download-artifact@v8');
