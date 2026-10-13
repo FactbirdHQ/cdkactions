@@ -12,6 +12,11 @@
   ],
   "scripts": {
     "build": "bun run --filter '*' build",
-    "clean": "bun run --filter '*' clean"
+    "clean": "bun run --filter '*' clean",
+    "synth:workflows": "bun run --filter @factbird/cdkactions build && bun cicd/main.ts"
+  },
+  "devDependencies": {
+    "@factbird/cdkactions": "workspace:*",
+    "constructs": "^10.4.2"
   }
 }

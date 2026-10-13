@@ -1,0 +1,29 @@
+version: 2
+
+# A `cooldown` is set to reduce the risk of getting affected by supply chain attacks.
+# It does not apply to security updates.
+updates:
+  - package-ecosystem: bun
+    directory: '/'
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      bun:
+        patterns:
+          - '*'
+  # Dependabot skips the FlakeHub nixpkgs input; cicd/main.ts generates the workflow that bumps it.
+  - package-ecosystem: nix
+    directory: '/'
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      nix:
+        patterns:
+          - '*'
