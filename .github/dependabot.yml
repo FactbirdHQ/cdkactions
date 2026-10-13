@@ -29,7 +29,7 @@ updates:
       github-actions:
         patterns:
           - '*'
-  # Dependabot skips the FlakeHub nixpkgs input; update-nixpkgs.yaml bumps it.
+  # Dependabot skips the FlakeHub nixpkgs input; cicd/main.ts generates the workflow that bumps it.
   - package-ecosystem: nix
     directory: '/'
     schedule:

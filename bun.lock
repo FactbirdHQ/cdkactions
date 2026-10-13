@@ -4,6 +4,10 @@
   "workspaces": {
     "": {
       "name": "cdkactions",
+      "devDependencies": {
+        "@factbird/cdkactions": "workspace:*",
+        "constructs": "^10.4.2",
+      },
     },
     "packages/cdkactions": {
       "name": "@factbird/cdkactions",
