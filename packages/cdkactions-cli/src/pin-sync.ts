@@ -53,6 +53,11 @@ export interface SyncResult {
   readonly rewrites: readonly PinRewrite[];
   /** Bumps the sources already carry, so nothing was rewritten for them. */
   readonly alreadyCarried: readonly PinBump[];
+  /**
+   * Bumps of a pin the library owns, such as a `DependabotActionPinSync` step left at its default.
+   * No source edit moves those, so a resynth would write the old pin back.
+   */
+  readonly libraryOwned: readonly PinBump[];
   readonly errors: readonly string[];
 }
 
@@ -217,12 +222,14 @@ export function syncPins(
   bumps: readonly PinBump[],
   versions: ReadonlyMap<string, string | undefined>,
   helpers: ReadonlyMap<string, string> = new Map(),
+  libraryPins: ReadonlySet<string> = new Set(),
 ): SyncResult {
   let files = [...sources];
   const rewrites: PinRewrite[] = [];
   const alreadyCarried: PinBump[] = [];
+  const libraryOwned: PinBump[] = [];
   const errors = findUnpinnedBumps(bumps);
-  if (errors.length > 0) return { files, rewrites, alreadyCarried, errors };
+  if (errors.length > 0) return { files, rewrites, alreadyCarried, libraryOwned, errors };
 
   for (const bump of bumps) {
     const version = versions.get(bump.newRef);
@@ -243,8 +250,12 @@ export function syncPins(
       return { path: file.path, text: applyEdits(file.text, edits) };
     });
 
+    const ownedByLibrary = libraryPins.has(`${bump.action}@${bump.oldRef}`);
+    if (ownedByLibrary) libraryOwned.push(bump);
     if (locations.length > 0) {
       rewrites.push({ bump, version, locations });
+    } else if (ownedByLibrary) {
+      // Reported through libraryOwned; no source holds it, so it is neither carried nor drift.
     } else if (carried) {
       alreadyCarried.push(bump);
     } else {
@@ -254,7 +265,15 @@ export function syncPins(
     }
   }
 
-  return { files, rewrites, alreadyCarried, errors };
+  return { files, rewrites, alreadyCarried, libraryOwned, errors };
+}
+
+export function describeLibraryOwnedBump(bump: PinBump): string {
+  return (
+    `${bump.action} ${bump.oldRef} -> ${bump.newRef}: a DependabotActionPinSync step runs this action at the ` +
+    `cdkactions library's pin rather than a source pin, so a resynth would write ${bump.oldRef} back into its workflow. ` +
+    "Pass the action through the construct's `actions` prop, or wait for a cdkactions release that ships the new pin."
+  );
 }
 
 export interface PinVerification {

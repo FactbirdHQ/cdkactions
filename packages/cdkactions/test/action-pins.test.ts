@@ -3,7 +3,10 @@ import { usePinnedActionChecker } from '#src/action-pins.ts';
 import {
   checkoutV7,
   checkPinnedActions,
+  classifyProcessFailure,
+  createGitHubTags,
   type GitHubTags,
+  type RunFile,
   Job,
   RunnerLabel,
   Stack,
@@ -173,4 +176,65 @@ test('synth fails when a read fails partway through', () => {
     steps: [setupBunV2.pinned(BUN_SHA, 'v2.2.0')({ id: 'bun' })],
   });
   expect(() => app.synth()).toThrow(/Connection reset/);
+});
+
+function failedProcess(fields: Record<string, unknown>): Error {
+  return Object.assign(new Error(String(fields.message ?? 'Command failed')), fields);
+}
+
+function throwingRun(error: Error): RunFile {
+  return () => {
+    throw error;
+  };
+}
+
+test('a process that cannot start is a spawn failure, not an unreachable GitHub', () => {
+  for (const code of ['ENOENT', 'EPERM', 'EACCES']) {
+    const error = failedProcess({ code, status: null, signal: null, message: `spawnSync git ${code}` });
+    expect(classifyProcessFailure(error)).toEqual({ kind: 'spawn', errno: code, detail: `spawnSync git ${code}` });
+    expect(() => createGitHubTags(throwingRun(error)).probe('actions/checkout')).toThrow(
+      `could not start git (${code}) to read action tags: spawnSync git ${code}`,
+    );
+  }
+});
+
+test('a git exit that shows a resolve, connect or timeout failure means GitHub is unreachable', () => {
+  const stderrs = [
+    "fatal: unable to access 'https://github.com/actions/checkout/': Could not resolve host: github.com",
+    "fatal: unable to access 'https://github.com/actions/checkout/': Failed to connect to github.com port 443",
+  ];
+  for (const stderr of stderrs) {
+    const error = failedProcess({ status: 128, signal: null, stderr });
+    expect(classifyProcessFailure(error).kind).toBe('network');
+    expect(createGitHubTags(throwingRun(error)).probe('actions/checkout')).toBeUndefined();
+  }
+  const timeout = failedProcess({
+    code: 'ETIMEDOUT',
+    status: null,
+    signal: 'SIGTERM',
+    message: 'spawnSync git ETIMEDOUT',
+  });
+  expect(createGitHubTags(throwingRun(timeout)).probe('actions/checkout')).toBeUndefined();
+});
+
+test('any other git exit is an error', () => {
+  const error = failedProcess({ status: 128, signal: null, stderr: 'remote: Repository not found.' });
+  expect(() => createGitHubTags(throwingRun(error)).probe('factbird/nope')).toThrow(
+    'git ls-remote --tags https://github.com/factbird/nope failed: remote: Repository not found.',
+  );
+});
+
+test('a shell that cannot start fails the parallel read', () => {
+  const error = failedProcess({ code: 'EPERM', status: null, signal: null, message: 'spawnSync sh EPERM' });
+  expect(() => createGitHubTags(throwingRun(error)).listAll(['actions/checkout'])).toThrow(
+    'could not start sh (EPERM) to read action tags: spawnSync sh EPERM',
+  );
+});
+
+test('synth fails on a spawn failure even outside GitHub Actions', () => {
+  const tags = createGitHubTags(
+    throwingRun(failedProcess({ code: 'EPERM', status: null, signal: null, message: 'spawnSync git EPERM' })),
+  );
+  const { app } = synthWithPins(tags);
+  expect(() => withGitHubActions(undefined, () => app.synth())).toThrow(/could not start git \(EPERM\)/);
 });

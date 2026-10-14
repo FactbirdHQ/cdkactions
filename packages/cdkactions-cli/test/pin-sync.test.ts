@@ -1,5 +1,6 @@
 import type { GitHubTags } from '@factbird/cdkactions';
 import {
+  describeLibraryOwnedBump,
   findLocalDefinitions,
   findSourcePins,
   parseWorkflowBumps,
@@ -295,4 +296,58 @@ test('verifyPins reports a versioned typed pin of an unknown helper', () => {
   expect(result.problems).toEqual([
     `cicd/main.ts:1: mystery.pinned('${CHECKOUT_OLD}') is not a known action, so its tag cannot be checked`,
   ]);
+});
+
+const PIN_SYNC_WORKFLOW = '.github/workflows/cdkactions_dependabot-action-pins.yaml';
+
+test('a checkout passed through the construct moves every workflow from one source constant', () => {
+  const diff = [
+    workflowDiff('.github/workflows/cdkactions_ci.yaml', [['actions/checkout', CHECKOUT_OLD, CHECKOUT_NEW]]),
+    workflowDiff(PIN_SYNC_WORKFLOW, [['actions/checkout', CHECKOUT_OLD, CHECKOUT_NEW]]),
+  ].join('\n');
+  const bumps = parseWorkflowBumps(diff);
+  expect(bumps).toEqual([{ action: 'actions/checkout', oldRef: CHECKOUT_OLD, newRef: CHECKOUT_NEW }]);
+  const source = [
+    `const checkout = checkoutV7.pinned('${CHECKOUT_OLD}', 'v7.0.1');`,
+    "new DependabotActionPinSync(stack, 'dependabot-action-pins', { actions: { checkout }, sources, synthCommand });",
+  ].join('\n');
+  const result = syncPins(
+    [{ path: 'cicd/main.ts', text: source }],
+    bumps,
+    new Map([[CHECKOUT_NEW, 'v7.1.0']]),
+    helpers,
+    new Set(['actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9']),
+  );
+  expect(result.errors).toEqual([]);
+  expect(result.libraryOwned).toEqual([]);
+  expect(result.files[0].text.split('\n')[0]).toBe(`const checkout = checkoutV7.pinned('${CHECKOUT_NEW}', 'v7.1.0');`);
+});
+
+test('a bump of a library-default pin is reported as library-owned, not as drift', () => {
+  const bumps = parseWorkflowBumps(workflowDiff(PIN_SYNC_WORKFLOW, [['actions/checkout', CHECKOUT_OLD, CHECKOUT_NEW]]));
+  const libraryPins = new Set([`actions/checkout@${CHECKOUT_OLD}`]);
+  const other = { path: 'cicd/main.ts', text: `const aws = configureAwsCredentialsV6.pinned('${AWS_OLD}', 'v6.3.0');` };
+
+  const notInSources = syncPins([other], bumps, noVersions, helpers, libraryPins);
+  expect(notInSources.errors).toEqual([]);
+  expect(notInSources.libraryOwned).toEqual(bumps);
+  expect(notInSources.alreadyCarried).toEqual([]);
+  expect(notInSources.files[0].text).toBe(other.text);
+
+  const sharedWithSources = syncPins(
+    [{ path: 'cicd/main.ts', text: `const checkout = checkoutV7.pinned('${CHECKOUT_OLD}', 'v7.0.1');` }],
+    bumps,
+    new Map([[CHECKOUT_NEW, 'v7.1.0']]),
+    helpers,
+    libraryPins,
+  );
+  expect(sharedWithSources.errors).toEqual([]);
+  expect(sharedWithSources.libraryOwned).toEqual(bumps);
+  expect(sharedWithSources.files[0].text).toBe(`const checkout = checkoutV7.pinned('${CHECKOUT_NEW}', 'v7.1.0');`);
+
+  expect(describeLibraryOwnedBump(bumps[0])).toBe(
+    `actions/checkout ${CHECKOUT_OLD} -> ${CHECKOUT_NEW}: a DependabotActionPinSync step runs this action at the ` +
+      `cdkactions library's pin rather than a source pin, so a resynth would write ${CHECKOUT_OLD} back into its workflow. ` +
+      "Pass the action through the construct's `actions` prop, or wait for a cdkactions release that ships the new pin.",
+  );
 });

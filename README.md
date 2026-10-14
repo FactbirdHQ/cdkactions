@@ -135,7 +135,7 @@ A tag such as `@v7` can be moved by whoever controls the action's repository. `.
 
 `App.synth()` checks every pin that carries a version: it reads the action repository's tags with `git ls-remote --tags https://github.com/<owner>/<repo>`, peeling annotated tags through `^{}`, and fails unless the tag points at the pinned SHA. The error names the action, the SHA, the version and where the tag points now; a failure on a pin nobody changed means the tag moved after review. Each repository is read once per synth, the rest in parallel after the first answers. A pin without a version is not checked.
 
-- When GitHub cannot be reached, a local synth prints one warning naming the unverified pins and goes on.
+- When GitHub cannot be reached, a local synth prints one warning naming the unverified pins and goes on. Only a timeout or a git exit that shows a resolve or connect failure counts as unreachable; a `git` or `sh` that cannot start, such as `ENOENT` or `EPERM`, fails the synth everywhere and names the binary and the errno.
 - Under GitHub Actions (`GITHUB_ACTIONS=true`), an unreachable GitHub fails the synth. CI never skips the check, and a runner that cannot reach GitHub is broken anyway.
 - A read that fails after GitHub answered fails the synth everywhere, so a flaky network cannot leave the check half done.
 
@@ -158,7 +158,7 @@ Keep each pin in one shared module so a bump touches one line.
 Dependabot's `github-actions` ecosystem edits the generated `cdkactions_*.yaml` and never the TypeScript, so the next synth reverts its bump. `cdkactions sync-action-pins` carries each bump back:
 
 ```bash
-cdkactions sync-action-pins --base <pr-base-sha> [--workflows .github/workflows] <source files or globs...>
+cdkactions sync-action-pins --base <pr-base-sha> [--workflows .github/workflows] <source files or globs...> [--library-pin <action>@<sha>...]
 ```
 
 It reads `git diff <base> -- <workflows>` for `cdkactions_*` files, pairs each removed `uses: <action>@<old>` line with the added line for the same action (`<action>` may carry a subpath), and in the sources replaces both pinned forms:
@@ -168,10 +168,25 @@ It reads `git diff <base> -- <workflows>` for `cdkactions_*` files, pairs each r
 
 The version is the most specific semver tag that `git ls-remote --tags https://github.com/<owner>/<repo>` shows at the new commit (`v7.0.1` over `v7`). When no tag matches, the version stays as it was and the output says so. The command exits non-zero, writing nothing, when a new ref is not a 40-character commit SHA or when no source pins an old commit, since the sources and the workflows had then already drifted. A bump the sources already carry is reported and skipped.
 
+`--library-pin` names a pin the cdkactions library holds rather than the sources. A bump of one is reported as library-owned instead of as drift: no source edit can move it, so a resynth would write the old pin back. The command still rewrites every other pin, then exits with status 2 and names each library-owned action, so the pull request fails with that message rather than a silent revert or the generic drift check. `DependabotActionPinSync` passes its own default pins this way.
+
 `DependabotActionPinSync` emits the workflow that runs it on Dependabot's pull requests:
 
 ```typescript
-import { DependabotActionPinSync, setupBunV2 } from '@factbird/cdkactions';
+import {
+  checkoutV7,
+  createGithubAppTokenV3,
+  DependabotActionPinSync,
+  downloadArtifactV8,
+  setupBunV2,
+  uploadArtifactV7,
+} from '@factbird/cdkactions';
+
+// The constants every workflow in the repository uses.
+const checkout = checkoutV7.pinned('3d3c42e5aac5ba805825da76410c181273ba90b1', 'v7.0.1');
+const createGithubAppToken = createGithubAppTokenV3.pinned('64ab729a6294000f5aa4a4bc0b73d1f32bc45510', 'v3.3.0');
+const uploadArtifact = uploadArtifactV7.pinned('cf430e030ddbb5b0abf93d22962f4752f3646cd9', 'v7.0.2');
+const downloadArtifact = downloadArtifactV8.pinned('9000827ccba6bdab643e8b6fd33ac0654aef8333', 'v8.0.2');
 
 new DependabotActionPinSync(stack, 'dependabot-action-pins', {
   sources: ['cicd/**/*.ts'],
@@ -180,8 +195,11 @@ new DependabotActionPinSync(stack, 'dependabot-action-pins', {
     { name: 'Install', run: 'bun install --frozen-lockfile' },
   ],
   synthCommand: 'bun run synth:workflows',
+  actions: { checkout, createGithubAppToken, uploadArtifact, downloadArtifact },
 });
 ```
+
+Pass every action in `actions` that the repository also pins elsewhere, and ideally all four. Dependabot bumps an action in every generated workflow at once, the sync workflow included. With the action passed, one source constant moves them all and `sync-action-pins` rewrites it. An action left out runs at the library's pin, which only a cdkactions release can move, and its bump fails the pull request with the library-owned message above.
 
 | Prop | Default | |
 |------|---------|-|
@@ -193,6 +211,7 @@ new DependabotActionPinSync(stack, 'dependabot-action-pins', {
 | `appIdSecret`, `appPrivateKeySecret` | `APP_ID`, `APP_PEM` | The GitHub App that pushes the source change |
 | `repositories` | the current repository | Repositories the app token covers |
 | `runsOn` | `ubuntu-latest` | |
+| `actions` | the library's pins | `checkout`, `createGithubAppToken`, `uploadArtifact` and `downloadArtifact`, each pinned with `.pinned()` |
 
 The workflow has two jobs, and both run only when Dependabot opened the pull request, triggered the run, and pushed the head to this repository:
 
