@@ -88,6 +88,10 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         name: Carry the bumps into the source
         run: node packages/cdkactions-cli/bin/cdkactions sync-action-pins --base "$BASE_SHA" --workflows '.github/workflows' 'cicd/main.ts'
+      - env:
+          GITHUB_TOKEN: ${{ github.token }}
+        name: Verify every pin names a release at its commit
+        run: node packages/cdkactions-cli/bin/cdkactions verify-action-pins 'cicd/main.ts'
       - name: Synthesize
         run: bun run synth:workflows
       - name: Check the source reproduces the workflows

@@ -130,6 +130,11 @@ function addRegenerateJob(
         env: { BASE_SHA: expr<string>('github.event.pull_request.base.sha') },
         run: `${cliCommand} sync-action-pins --base "$BASE_SHA" --workflows ${shellQuote(workflowsDir)} ${sources}`,
       },
+      {
+        name: 'Verify every pin names a release at its commit',
+        env: { GITHUB_TOKEN: expr<string>('github.token') },
+        run: `${cliCommand} verify-action-pins ${sources}`,
+      },
       { name: 'Synthesize', run: props.synthCommand },
       {
         name: 'Check the source reproduces the workflows',

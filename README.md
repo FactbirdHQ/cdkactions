@@ -196,7 +196,7 @@ new DependabotActionPinSync(stack, 'dependabot-action-pins', {
 
 The workflow has two jobs, and both run only when Dependabot opened the pull request, triggered the run, and pushed the head to this repository:
 
-- `regenerate` checks out the head commit without persisted credentials, with a read-only token and no secrets, runs the setup steps, the command and the synth, fails unless the synthesized workflows match Dependabot's byte for byte, and uploads the changed source files.
+- `regenerate` checks out the head commit without persisted credentials, with a read-only token and no secrets, runs the setup steps, `sync-action-pins`, `verify-action-pins` and the synth, fails unless the synthesized workflows match Dependabot's byte for byte, and uploads the changed source files.
 - `push` checks nothing out and runs none of the pull request's code. It mints the app token, checks each file against `sources`, and writes it to the head branch through the contents API, failing if the branch moved past the commit `regenerate` read.
 
 Dependabot reads the app secrets from the repository's or organization's Dependabot secrets. The app's commit runs CI again, and Dependabot stops rebasing a pull request someone else pushed to, so `@dependabot recreate` is how to rebuild one.
