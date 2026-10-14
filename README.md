@@ -131,7 +131,7 @@ const cachixActionV16 = defineAction<{ name: { required: true }; authToken: { de
 
 ### Pinning an action to a commit
 
-A tag such as `@v7` can be moved by whoever controls the action's repository. `.pinned(sha, version)` returns the same typed action at an exact commit, so its steps emit `uses: <action>@<sha>` and keep their typed inputs and outputs. `sha` must be the full 40-character lowercase hex commit, or `pinned()` throws while the app synthesizes. `version` names the release tag at that commit and never reaches the YAML.
+A tag such as `@v7` can be moved by whoever controls the action's repository. `.pinned(sha, version)` returns the same typed action at an exact commit, so its steps emit `uses: <action>@<sha>` and keep their typed inputs and outputs. `sha` must be the full 40-character lowercase hex commit, or `pinned()` throws while the app synthesizes. `version` names the release tag at that commit; it never reaches the YAML, and `cdkactions sync-action-pins` rewrites it together with the SHA.
 
 ```typescript
 import { checkoutV7, createGithubAppTokenV3, secrets } from '@factbird/cdkactions';
@@ -146,6 +146,21 @@ const steps = [token, checkout({ id: 'checkout', with: { token: token.outputs.to
 ```
 
 Keep each pin in one shared module so a bump touches one line.
+
+### Carrying Dependabot's action bumps into the source
+
+Dependabot's `github-actions` ecosystem edits the generated `cdkactions_*.yaml` and never the TypeScript, so the next synth reverts its bump. `cdkactions sync-action-pins` carries each bump back:
+
+```bash
+cdkactions sync-action-pins --base <pr-base-sha> [--workflows .github/workflows] <source files or globs...>
+```
+
+It reads `git diff <base> -- <workflows>` for `cdkactions_*` files, pairs each removed `uses: <action>@<old>` line with the added line for the same action (`<action>` may carry a subpath), and in the sources replaces both pinned forms:
+
+- `'<action>@<old>', // <version>`, the plain string, rewriting the trailing version comment on that line,
+- `.pinned('<old>', '<version>')`, the typed form, rewriting both arguments.
+
+The version is the most specific semver tag that `git ls-remote --tags https://github.com/<owner>/<repo>` shows at the new commit (`v7.0.1` over `v7`). When no tag matches, the version stays as it was and the output says so. The command exits non-zero, writing nothing, when a new ref is not a 40-character commit SHA or when no source pins an old commit, since the sources and the workflows had then already drifted. A bump the sources already carry is reported and skipped.
 
 ## Features
 

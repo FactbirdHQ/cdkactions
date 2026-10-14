@@ -60,8 +60,9 @@ export interface ActionMembers<TInputs extends ActionInputs, TOutputs extends Ac
   readonly uses: string;
   readonly pin?: ActionPin;
   /**
-   * The same action at an exact commit, so its steps use `<action>@<sha>`. `version` names the
-   * release tag at that commit and never reaches the YAML.
+   * The same action at an exact commit, so its steps use `<action>@<sha>`. `version` never reaches
+   * the YAML; it names the release for readers and for `cdkactions sync-action-pins`, which rewrites
+   * both arguments when Dependabot bumps the action.
    */
   pinned(sha: string, version: string): Action<TInputs, TOutputs>;
 }
