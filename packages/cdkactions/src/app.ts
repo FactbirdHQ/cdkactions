@@ -111,7 +111,7 @@ export class App extends Construct {
     }
     if (result.problems.length > 0) {
       throw new Error(
-        `${result.problems.length} pinned action(s) failed verification:\n${result.problems.map((p) => `  - ${p}`).join('\n')}`,
+        `${result.problems.length} pinned action(s) failed verification:\n${result.problems.map((problem) => `  - ${problem.message}`).join('\n')}`,
       );
     }
   }

@@ -15,8 +15,17 @@ export interface GitHubTags {
   listAll(repositories: readonly string[]): Map<string, string>;
 }
 
+export interface PinProblem {
+  readonly pin: PinnedActionRef;
+  readonly message: string;
+}
+
 export type PinCheckResult =
-  | { readonly reachable: true; readonly problems: readonly string[]; readonly unversioned: readonly PinnedActionRef[] }
+  | {
+      readonly reachable: true;
+      readonly problems: readonly PinProblem[];
+      readonly unversioned: readonly PinnedActionRef[];
+    }
   | { readonly reachable: false; readonly unverified: readonly PinnedActionRef[] };
 
 const UNREACHABLE =
@@ -120,17 +129,22 @@ export function checkPinnedActions(pins: readonly PinnedActionRef[], tags: GitHu
   const outputs = tags.listAll(rest);
   outputs.set(probeRepository, probed);
 
-  const problems: string[] = [];
+  const problems: PinProblem[] = [];
   for (const pin of versioned) {
     const commit = parseTagCommits(outputs.get(actionRepository(pin.action)) ?? '').get(pin.version ?? '');
     const pinned = `${pin.action}@${pin.sha}`;
     if (commit === undefined) {
-      problems.push(`${pinned} names ${pin.version}, but ${actionRepository(pin.action)} has no tag ${pin.version}`);
+      problems.push({
+        pin,
+        message: `${pinned} names ${pin.version}, but ${actionRepository(pin.action)} has no tag ${pin.version}`,
+      });
     } else if (commit !== pin.sha) {
-      problems.push(
-        `${pinned} names ${pin.version}, but ${pin.version} now points at ${commit}. ` +
+      problems.push({
+        pin,
+        message:
+          `${pinned} names ${pin.version}, but ${pin.version} now points at ${commit}. ` +
           'If nobody changed this pin, the tag moved after the pin was reviewed.',
-      );
+      });
     }
   }
   return { reachable: true, problems, unversioned };

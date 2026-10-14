@@ -62,15 +62,19 @@ test('a tag that moved names the action, the SHA, the version and the new commit
     reachable: true,
     unversioned: [],
     problems: [
-      `actions/checkout@${CHECKOUT_SHA} names v7, but v7 now points at ${MOVED_SHA}. ` +
-        'If nobody changed this pin, the tag moved after the pin was reviewed.',
+      {
+        pin: { action: 'actions/checkout', sha: CHECKOUT_SHA, version: 'v7' },
+        message:
+          `actions/checkout@${CHECKOUT_SHA} names v7, but v7 now points at ${MOVED_SHA}. ` +
+          'If nobody changed this pin, the tag moved after the pin was reviewed.',
+      },
     ],
   });
 });
 
 test('a missing tag fails', () => {
   const result = checkPinnedActions([{ ...checkout, version: 'v7.0.9' }], stubTags());
-  expect(result.reachable && result.problems).toEqual([
+  expect(result.reachable && result.problems.map((problem) => problem.message)).toEqual([
     `actions/checkout@${CHECKOUT_SHA} names v7.0.9, but actions/checkout has no tag v7.0.9`,
   ]);
 });

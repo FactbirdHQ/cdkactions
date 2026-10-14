@@ -6,6 +6,7 @@ export {
   gitHubTags,
   type GitHubTags,
   type PinCheckResult,
+  type PinProblem,
   parseTagCommits,
 } from '#src/action-pins.ts';
 export * from '#src/app.ts';
