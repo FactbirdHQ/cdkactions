@@ -1,7 +1,6 @@
 import {
   App,
   checkoutV7,
-  expr,
   Job,
   nixInstallerActionV23,
   RunnerLabel,
@@ -74,7 +73,6 @@ new Job(verifyActionPins, 'verify', {
     { name: 'Build', run: 'bun run build' },
     {
       name: 'Verify action pins',
-      env: { GITHUB_TOKEN: expr<string>('github.token') },
       run: "node packages/cdkactions-cli/bin/cdkactions verify-action-pins 'cicd/**/*.ts'",
     },
   ],

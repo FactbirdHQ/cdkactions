@@ -1,12 +1,12 @@
 import type * as yargs from 'yargs';
 
-import { actionHelpers, githubLookups, readSources } from '#src/cli/pin-sources.ts';
+import { actionHelpers, readSources } from '#src/cli/pin-sources.ts';
 import { findSourcePins, verifyPins } from '#src/pin-sync.ts';
 
 class Command implements yargs.CommandModule {
   public readonly command = 'verify-action-pins <sources..>';
   public readonly describe =
-    'Checks that every action pinned to a commit names a GitHub release whose tag points at that commit.';
+    'Checks that every action pinned to a commit with a version has that version tag pointing at the commit.';
 
   public readonly builder = (args: yargs.Argv) =>
     args.positional('sources', {
@@ -19,13 +19,17 @@ class Command implements yargs.CommandModule {
     const sources = readSources(argv.sources);
     const helpers = actionHelpers(sources);
     const pins = sources.flatMap((file) => findSourcePins(file, helpers));
-    const problems = await verifyPins(pins, githubLookups);
+    const { problems, verified, unversioned } = verifyPins(pins);
+    for (const pin of unversioned) {
+      console.log(
+        `${pin.file}:${pin.line}: ${pin.action ?? pin.helper}@${pin.ref} has no version, so it is not checked`,
+      );
+    }
     if (problems.length > 0) {
       for (const problem of problems) console.error(`ERROR: ${problem}`);
       process.exit(1);
     }
-    const commitPins = pins.filter((pin) => /^[0-9a-f]{40}$/.test(pin.ref));
-    console.log(`${commitPins.length} pins name a release whose tag points at the pinned commit.`);
+    console.log(`${verified.length} versioned pin(s) checked: each tag points at its pinned commit.`);
   }
 }
 

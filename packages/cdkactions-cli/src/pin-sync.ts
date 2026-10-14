@@ -1,5 +1,13 @@
 import * as path from 'node:path';
 
+import {
+  actionRepository,
+  checkPinnedActions,
+  type GitHubTags,
+  gitHubTags,
+  parseTagCommits,
+} from '@factbird/cdkactions';
+
 export interface PinBump {
   readonly action: string;
   readonly oldRef: string;
@@ -48,19 +56,13 @@ export interface SyncResult {
   readonly errors: readonly string[];
 }
 
-export interface PinLookups {
-  /** `git ls-remote --tags https://github.com/<repository>` output. */
-  lsRemoteTags(repository: string): Promise<string>;
-  releaseExists(repository: string, tag: string): Promise<boolean>;
-}
-
 const COMMIT_SHA = /^[0-9a-f]{40}$/;
 const USES_LINE = /^([+-])\s*(?:-\s+)?uses:\s*["']?([^@\s"']+)@([^\s"'#]+)/;
 const GENERATED_WORKFLOW = /^cdkactions_.*\.ya?ml$/;
 const SEMVER_TAG = /^v?\d+(?:\.\d+){0,2}$/;
 const PLAIN_PIN = /(['"`])((?:[\w.-]+\/)+[\w.-]+)@([\w.-]+)\1/g;
 const TRAILING_VERSION_COMMENT = /\/\/\s*(v?\d\S*)\s*$/;
-const TYPED_PIN = /([A-Za-z_$][\w$]*)\s*\.pinned\(\s*(['"`])([^'"`\s]+)\2\s*,\s*(['"`])([^'"`\n]*)\4/g;
+const TYPED_PIN = /([A-Za-z_$][\w$]*)\s*\.pinned\(\s*(['"`])([^'"`\s]+)\2\s*(?:,\s*(['"`])([^'"`\n]*)\4\s*)?,?\s*\)/g;
 const LOCAL_DEFINITION =
   /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*defineAction\s*(?:<[\s\S]*?>)?\s*\(\s*(['"`])([^'"`@]+)@[^'"`]*\2/g;
 
@@ -118,6 +120,8 @@ export function parseWorkflowBumps(diff: string): PinBump[] {
   return [...bumps.values()];
 }
 
+export { actionRepository };
+
 export function findUnpinnedBumps(bumps: readonly PinBump[]): string[] {
   return bumps
     .filter((bump) => !COMMIT_SHA.test(bump.newRef))
@@ -164,10 +168,11 @@ export function findSourcePins(file: SourceFile, helpers: ReadonlyMap<string, st
   }
 
   for (const match of file.text.matchAll(TYPED_PIN)) {
-    const [whole, helper, quote, ref, , version] = match;
+    const [whole, helper, quote, ref, versionQuote, version] = match;
     const start = match.index ?? 0;
     const refStart = start + whole.indexOf(`${quote}${ref}${quote}`) + 1;
-    const versionStart = start + whole.length - 1 - version.length;
+    const versionStart =
+      version === undefined ? undefined : start + whole.lastIndexOf(`${versionQuote}${version}${versionQuote}`) + 1;
     pins.push({
       file: file.path,
       line: lineAt(file.text, refStart),
@@ -177,24 +182,12 @@ export function findSourcePins(file: SourceFile, helpers: ReadonlyMap<string, st
       ref,
       refRange: { start: refStart, end: refStart + ref.length },
       version,
-      versionRange: { start: versionStart, end: versionStart + version.length },
+      ...(version !== undefined &&
+        versionStart !== undefined && { versionRange: { start: versionStart, end: versionStart + version.length } }),
     });
   }
 
   return pins.sort((a, b) => a.refRange.start - b.refRange.start);
-}
-
-/** Each tag's commit; an annotated tag's peeled `^{}` line carries the commit it points at. */
-export function parseTagCommits(lsRemoteOutput: string): Map<string, string> {
-  const commitByTag = new Map<string, string>();
-  for (const line of lsRemoteOutput.split('\n')) {
-    const [commit, ref] = line.trim().split(/\s+/);
-    if (!commit || !ref?.startsWith('refs/tags/')) continue;
-    const peeled = ref.endsWith('^{}');
-    const tag = ref.slice('refs/tags/'.length, peeled ? -'^{}'.length : undefined);
-    if (peeled || !commitByTag.has(tag)) commitByTag.set(tag, commit);
-  }
-  return commitByTag;
 }
 
 /** The most specific semver tag at `sha`, so `v7.0.1` wins over `v7`. */
@@ -204,10 +197,6 @@ export function resolveVersion(lsRemoteOutput: string, sha: string): string | un
     .map(([tag]) => tag);
   candidates.sort((a, b) => b.split('.').length - a.split('.').length || a.localeCompare(b));
   return candidates[0];
-}
-
-export function actionRepository(action: string): string {
-  return action.split('/').slice(0, 2).join('/');
 }
 
 function pinsBump(pin: SourcePin, bump: PinBump, ref: string): boolean {
@@ -268,60 +257,50 @@ export function syncPins(
   return { files, rewrites, alreadyCarried, errors };
 }
 
-/**
- * Checks that every commit pin names a release whose tag points at that commit. A tag can move,
- * so this holds only when it runs.
- */
-export async function verifyPins(pins: readonly SourcePin[], lookups: PinLookups): Promise<string[]> {
-  const tagsByRepository = new Map<string, Promise<Map<string, string>>>();
-  const tagsOf = (repository: string) => {
-    let tags = tagsByRepository.get(repository);
-    if (!tags) {
-      tags = lookups.lsRemoteTags(repository).then(parseTagCommits);
-      tagsByRepository.set(repository, tags);
-    }
-    return tags;
-  };
+export interface PinVerification {
+  readonly problems: readonly string[];
+  readonly verified: readonly SourcePin[];
+  /** Pins to a commit without a version, which name no tag to check. */
+  readonly unversioned: readonly SourcePin[];
+}
 
+/**
+ * Requires each versioned pin's tag to point at its SHA, through the library's `checkPinnedActions`.
+ * Unlike `App.synth()`, an unreachable GitHub is a failure here, since the check is the point.
+ */
+export function verifyPins(pins: readonly SourcePin[], tags: GitHubTags = gitHubTags): PinVerification {
+  const commitPins = pins.filter((pin) => COMMIT_SHA.test(pin.ref));
+  const unversioned = commitPins.filter((pin) => pin.version === undefined);
+  const versioned = commitPins.filter((pin) => pin.version !== undefined);
   const problems: string[] = [];
-  for (const pin of pins.filter((candidate) => COMMIT_SHA.test(candidate.ref))) {
-    const location = `${pin.file}:${pin.line}`;
+  const checkable: SourcePin[] = [];
+  for (const pin of versioned) {
     if (pin.action === undefined) {
       problems.push(
-        `${location}: ${pin.helper}.pinned('${pin.ref}') is not a known action, so its tag cannot be checked`,
+        `${pin.file}:${pin.line}: ${pin.helper}.pinned('${pin.ref}') is not a known action, so its tag cannot be checked`,
       );
-      continue;
-    }
-    const pinned = `${pin.action}@${pin.ref}`;
-    if (pin.version === undefined) {
-      problems.push(`${location}: ${pinned} has no version beside it`);
-      continue;
-    }
-
-    const repository = actionRepository(pin.action);
-    const tags = await tagsOf(repository);
-    const tagCommit = tags.get(pin.version);
-    if (tagCommit === undefined) {
-      problems.push(`${location}: ${pinned} names ${pin.version}, but ${repository} has no tag ${pin.version}`);
-      continue;
-    }
-    if (tagCommit !== pin.ref) {
-      problems.push(
-        `${location}: ${pinned} names ${pin.version}, but ${pin.version} now points at ${tagCommit}. ` +
-          'If nobody changed this pin, the tag moved after the pin was reviewed.',
-      );
-      continue;
-    }
-    if (!(await lookups.releaseExists(repository, pin.version))) {
-      const exact = [...tags]
-        .filter(([tag, commit]) => commit === pin.ref && tag !== pin.version && SEMVER_TAG.test(tag))
-        .map(([tag]) => tag)
-        .sort((a, b) => b.split('.').length - a.split('.').length)[0];
-      problems.push(
-        `${location}: ${pinned} names ${pin.version}, which has no GitHub release in ${repository}, so it is a moving tag` +
-          (exact ? `; ${exact} is the most specific tag at this commit` : ''),
-      );
+    } else {
+      checkable.push(pin);
     }
   }
-  return problems;
+
+  const result = checkPinnedActions(
+    checkable.map((pin) => ({ action: pin.action ?? '', sha: pin.ref, version: pin.version })),
+    tags,
+  );
+  if (!result.reachable) {
+    problems.push(`GitHub is unreachable, so ${result.unverified.length} versioned pin(s) could not be verified`);
+    return { problems, verified: [], unversioned };
+  }
+
+  const failing = new Set<SourcePin>();
+  for (const problem of result.problems) {
+    for (const pin of checkable) {
+      if (pin.action === problem.pin.action && pin.ref === problem.pin.sha && pin.version === problem.pin.version) {
+        failing.add(pin);
+        problems.push(`${pin.file}:${pin.line}: ${problem.message}`);
+      }
+    }
+  }
+  return { problems, verified: checkable.filter((pin) => !failing.has(pin)), unversioned };
 }

@@ -163,21 +163,18 @@ cdkactions sync-action-pins --base <pr-base-sha> [--workflows .github/workflows]
 
 It reads `git diff <base> -- <workflows>` for `cdkactions_*` files, pairs each removed `uses: <action>@<old>` line with the added line for the same action (`<action>` may carry a subpath), and in the sources replaces both pinned forms:
 
-- `'<action>@<old>', // <version>`, the plain string, rewriting the trailing version comment on that line,
-- `.pinned('<old>', '<version>')`, the typed form, rewriting both arguments.
+- `'<action>@<old>'`, the plain string, rewriting a trailing `// <version>` comment on that line when there is one,
+- `.pinned('<old>', '<version>')` or `.pinned('<old>')`, the typed form, rewriting the SHA and any version.
 
 The version is the most specific semver tag that `git ls-remote --tags https://github.com/<owner>/<repo>` shows at the new commit (`v7.0.1` over `v7`). When no tag matches, the version stays as it was and the output says so. The command exits non-zero, writing nothing, when a new ref is not a 40-character commit SHA or when no source pins an old commit, since the sources and the workflows had then already drifted. A bump the sources already carry is reported and skipped.
 
-### Verifying pins against their releases
+### Verifying pins against their tags
 
-`cdkactions verify-action-pins <source files or globs...>` finds the same two pin forms and checks every pin to a commit:
+`cdkactions verify-action-pins <source files or globs...>` finds the same two pin forms and runs the check `App.synth()` runs, through the same library code: for every pin to a commit that carries a version, `git ls-remote --tags` must show that tag, peeled through `^{}` for an annotated tag, at the pinned commit. Pins without a version are listed as unversioned and not checked.
 
-- the version's tag, read with `git ls-remote --tags` and peeled through `^{}` for an annotated tag, points at the pinned commit,
-- a GitHub release has that tag's name, so the version names an exact release rather than a moving tag such as `v7`.
+It exits non-zero listing every failing pin with its file and line, the action, the commit, the version and where the tag points now. Unlike a local synth, it also fails when GitHub cannot be reached, since checking is its whole job. A tag can move, so a pass holds only when the command runs; a failure on a pin nobody changed means the tag moved after the pin was reviewed.
 
-It exits non-zero listing every pin that fails, with the action, the commit, the version and where the tag points now. Release lookups use the GitHub REST API, authenticated when `GITHUB_TOKEN` or `GH_TOKEN` is set, and a rate limit fails with the time it resets. A tag can move, so a pass holds only when the command runs; a failure on a pin nobody changed means the tag moved after the pin was reviewed.
-
-A typed pin resolves its action through the helper's name: the library's own, such as `checkoutV7`, or a `const <name> = defineAction(...)` in the scanned sources. A pin through any other name fails as unknown.
+A typed pin resolves its action through the helper's name: the library's own, such as `checkoutV7`, or a `const <name> = defineAction(...)` in the scanned sources. A versioned pin through any other name fails as unknown.
 
 ## Features
 

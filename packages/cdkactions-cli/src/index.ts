@@ -5,10 +5,9 @@ export {
   findLocalDefinitions,
   findSourcePins,
   findUnpinnedBumps,
-  parseTagCommits,
   parseWorkflowBumps,
   resolveVersion,
   syncPins,
   verifyPins,
 } from '#src/pin-sync.ts';
-export type { PinBump, PinLookups, PinRewrite, SourceFile, SourcePin, SyncResult } from '#src/pin-sync.ts';
+export type { PinBump, PinRewrite, PinVerification, SourceFile, SourcePin, SyncResult } from '#src/pin-sync.ts';
