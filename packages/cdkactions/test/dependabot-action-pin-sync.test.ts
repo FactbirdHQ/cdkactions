@@ -47,9 +47,8 @@ test('custom secrets, repositories and CLI command', () => {
   expect(yaml).toContain('private-key: ${{ secrets.BOT_APP_PEM }}');
   expect(yaml).toContain('repositories: flight-deck,nest');
   expect(yaml).toContain(
-    'yarn --cwd .github/cdk cdkactions sync-action-pins --base "$BASE_SHA" --workflows \'.github/workflows\' --library-pin',
+    "yarn --cwd .github/cdk cdkactions sync-action-pins --base \"$BASE_SHA\" --workflows '.github/workflows' '.github/cdk/main.ts' --library-pin",
   );
-  expect(yaml).toMatch(/--library-pin '[^']+' '\.github\/cdk\/main\.ts'\n/);
 });
 
 test('globToRegExpSource matches like fs.globSync', () => {

@@ -331,6 +331,7 @@ test('a bump of a library-default pin is reported as library-owned, not as drift
   const notInSources = syncPins([other], bumps, noVersions, helpers, libraryPins);
   expect(notInSources.errors).toEqual([]);
   expect(notInSources.libraryOwned).toEqual(bumps);
+  expect(notInSources.alreadyCarried).toEqual([]);
   expect(notInSources.files[0].text).toBe(other.text);
 
   const sharedWithSources = syncPins(
@@ -346,7 +347,7 @@ test('a bump of a library-default pin is reported as library-owned, not as drift
 
   expect(describeLibraryOwnedBump(bumps[0])).toBe(
     `actions/checkout ${CHECKOUT_OLD} -> ${CHECKOUT_NEW}: a DependabotActionPinSync step runs this action at the ` +
-      `cdkactions library's pin, which no source file holds, so a resynth would write ${CHECKOUT_OLD} back. ` +
+      `cdkactions library's pin rather than a source pin, so a resynth would write ${CHECKOUT_OLD} back into its workflow. ` +
       "Pass the action through the construct's `actions` prop, or wait for a cdkactions release that ships the new pin.",
   );
 });

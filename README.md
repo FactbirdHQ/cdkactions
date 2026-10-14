@@ -158,7 +158,7 @@ Keep each pin in one shared module so a bump touches one line.
 Dependabot's `github-actions` ecosystem edits the generated `cdkactions_*.yaml` and never the TypeScript, so the next synth reverts its bump. `cdkactions sync-action-pins` carries each bump back:
 
 ```bash
-cdkactions sync-action-pins --base <pr-base-sha> [--workflows .github/workflows] [--library-pin <action>@<sha>...] <source files or globs...>
+cdkactions sync-action-pins --base <pr-base-sha> [--workflows .github/workflows] <source files or globs...> [--library-pin <action>@<sha>...]
 ```
 
 It reads `git diff <base> -- <workflows>` for `cdkactions_*` files, pairs each removed `uses: <action>@<old>` line with the added line for the same action (`<action>` may carry a subpath), and in the sources replaces both pinned forms:

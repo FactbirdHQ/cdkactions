@@ -195,9 +195,9 @@ function addRegenerateJob(
         name: 'Carry the bumps into the source',
         env: { BASE_SHA: expr<string>('github.event.pull_request.base.sha') },
         run: [
-          `${cliCommand} sync-action-pins --base "$BASE_SHA" --workflows ${shellQuote(workflowsDir)}`,
+          `${cliCommand} sync-action-pins --base "$BASE_SHA" --workflows ${shellQuote(workflowsDir)} ${sources}`,
+          // An array option takes every word after it, so the sources go first.
           ...libraryPins.map((pin) => `--library-pin ${shellQuote(pin)}`),
-          sources,
         ].join(' '),
       },
       {

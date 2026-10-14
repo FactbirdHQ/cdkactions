@@ -254,7 +254,9 @@ export function syncPins(
     if (ownedByLibrary) libraryOwned.push(bump);
     if (locations.length > 0) {
       rewrites.push({ bump, version, locations });
-    } else if (carried || ownedByLibrary) {
+    } else if (ownedByLibrary) {
+      // Reported through libraryOwned; no source holds it, so it is neither carried nor drift.
+    } else if (carried) {
       alreadyCarried.push(bump);
     } else {
       errors.push(
@@ -269,7 +271,7 @@ export function syncPins(
 export function describeLibraryOwnedBump(bump: PinBump): string {
   return (
     `${bump.action} ${bump.oldRef} -> ${bump.newRef}: a DependabotActionPinSync step runs this action at the ` +
-    `cdkactions library's pin, which no source file holds, so a resynth would write ${bump.oldRef} back. ` +
+    `cdkactions library's pin rather than a source pin, so a resynth would write ${bump.oldRef} back into its workflow. ` +
     "Pass the action through the construct's `actions` prop, or wait for a cdkactions release that ships the new pin."
   );
 }

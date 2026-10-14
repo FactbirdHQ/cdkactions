@@ -86,7 +86,7 @@ jobs:
       - env:
           BASE_SHA: \${{ github.event.pull_request.base.sha }}
         name: Carry the bumps into the source
-        run: npx --no cdkactions sync-action-pins --base "$BASE_SHA" --workflows '.github/workflows' --library-pin 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' --library-pin 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510' --library-pin 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' --library-pin 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333' 'cicd/**/*.ts'
+        run: npx --no cdkactions sync-action-pins --base "$BASE_SHA" --workflows '.github/workflows' 'cicd/**/*.ts' --library-pin 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' --library-pin 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510' --library-pin 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' --library-pin 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
       - name: Verify each versioned pin against its tag
         run: npx --no cdkactions verify-action-pins 'cicd/**/*.ts'
       - name: Synthesize
