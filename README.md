@@ -168,6 +168,39 @@ It reads `git diff <base> -- <workflows>` for `cdkactions_*` files, pairs each r
 
 The version is the most specific semver tag that `git ls-remote --tags https://github.com/<owner>/<repo>` shows at the new commit (`v7.0.1` over `v7`). When no tag matches, the version stays as it was and the output says so. The command exits non-zero, writing nothing, when a new ref is not a 40-character commit SHA or when no source pins an old commit, since the sources and the workflows had then already drifted. A bump the sources already carry is reported and skipped.
 
+`DependabotActionPinSync` emits the workflow that runs it on Dependabot's pull requests:
+
+```typescript
+import { DependabotActionPinSync, setupBunV2 } from '@factbird/cdkactions';
+
+new DependabotActionPinSync(stack, 'dependabot-action-pins', {
+  sources: ['cicd/**/*.ts'],
+  setupSteps: [
+    setupBunV2.pinned('0c5077e51419868618aeaa5fe8019c62421857d6', 'v2.2.0')({ id: 'bun' }),
+    { name: 'Install', run: 'bun install --frozen-lockfile' },
+  ],
+  synthCommand: 'bun run synth:workflows',
+});
+```
+
+| Prop | Default | |
+|------|---------|-|
+| `sources` | | Files or globs that pin actions |
+| `synthCommand` | | Regenerates the workflows |
+| `setupSteps` | `[]` | Installs what the CLI and the synth need |
+| `cliCommand` | `npx --no cdkactions` | Needs `@factbird/cdkactions-cli` installed by `setupSteps` |
+| `workflowsDir` | `.github/workflows` | |
+| `appIdSecret`, `appPrivateKeySecret` | `APP_ID`, `APP_PEM` | The GitHub App that pushes the source change |
+| `repositories` | the current repository | Repositories the app token covers |
+| `runsOn` | `ubuntu-latest` | |
+
+The workflow has two jobs, and both run only when Dependabot opened the pull request, triggered the run, and pushed the head to this repository:
+
+- `regenerate` checks out the head commit without persisted credentials, with a read-only token and no secrets, runs the setup steps, `sync-action-pins`, `verify-action-pins` and the synth, fails unless the synthesized workflows match Dependabot's byte for byte, and uploads the changed source files.
+- `push` checks nothing out and runs none of the pull request's code. It mints the app token, checks each file against `sources`, and writes it to the head branch through the contents API, failing if the branch moved past the commit `regenerate` read.
+
+Dependabot reads the app secrets from the repository's or organization's Dependabot secrets. The app's commit runs CI again, and Dependabot stops rebasing a pull request someone else pushed to, so `@dependabot recreate` is how to rebuild one.
+
 ### Verifying pins against their tags
 
 `cdkactions verify-action-pins <source files or globs...>` finds the same two pin forms and runs the check `App.synth()` runs, through the same library code: for every pin to a commit that carries a version, `git ls-remote --tags` must show that tag, peeled through `^{}` for an annotated tag, at the pinned commit. Pins without a version are listed as unversioned and not checked.

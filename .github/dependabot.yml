@@ -27,3 +27,14 @@ updates:
       nix:
         patterns:
           - '*'
+  # cdkactions_dependabot-action-pins.yaml carries each bump into cicd/main.ts.
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - '*'
