@@ -11,6 +11,7 @@ export {
 } from '#src/action-pins.ts';
 export * from '#src/app.ts';
 export * from '#src/composite-action.ts';
+export * from '#src/dependabot-action-pin-sync.ts';
 export * from '#src/expressions.ts';
 export * from '#src/job.ts';
 export * from '#src/library.ts';

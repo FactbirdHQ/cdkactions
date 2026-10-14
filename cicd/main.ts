@@ -1,6 +1,7 @@
 import {
   App,
   checkoutV7,
+  DependabotActionPinSync,
   Job,
   nixInstallerActionV23,
   RunnerLabel,
@@ -76,6 +77,17 @@ new Job(verifyActionPins, 'verify', {
       run: "node packages/cdkactions-cli/bin/cdkactions verify-action-pins 'cicd/**/*.ts'",
     },
   ],
+});
+
+new DependabotActionPinSync(stack, 'dependabot-action-pins', {
+  sources: ['cicd/main.ts'],
+  setupSteps: [
+    setupBun({ id: 'bun' }),
+    { name: 'Install', run: 'bun install --frozen-lockfile' },
+    { name: 'Build', run: 'bun run build' },
+  ],
+  cliCommand: 'node packages/cdkactions-cli/bin/cdkactions',
+  synthCommand: 'bun run synth:workflows',
 });
 
 app.synth();
