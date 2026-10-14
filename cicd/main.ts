@@ -1,9 +1,11 @@
 import {
   App,
   checkoutV7,
+  expr,
   Job,
   nixInstallerActionV23,
   RunnerLabel,
+  setupBunV2,
   Stack,
   updateFlakeLockV29,
   Workflow,
@@ -12,6 +14,7 @@ import {
 const checkout = checkoutV7.pinned('3d3c42e5aac5ba805825da76410c181273ba90b1', 'v7.0.1');
 const nixInstaller = nixInstallerActionV23.pinned('3138316df39ed29be04236d7ffc686fa525866aa', 'v23');
 const updateFlakeLock = updateFlakeLockV29.pinned('da03c0f078bc4b2c37ee4f7e072d34bf8f188bb3', 'v29');
+const setupBun = setupBunV2.pinned('0c5077e51419868618aeaa5fe8019c62421857d6', 'v2.2.0');
 
 const app = new App({
   outdir: '.github/workflows',
@@ -50,6 +53,30 @@ new Job(updateNixpkgs, 'update', {
         prTitle: 'chore(nix): update nixpkgs',
       },
     }),
+  ],
+});
+
+const verifyActionPins = new Workflow(stack, 'verify-action-pins', {
+  name: 'Verify action pins',
+  on: {
+    pullRequest: {},
+    push: { branches: ['master'] },
+  },
+  permissions: { contents: 'read' },
+});
+
+new Job(verifyActionPins, 'verify', {
+  runsOn: RunnerLabel.UBUNTU_LATEST,
+  steps: [
+    checkout({ id: 'checkout', with: { persistCredentials: false } }),
+    setupBun({ id: 'bun' }),
+    { name: 'Install', run: 'bun install --frozen-lockfile' },
+    { name: 'Build', run: 'bun run build' },
+    {
+      name: 'Verify action pins',
+      env: { GITHUB_TOKEN: expr<string>('github.token') },
+      run: "node packages/cdkactions-cli/bin/cdkactions verify-action-pins 'cicd/**/*.ts'",
+    },
   ],
 });
 

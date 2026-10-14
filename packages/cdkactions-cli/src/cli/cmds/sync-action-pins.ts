@@ -1,26 +1,8 @@
-import { execFileSync } from 'node:child_process';
-import * as fs from 'node:fs';
 import type * as yargs from 'yargs';
+import * as fs from 'node:fs';
 
-import {
-  actionRepository,
-  findUnpinnedBumps,
-  parseWorkflowBumps,
-  resolveVersion,
-  type SourceFile,
-  syncPins,
-} from '#src/pin-sync.ts';
-
-const GLOB_CHARACTERS = /[*?[{]/;
-
-function expandSources(patterns: readonly string[]): string[] {
-  const files = patterns.flatMap((pattern) => (GLOB_CHARACTERS.test(pattern) ? fs.globSync(pattern) : [pattern]));
-  return [...new Set(files)].sort();
-}
-
-function git(args: string[]): string {
-  return execFileSync('git', args, { encoding: 'utf-8', maxBuffer: 64 * 1024 * 1024 });
-}
+import { actionHelpers, git, readSources } from '#src/cli/pin-sources.ts';
+import { actionRepository, findUnpinnedBumps, parseWorkflowBumps, resolveVersion, syncPins } from '#src/pin-sync.ts';
 
 class Command implements yargs.CommandModule {
   public readonly command = 'sync-action-pins <sources..>';
@@ -58,10 +40,7 @@ class Command implements yargs.CommandModule {
       process.exit(1);
     }
 
-    const sources: SourceFile[] = expandSources(argv.sources).map((file) => ({
-      path: file,
-      text: fs.readFileSync(file, 'utf-8'),
-    }));
+    const sources = readSources(argv.sources);
 
     const versions = new Map<string, string | undefined>();
     for (const bump of bumps) {
@@ -70,7 +49,7 @@ class Command implements yargs.CommandModule {
       versions.set(bump.newRef, resolveVersion(tags, bump.newRef));
     }
 
-    const result = syncPins(sources, bumps, versions);
+    const result = syncPins(sources, bumps, versions, actionHelpers(sources));
     if (result.errors.length > 0) {
       for (const error of result.errors) console.error(`ERROR: ${error}`);
       process.exit(1);

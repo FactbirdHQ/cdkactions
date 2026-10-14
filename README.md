@@ -162,6 +162,17 @@ It reads `git diff <base> -- <workflows>` for `cdkactions_*` files, pairs each r
 
 The version is the most specific semver tag that `git ls-remote --tags https://github.com/<owner>/<repo>` shows at the new commit (`v7.0.1` over `v7`). When no tag matches, the version stays as it was and the output says so. The command exits non-zero, writing nothing, when a new ref is not a 40-character commit SHA or when no source pins an old commit, since the sources and the workflows had then already drifted. A bump the sources already carry is reported and skipped.
 
+### Verifying pins against their releases
+
+`cdkactions verify-action-pins <source files or globs...>` finds the same two pin forms and checks every pin to a commit:
+
+- the version's tag, read with `git ls-remote --tags` and peeled through `^{}` for an annotated tag, points at the pinned commit,
+- a GitHub release has that tag's name, so the version names an exact release rather than a moving tag such as `v7`.
+
+It exits non-zero listing every pin that fails, with the action, the commit, the version and where the tag points now. Release lookups use the GitHub REST API, authenticated when `GITHUB_TOKEN` or `GH_TOKEN` is set, and a rate limit fails with the time it resets. A tag can move, so a pass holds only when the command runs; a failure on a pin nobody changed means the tag moved after the pin was reviewed.
+
+A typed pin resolves its action through the helper's name: the library's own, such as `checkoutV7`, or a `const <name> = defineAction(...)` in the scanned sources. A pin through any other name fails as unknown.
+
 ## Features
 
 | Feature | Description | Example |
