@@ -2,7 +2,14 @@ import type * as yargs from 'yargs';
 import * as fs from 'node:fs';
 
 import { actionHelpers, git, readSources } from '#src/cli/pin-sources.ts';
-import { actionRepository, findUnpinnedBumps, parseWorkflowBumps, resolveVersion, syncPins } from '#src/pin-sync.ts';
+import {
+  actionRepository,
+  describeLibraryOwnedBump,
+  findUnpinnedBumps,
+  parseWorkflowBumps,
+  resolveVersion,
+  syncPins,
+} from '#src/pin-sync.ts';
 
 class Command implements yargs.CommandModule {
   public readonly command = 'sync-action-pins <sources..>';
@@ -25,6 +32,12 @@ class Command implements yargs.CommandModule {
         type: 'string',
         default: '.github/workflows',
         desc: 'Directory holding the generated workflows',
+      })
+      .option('library-pin', {
+        type: 'string',
+        array: true,
+        default: [],
+        desc: 'An <action>@<sha> the library pins rather than the sources, such as a DependabotActionPinSync default',
       });
 
   public async handler(argv: any) {
@@ -49,7 +62,7 @@ class Command implements yargs.CommandModule {
       versions.set(bump.newRef, resolveVersion(tags, bump.newRef));
     }
 
-    const result = syncPins(sources, bumps, versions, actionHelpers(sources));
+    const result = syncPins(sources, bumps, versions, actionHelpers(sources), new Set<string>(argv.libraryPin));
     if (result.errors.length > 0) {
       for (const error of result.errors) console.error(`ERROR: ${error}`);
       process.exit(1);
@@ -66,6 +79,10 @@ class Command implements yargs.CommandModule {
     }
     for (const bump of result.alreadyCarried) {
       console.log(`${bump.action} ${bump.newRef}: the sources already pin it`);
+    }
+    if (result.libraryOwned.length > 0) {
+      for (const bump of result.libraryOwned) console.error(`ERROR: ${describeLibraryOwnedBump(bump)}`);
+      process.exit(2);
     }
   }
 }

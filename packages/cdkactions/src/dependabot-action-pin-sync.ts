@@ -7,10 +7,72 @@ import { Job, type StepConfig } from '#src/job.ts';
 import { RunnerLabel } from '#src/nominal.ts';
 import { Workflow } from '#src/workflow.ts';
 
-const checkout = checkoutV7.pinned('3d3c42e5aac5ba805825da76410c181273ba90b1', 'v7.0.1');
-const appToken = createGithubAppTokenV3.pinned('64ab729a6294000f5aa4a4bc0b73d1f32bc45510', 'v3.3.0');
-const uploadArtifact = uploadArtifactV7.pinned('cf430e030ddbb5b0abf93d22962f4752f3646cd9', 'v7.0.2');
-const downloadArtifact = downloadArtifactV8.pinned('9000827ccba6bdab643e8b6fd33ac0654aef8333', 'v8.0.2');
+/**
+ * The actions the workflow's own steps run. Pass the pinned constants the rest of the repository
+ * uses, so one source edit moves every workflow and `sync-action-pins` can carry a Dependabot bump.
+ * An action left out runs at the library's pin, which only a cdkactions release can move.
+ */
+export interface DependabotActionPinSyncActions {
+  readonly checkout?: typeof checkoutV7;
+  readonly createGithubAppToken?: typeof createGithubAppTokenV3;
+  readonly uploadArtifact?: typeof uploadArtifactV7;
+  readonly downloadArtifact?: typeof downloadArtifactV8;
+}
+
+const LIBRARY_ACTIONS: Required<DependabotActionPinSyncActions> = {
+  checkout: checkoutV7.pinned('3d3c42e5aac5ba805825da76410c181273ba90b1', 'v7.0.1'),
+  createGithubAppToken: createGithubAppTokenV3.pinned('64ab729a6294000f5aa4a4bc0b73d1f32bc45510', 'v3.3.0'),
+  uploadArtifact: uploadArtifactV7.pinned('cf430e030ddbb5b0abf93d22962f4752f3646cd9', 'v7.0.2'),
+  downloadArtifact: downloadArtifactV8.pinned('9000827ccba6bdab643e8b6fd33ac0654aef8333', 'v8.0.2'),
+};
+
+interface ResolvedActions {
+  readonly actions: Required<DependabotActionPinSyncActions>;
+  /** `<action>@<sha>` for each step that runs at the library's pin. */
+  readonly libraryPins: readonly string[];
+}
+
+function pinnedOrLibrary<T extends { readonly uses: string; readonly pin?: unknown }>(
+  key: keyof DependabotActionPinSyncActions,
+  given: T | undefined,
+  fallback: T,
+  libraryPins: string[],
+): T {
+  if (given === undefined) {
+    libraryPins.push(fallback.uses);
+    return fallback;
+  }
+  if (given.pin === undefined) {
+    throw new Error(`DependabotActionPinSync: actions.${key} must be pinned to a commit with .pinned(sha, version)`);
+  }
+  return given;
+}
+
+function resolveActions(given: DependabotActionPinSyncActions = {}): ResolvedActions {
+  const libraryPins: string[] = [];
+  const actions = {
+    checkout: pinnedOrLibrary('checkout', given.checkout, LIBRARY_ACTIONS.checkout, libraryPins),
+    createGithubAppToken: pinnedOrLibrary(
+      'createGithubAppToken',
+      given.createGithubAppToken,
+      LIBRARY_ACTIONS.createGithubAppToken,
+      libraryPins,
+    ),
+    uploadArtifact: pinnedOrLibrary(
+      'uploadArtifact',
+      given.uploadArtifact,
+      LIBRARY_ACTIONS.uploadArtifact,
+      libraryPins,
+    ),
+    downloadArtifact: pinnedOrLibrary(
+      'downloadArtifact',
+      given.downloadArtifact,
+      LIBRARY_ACTIONS.downloadArtifact,
+      libraryPins,
+    ),
+  };
+  return { actions, libraryPins };
+}
 
 const ARTIFACT_NAME = 'action-pin-sync';
 const ARTIFACT_DIR = `${expr<string>('runner.temp')}/${ARTIFACT_NAME}`;
@@ -38,6 +100,8 @@ export interface DependabotActionPinSyncProps {
   /** Repositories the app token covers. Defaults to the current repository. */
   readonly repositories?: readonly string[];
   readonly runsOn?: RunnerLabel;
+  /** The actions the workflow's own steps run. Defaults to the library's pins. */
+  readonly actions?: DependabotActionPinSyncActions;
 }
 
 function shellQuote(value: string): string {
@@ -92,14 +156,16 @@ export class DependabotActionPinSync extends Workflow {
     });
 
     const runsOn = props.runsOn ?? RunnerLabel.UBUNTU_LATEST;
-    const regenerate = addRegenerateJob(this, props, workflowsDir, runsOn);
-    addPushJob(this, props, regenerate, runsOn);
+    const resolved = resolveActions(props.actions);
+    const regenerate = addRegenerateJob(this, props, resolved, workflowsDir, runsOn);
+    addPushJob(this, props, resolved.actions, regenerate, runsOn);
   }
 }
 
 function addRegenerateJob(
   workflow: Workflow,
   props: DependabotActionPinSyncProps,
+  { actions, libraryPins }: ResolvedActions,
   workflowsDir: string,
   runsOn: RunnerLabel,
 ): Job {
@@ -116,7 +182,7 @@ function addRegenerateJob(
       artifactId: expr<string>('steps.upload.outputs.artifact-id'),
     },
     steps: [
-      checkout({
+      actions.checkout({
         id: 'checkout',
         with: {
           ref: expr<string>('github.event.pull_request.head.sha'),
@@ -128,7 +194,11 @@ function addRegenerateJob(
       {
         name: 'Carry the bumps into the source',
         env: { BASE_SHA: expr<string>('github.event.pull_request.base.sha') },
-        run: `${cliCommand} sync-action-pins --base "$BASE_SHA" --workflows ${shellQuote(workflowsDir)} ${sources}`,
+        run: [
+          `${cliCommand} sync-action-pins --base "$BASE_SHA" --workflows ${shellQuote(workflowsDir)}`,
+          ...libraryPins.map((pin) => `--library-pin ${shellQuote(pin)}`),
+          sources,
+        ].join(' '),
       },
       {
         name: 'Verify each versioned pin against its tag',
@@ -153,7 +223,7 @@ function addRegenerateJob(
             xargs -0 cp --parents -t "$RUNNER_TEMP/${ARTIFACT_NAME}/files" < "$RUNNER_TEMP/changed-sources"
             echo "changed=true" >> "$GITHUB_OUTPUT"`,
       },
-      uploadArtifact({
+      actions.uploadArtifact({
         id: 'upload',
         if: eq(expr<string>('steps.changes.outputs.changed'), 'true'),
         with: {
@@ -171,10 +241,11 @@ function addRegenerateJob(
 function addPushJob(
   workflow: Workflow,
   props: DependabotActionPinSyncProps,
+  actions: Required<DependabotActionPinSyncActions>,
   regenerate: Job,
   runsOn: RunnerLabel,
 ): void {
-  const token = appToken({
+  const token = actions.createGithubAppToken({
     id: 'app-token',
     with: {
       clientId: secrets[props.appIdSecret ?? 'APP_ID'],
@@ -191,7 +262,7 @@ function addPushJob(
     permissions: {},
     steps: [
       token,
-      downloadArtifact({
+      actions.downloadArtifact({
         id: 'download',
         with: {
           artifactIds: expr<string>('needs.regenerate.outputs.artifactId'),
