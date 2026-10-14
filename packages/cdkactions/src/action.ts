@@ -47,21 +47,43 @@ type HasRequiredCallOptions<TInputs extends ActionInputs, TOutputs extends Actio
     : true
   : true;
 
+/**
+ * The commit an action runs at and, when given, the tag that points at that commit.
+ */
+export interface ActionPin {
+  readonly sha: string;
+  readonly version?: string;
+}
+
+export interface PinnedActionRef extends ActionPin {
+  /** `owner/repo[/path]`, without the `@ref`. */
+  readonly action: string;
+}
+
+/** Carries a pinned step's `PinnedActionRef`; not serialized. */
+export const PINNED_ACTION: unique symbol = Symbol('cdkactions.pinnedAction');
+
+export interface ActionMembers<TInputs extends ActionInputs, TOutputs extends ActionOutputs> {
+  readonly ref: string;
+  readonly uses: string;
+  readonly pin?: ActionPin;
+  /**
+   * The same action at an exact commit, so its steps use `<action>@<sha>`. `version`, when given,
+   * names a tag that `App.synth()` requires to point at `sha`; it never reaches the YAML, and
+   * `cdkactions sync-action-pins` rewrites it with the SHA when Dependabot bumps the action.
+   */
+  pinned(sha: string, version?: string): Action<TInputs, TOutputs>;
+}
+
 export type Action<
   TInputs extends ActionInputs = Record<never, never>,
   TOutputs extends ActionOutputs = Record<never, never>,
 > =
   HasRequiredCallOptions<TInputs, TOutputs> extends true
-    ? {
-        (options: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
-        readonly ref: string;
-        readonly uses: string;
-      }
-    : {
-        (options?: StepBase & ActionCallOptions<TInputs, TOutputs>): TypedUsesStep<TOutputs>;
-        readonly ref: string;
-        readonly uses: string;
-      };
+    ? ((options: StepBase & ActionCallOptions<TInputs, TOutputs>) => TypedUsesStep<TOutputs>) &
+        ActionMembers<TInputs, TOutputs>
+    : ((options?: StepBase & ActionCallOptions<TInputs, TOutputs>) => TypedUsesStep<TOutputs>) &
+        ActionMembers<TInputs, TOutputs>;
 
 export interface DefineActionOptions {
   /**
@@ -71,11 +93,23 @@ export interface DefineActionOptions {
   readonly verbatimInputs?: readonly string[];
 }
 
+const COMMIT_SHA = /^[0-9a-f]{40}$/;
+
 export function defineAction<
   TInputs extends ActionInputs = Record<never, never>,
   TOutputs extends ActionOutputs = Record<never, never>,
 >(ref: string, definition: DefineActionOptions = {}): Action<TInputs, TOutputs> {
+  return defineActionAt<TInputs, TOutputs>(ref, definition);
+}
+
+function defineActionAt<TInputs extends ActionInputs, TOutputs extends ActionOutputs>(
+  ref: string,
+  definition: DefineActionOptions,
+  pin?: ActionPin,
+): Action<TInputs, TOutputs> {
   const verbatimInputs = new Set(definition.verbatimInputs ?? []);
+  const action = ref.slice(0, ref.lastIndexOf('@'));
+  const uses = pin ? `${action}@${pin.sha}` : ref;
 
   const fn = (options?: StepBase & ActionCallOptions<TInputs, TOutputs>) => {
     const { id: stepId, name, if: ifProp, env, continueOnError, timeoutMinutes, with: withProp } = options ?? {};
@@ -100,7 +134,7 @@ export function defineAction<
       ...(stepId !== undefined && { id: stepId }),
       ...(name !== undefined && { name }),
       ...(ifProp !== undefined && { if: ifProp }),
-      uses: ref,
+      uses,
       ...(serializedWith !== undefined && { with: serializedWith }),
       ...(env !== undefined && { env }),
       ...(continueOnError !== undefined && { continueOnError }),
@@ -108,9 +142,23 @@ export function defineAction<
       outputs,
     };
     Object.defineProperty(step, 'outputs', { enumerable: false });
+    if (pin) {
+      const pinnedAction: PinnedActionRef = { action, ...pin };
+      Object.defineProperty(step, PINNED_ACTION, { value: pinnedAction, enumerable: false });
+    }
 
     return step;
   };
 
-  return Object.assign(fn, { ref, uses: ref });
+  const pinned = (sha: string, version?: string): Action<TInputs, TOutputs> => {
+    if (!COMMIT_SHA.test(sha)) {
+      throw new Error(`${ref}: pinned() takes a 40-character lowercase hex commit SHA, got '${sha}'`);
+    }
+    if (version !== undefined && version.trim() === '') {
+      throw new Error(`${ref}: pinned() takes the tag at ${sha} as its version, or no version at all`);
+    }
+    return defineActionAt<TInputs, TOutputs>(ref, definition, { sha, ...(version !== undefined && { version }) });
+  };
+
+  return Object.assign(fn, { ref, uses, pinned, ...(pin !== undefined && { pin }) });
 }
