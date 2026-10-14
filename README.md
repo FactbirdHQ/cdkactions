@@ -131,7 +131,13 @@ const cachixActionV16 = defineAction<{ name: { required: true }; authToken: { de
 
 ### Pinning an action to a commit
 
-A tag such as `@v7` can be moved by whoever controls the action's repository. `.pinned(sha, version)` returns the same typed action at an exact commit, so its steps emit `uses: <action>@<sha>` and keep their typed inputs and outputs. `sha` must be the full 40-character lowercase hex commit, or `pinned()` throws while the app synthesizes. `version` names the release tag at that commit; it never reaches the YAML, and `cdkactions sync-action-pins` rewrites it together with the SHA. When the definition's reference names a major, such as `@v7`, `version` must be in that major, so `checkoutV7.pinned(sha, 'v6.0.1')` throws.
+A tag such as `@v7` can be moved by whoever controls the action's repository. `.pinned(sha)` and `.pinned(sha, version)` return the same typed action at an exact commit, so its steps emit `uses: <action>@<sha>` and keep their typed inputs and outputs. `sha` must be the full 40-character lowercase hex commit, or `pinned()` throws. `version` is optional, names a tag, and never reaches the YAML; `cdkactions sync-action-pins` rewrites it together with the SHA.
+
+`App.synth()` checks every pin that carries a version: it reads the action repository's tags with `git ls-remote --tags https://github.com/<owner>/<repo>`, peeling annotated tags through `^{}`, and fails unless the tag points at the pinned SHA. The error names the action, the SHA, the version and where the tag points now; a failure on a pin nobody changed means the tag moved after review. Each repository is read once per synth, the rest in parallel after the first answers. A pin without a version is not checked.
+
+- When GitHub cannot be reached, a local synth prints one warning naming the unverified pins and goes on.
+- Under GitHub Actions (`GITHUB_ACTIONS=true`), an unreachable GitHub fails the synth. CI never skips the check, and a runner that cannot reach GitHub is broken anyway.
+- A read that fails after GitHub answered fails the synth everywhere, so a flaky network cannot leave the check half done.
 
 ```typescript
 import { checkoutV7, createGithubAppTokenV3, secrets } from '@factbird/cdkactions';

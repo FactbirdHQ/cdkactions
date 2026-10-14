@@ -42,8 +42,15 @@ test('pinned() rejects a short or uppercase SHA', () => {
   expect(() => checkoutV7.pinned(CHECKOUT_SHA.toUpperCase(), 'v7.0.1')).toThrow(/40-character/);
 });
 
-test('pinned() requires a version', () => {
-  expect(() => checkoutV7.pinned(CHECKOUT_SHA, ' ')).toThrow(/release tag/);
+test('pinned() rejects a blank version', () => {
+  expect(() => checkoutV7.pinned(CHECKOUT_SHA, ' ')).toThrow(/or no version at all/);
+});
+
+test('pinned() takes the SHA alone', () => {
+  const checkout = checkoutV7.pinned(CHECKOUT_SHA);
+  expect(checkout({ id: 'checkout' }).uses).toBe(`actions/checkout@${CHECKOUT_SHA}`);
+  expect(checkout.pin).toEqual({ sha: CHECKOUT_SHA });
+  expect(() => checkoutV7.pinned('v7')).toThrow(/40-character/);
 });
 
 test('a pinned action exposes typed outputs under their action.yml names', () => {
@@ -69,23 +76,4 @@ test('a pinned step synthesizes with the commit in uses', () => {
   const yaml = fs.readFileSync(`${app.outdir}/${workflow.outputFile}`, 'utf-8');
   expect(yaml).toContain(`uses: actions/checkout@${CHECKOUT_SHA}`);
   expect(yaml).toContain('persist-credentials: false');
-});
-
-test('pinned() rejects a version from another major', () => {
-  expect(() => checkoutV7.pinned(CHECKOUT_SHA, 'v6.0.1')).toThrow(/'v6.0.1', which is not a v7 release/);
-  expect(() => checkoutV7.pinned(CHECKOUT_SHA, 'v70.0.1')).toThrow(/not a v7 release/);
-  expect(() => checkoutV7.pinned(CHECKOUT_SHA, 'main')).toThrow(/not a v7 release/);
-});
-
-test('pinned() accepts a version in the reference major, with or without minor and patch', () => {
-  expect(checkoutV7.pinned(CHECKOUT_SHA, 'v7.0.1').pin?.version).toBe('v7.0.1');
-  expect(defineAction('DeterminateSystems/nix-installer-action@v23').pinned(CHECKOUT_SHA, 'v23').pin?.version).toBe(
-    'v23',
-  );
-  expect(defineAction('cachix/cachix-action@v16').pinned(CHECKOUT_SHA, '16.1.0').pin?.version).toBe('16.1.0');
-});
-
-test('pinned() skips the major check for a reference without a major', () => {
-  expect(defineAction('my-org/action@main').pinned(CHECKOUT_SHA, 'v3.2.1').pin?.version).toBe('v3.2.1');
-  expect(defineAction('my-org/action@v1.2').pinned(CHECKOUT_SHA, 'anything').pin?.version).toBe('anything');
 });

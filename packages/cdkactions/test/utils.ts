@@ -1,17 +1,20 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { usePinnedActionChecker } from '#src/action-pins.ts';
 import { App, type AppProps, type WorkflowProps, Workflow, Stack } from '#src/index.ts';
 
 /**
  * A util function returning an instance of App with a outdir set to a temp directory
  * @param options AppProps to provide to the new App
  */
-export const TestingApp = (options: Partial<AppProps> = {}) =>
-  new App({
+export const TestingApp = (options: Partial<AppProps> = {}) => {
+  usePinnedActionChecker(() => ({ reachable: true, problems: [], unversioned: [] }));
+  return new App({
     ...options,
     outdir: fs.mkdtempSync(path.join(os.tmpdir(), 'cdkactions.outdir.')),
   });
+};
 
 /**
  * A util function returning an instance of Workflow with the minimum configuration.
