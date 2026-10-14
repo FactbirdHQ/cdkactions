@@ -63,15 +63,27 @@ export type Action<
         readonly uses: string;
       };
 
+export interface DefineActionOptions {
+  /**
+   * Inputs whose `action.yml` name is not kebab-case, such as `enableCrossOsArchive`. These keys
+   * reach the YAML as written.
+   */
+  readonly verbatimInputs?: readonly string[];
+}
+
 export function defineAction<
   TInputs extends ActionInputs = Record<never, never>,
   TOutputs extends ActionOutputs = Record<never, never>,
->(ref: string): Action<TInputs, TOutputs> {
+>(ref: string, definition: DefineActionOptions = {}): Action<TInputs, TOutputs> {
+  const verbatimInputs = new Set(definition.verbatimInputs ?? []);
+
   const fn = (options?: StepBase & ActionCallOptions<TInputs, TOutputs>) => {
     const { id: stepId, name, if: ifProp, env, continueOnError, timeoutMinutes, with: withProp } = options ?? {};
 
     const serializedWith = withProp
-      ? Object.fromEntries(Object.entries<ActionInputValue>(withProp).map(([k, v]) => [camelToKebab(k), v]))
+      ? Object.fromEntries(
+          Object.entries<ActionInputValue>(withProp).map(([k, v]) => [verbatimInputs.has(k) ? k : camelToKebab(k), v]),
+        )
       : undefined;
 
     const outputs = new Proxy({} as TypedUsesStep<TOutputs>['outputs'], {

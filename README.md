@@ -120,6 +120,15 @@ const myAction = defineAction<
 >('my-org/deploy-action@v1');
 ```
 
+An input whose `action.yml` name is not kebab-case, such as `cachix/cachix-action`'s `authToken`, goes in `verbatimInputs` so its key reaches the YAML as written:
+
+```typescript
+const cachixActionV16 = defineAction<{ name: { required: true }; authToken: { default: string } }>(
+  'cachix/cachix-action@v16',
+  { verbatimInputs: ['authToken'] },
+);
+```
+
 ## Features
 
 | Feature | Description | Example |
