@@ -131,7 +131,7 @@ const cachixActionV16 = defineAction<{ name: { required: true }; authToken: { de
 
 ### Pinning an action to a commit
 
-A tag such as `@v7` can be moved by whoever controls the action's repository. `.pinned(sha, version)` returns the same typed action at an exact commit, so its steps emit `uses: <action>@<sha>` and keep their typed inputs and outputs. `sha` must be the full 40-character lowercase hex commit, or `pinned()` throws while the app synthesizes. `version` names the release tag at that commit; it never reaches the YAML, and `cdkactions sync-action-pins` rewrites it together with the SHA.
+A tag such as `@v7` can be moved by whoever controls the action's repository. `.pinned(sha, version)` returns the same typed action at an exact commit, so its steps emit `uses: <action>@<sha>` and keep their typed inputs and outputs. `sha` must be the full 40-character lowercase hex commit, or `pinned()` throws while the app synthesizes. `version` names the release tag at that commit; it never reaches the YAML, and `cdkactions sync-action-pins` rewrites it together with the SHA. When the definition's reference names a major, such as `@v7`, `version` must be in that major, so `checkoutV7.pinned(sha, 'v6.0.1')` throws.
 
 ```typescript
 import { checkoutV7, createGithubAppTokenV3, secrets } from '@factbird/cdkactions';

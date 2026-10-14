@@ -86,6 +86,8 @@ export interface DefineActionOptions {
 }
 
 const COMMIT_SHA = /^[0-9a-f]{40}$/;
+const MAJOR_REF = /@v(\d+)$/;
+const VERSION_MAJOR = /^v?(\d+)(?:\.|$)/;
 
 export function defineAction<
   TInputs extends ActionInputs = Record<never, never>,
@@ -143,6 +145,10 @@ function defineActionAt<TInputs extends ActionInputs, TOutputs extends ActionOut
     }
     if (version.trim() === '') {
       throw new Error(`${ref}: pinned() takes the release tag at ${sha} as its version`);
+    }
+    const refMajor = MAJOR_REF.exec(ref)?.[1];
+    if (refMajor !== undefined && VERSION_MAJOR.exec(version)?.[1] !== refMajor) {
+      throw new Error(`${ref}: pinned() was given version '${version}', which is not a v${refMajor} release`);
     }
     return defineActionAt<TInputs, TOutputs>(ref, definition, { sha, version });
   };
