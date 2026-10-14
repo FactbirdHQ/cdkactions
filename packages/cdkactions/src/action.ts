@@ -48,22 +48,30 @@ type HasRequiredCallOptions<TInputs extends ActionInputs, TOutputs extends Actio
   : true;
 
 /**
- * The commit an action runs at, and the release tag that points at that commit.
+ * The commit an action runs at and, when given, the tag that points at that commit.
  */
 export interface ActionPin {
   readonly sha: string;
-  readonly version: string;
+  readonly version?: string;
 }
+
+export interface PinnedActionRef extends ActionPin {
+  /** `owner/repo[/path]`, without the `@ref`. */
+  readonly action: string;
+}
+
+/** Carries a pinned step's `PinnedActionRef`; not serialized. */
+export const PINNED_ACTION: unique symbol = Symbol('cdkactions.pinnedAction');
 
 export interface ActionMembers<TInputs extends ActionInputs, TOutputs extends ActionOutputs> {
   readonly ref: string;
   readonly uses: string;
   readonly pin?: ActionPin;
   /**
-   * The same action at an exact commit, so its steps use `<action>@<sha>`. `version` names the
-   * release tag at that commit and never reaches the YAML.
+   * The same action at an exact commit, so its steps use `<action>@<sha>`. `version`, when given,
+   * names a tag that `App.synth()` requires to point at `sha`; it never reaches the YAML.
    */
-  pinned(sha: string, version: string): Action<TInputs, TOutputs>;
+  pinned(sha: string, version?: string): Action<TInputs, TOutputs>;
 }
 
 export type Action<
@@ -85,8 +93,6 @@ export interface DefineActionOptions {
 }
 
 const COMMIT_SHA = /^[0-9a-f]{40}$/;
-const MAJOR_REF = /@v(\d+)$/;
-const VERSION_MAJOR = /^v?(\d+)(?:\.|$)/;
 
 export function defineAction<
   TInputs extends ActionInputs = Record<never, never>,
@@ -101,7 +107,8 @@ function defineActionAt<TInputs extends ActionInputs, TOutputs extends ActionOut
   pin?: ActionPin,
 ): Action<TInputs, TOutputs> {
   const verbatimInputs = new Set(definition.verbatimInputs ?? []);
-  const uses = pin ? `${ref.slice(0, ref.lastIndexOf('@'))}@${pin.sha}` : ref;
+  const action = ref.slice(0, ref.lastIndexOf('@'));
+  const uses = pin ? `${action}@${pin.sha}` : ref;
 
   const fn = (options?: StepBase & ActionCallOptions<TInputs, TOutputs>) => {
     const { id: stepId, name, if: ifProp, env, continueOnError, timeoutMinutes, with: withProp } = options ?? {};
@@ -134,22 +141,22 @@ function defineActionAt<TInputs extends ActionInputs, TOutputs extends ActionOut
       outputs,
     };
     Object.defineProperty(step, 'outputs', { enumerable: false });
+    if (pin) {
+      const pinnedAction: PinnedActionRef = { action, ...pin };
+      Object.defineProperty(step, PINNED_ACTION, { value: pinnedAction, enumerable: false });
+    }
 
     return step;
   };
 
-  const pinned = (sha: string, version: string): Action<TInputs, TOutputs> => {
+  const pinned = (sha: string, version?: string): Action<TInputs, TOutputs> => {
     if (!COMMIT_SHA.test(sha)) {
       throw new Error(`${ref}: pinned() takes a 40-character lowercase hex commit SHA, got '${sha}'`);
     }
-    if (version.trim() === '') {
-      throw new Error(`${ref}: pinned() takes the release tag at ${sha} as its version`);
+    if (version !== undefined && version.trim() === '') {
+      throw new Error(`${ref}: pinned() takes the tag at ${sha} as its version, or no version at all`);
     }
-    const refMajor = MAJOR_REF.exec(ref)?.[1];
-    if (refMajor !== undefined && VERSION_MAJOR.exec(version)?.[1] !== refMajor) {
-      throw new Error(`${ref}: pinned() was given version '${version}', which is not a v${refMajor} release`);
-    }
-    return defineActionAt<TInputs, TOutputs>(ref, definition, { sha, version });
+    return defineActionAt<TInputs, TOutputs>(ref, definition, { sha, ...(version !== undefined && { version }) });
   };
 
   return Object.assign(fn, { ref, uses, pinned, ...(pin !== undefined && { pin }) });

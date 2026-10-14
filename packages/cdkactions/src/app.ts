@@ -2,6 +2,9 @@ import * as fs from 'node:fs';
 
 import { Construct, Node } from 'constructs';
 
+import { PINNED_ACTION, type PinnedActionRef } from '#src/action.ts';
+import { currentPinnedActionChecker } from '#src/action-pins.ts';
+import { Job } from '#src/job.ts';
 import { CDKActionsStack } from '#src/library.ts';
 import { Stack } from '#src/stack.ts';
 import { collectValidationErrors } from '#src/validation.ts';
@@ -68,6 +71,8 @@ export class App extends Construct {
       throw new Error(`Validation failed with ${errors.length} error(s):\n${errors.map((e) => `  - ${e}`).join('\n')}`);
     }
 
+    this.verifyPinnedActions();
+
     if (!fs.existsSync(this.outdir)) {
       fs.mkdirSync(this.outdir);
     }
@@ -78,4 +83,40 @@ export class App extends Construct {
       }
     }
   }
+
+  /**
+   * Requires every versioned pin's tag to point at its SHA. When GitHub cannot be reached, a local
+   * synth warns and goes on, while one under GitHub Actions fails, since a runner without GitHub is
+   * broken and CI must not skip the check.
+   */
+  private verifyPinnedActions(): void {
+    const pins: PinnedActionRef[] = [];
+    for (const construct of Node.of(this).findAll()) {
+      if (!(construct instanceof Job)) continue;
+      for (const step of construct.steps) {
+        const pin: unknown = Reflect.get(step, PINNED_ACTION);
+        if (isPinnedActionRef(pin)) pins.push(pin);
+      }
+    }
+    if (pins.length === 0) return;
+
+    const result = currentPinnedActionChecker()(pins);
+    if (!result.reachable) {
+      const unverified = result.unverified.map((pin) => `${pin.action}@${pin.sha} (${pin.version})`).join(', ');
+      if (process.env.GITHUB_ACTIONS === 'true') {
+        throw new Error(`GitHub is unreachable from this runner, so these pins cannot be verified: ${unverified}`);
+      }
+      console.warn(`WARNING: GitHub is unreachable, so these pins are unverified: ${unverified}`);
+      return;
+    }
+    if (result.problems.length > 0) {
+      throw new Error(
+        `${result.problems.length} pinned action(s) failed verification:\n${result.problems.map((p) => `  - ${p}`).join('\n')}`,
+      );
+    }
+  }
+}
+
+function isPinnedActionRef(value: unknown): value is PinnedActionRef {
+  return typeof value === 'object' && value !== null && 'action' in value && 'sha' in value;
 }

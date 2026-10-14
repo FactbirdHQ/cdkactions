@@ -1,5 +1,13 @@
 export * from '#src/action.ts';
 export * from '#src/actions.ts';
+export {
+  actionRepository,
+  checkPinnedActions,
+  gitHubTags,
+  type GitHubTags,
+  type PinCheckResult,
+  parseTagCommits,
+} from '#src/action-pins.ts';
 export * from '#src/app.ts';
 export * from '#src/composite-action.ts';
 export * from '#src/expressions.ts';
