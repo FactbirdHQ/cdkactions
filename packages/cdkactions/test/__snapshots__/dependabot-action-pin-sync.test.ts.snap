@@ -87,9 +87,7 @@ jobs:
           BASE_SHA: \${{ github.event.pull_request.base.sha }}
         name: Carry the bumps into the source
         run: npx --no cdkactions sync-action-pins --base "$BASE_SHA" --workflows '.github/workflows' 'cicd/**/*.ts'
-      - env:
-          GITHUB_TOKEN: \${{ github.token }}
-        name: Verify every pin names a release at its commit
+      - name: Verify each versioned pin against its tag
         run: npx --no cdkactions verify-action-pins 'cicd/**/*.ts'
       - name: Synthesize
         run: bun run synth:workflows
