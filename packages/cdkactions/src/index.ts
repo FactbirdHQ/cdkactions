@@ -3,10 +3,14 @@ export * from '#src/actions.ts';
 export {
   actionRepository,
   checkPinnedActions,
+  classifyProcessFailure,
+  createGitHubTags,
   gitHubTags,
   type GitHubTags,
   type PinCheckResult,
   type PinProblem,
+  type ProcessFailure,
+  type RunFile,
   parseTagCommits,
 } from '#src/action-pins.ts';
 export * from '#src/app.ts';

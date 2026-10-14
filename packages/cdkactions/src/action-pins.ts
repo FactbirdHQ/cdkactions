@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { type ExecFileSyncOptions, execFileSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -55,59 +55,98 @@ export function parseTagCommits(lsRemoteOutput: string): Map<string, string> {
   return commitByTag;
 }
 
-export const gitHubTags: GitHubTags = {
-  probe(repository) {
-    try {
-      return execFileSync('git', ['ls-remote', '--tags', tagsUrl(repository)], {
-        encoding: 'utf-8',
-        env: GIT_ENV,
-        timeout: PROBE_TIMEOUT_MS,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        maxBuffer: 64 * 1024 * 1024,
-      });
-    } catch (error) {
-      const failure: { code?: unknown; stderr?: unknown; message?: unknown } =
-        typeof error === 'object' && error !== null ? error : {};
-      const detail = `${failure.stderr ?? ''}${failure.message ?? ''}`;
-      if (failure.code === 'ETIMEDOUT' || UNREACHABLE.test(detail)) return undefined;
-      throw new Error(
-        `git ls-remote --tags ${tagsUrl(repository)} failed: ${String(failure.stderr ?? failure.message ?? '').trim()}`,
-      );
-    }
-  },
+export type RunFile = (file: string, args: readonly string[], options: ExecFileSyncOptions) => string | Buffer;
 
-  listAll(repositories) {
-    const outputs = new Map<string, string>();
-    if (repositories.length === 0) return outputs;
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cdkactions-tags-'));
-    try {
-      execFileSync(
-        'sh',
-        [
-          '-c',
-          'dir=$1; shift; i=0; for repo in "$@"; do ' +
-            '( git ls-remote --tags "https://github.com/$repo" > "$dir/$i.out" 2> "$dir/$i.err"; echo $? > "$dir/$i.status" ) & ' +
-            'i=$((i+1)); done; wait',
-          'sh',
-          dir,
-          ...repositories,
-        ],
-        { env: GIT_ENV, timeout: LIST_TIMEOUT_MS, stdio: 'ignore' },
-      );
-      repositories.forEach((repository, index) => {
-        const status = fs.readFileSync(path.join(dir, `${index}.status`), 'utf-8').trim();
-        if (status !== '0') {
-          const stderr = fs.readFileSync(path.join(dir, `${index}.err`), 'utf-8').trim();
-          throw new Error(`git ls-remote --tags ${tagsUrl(repository)} failed: ${stderr}`);
+export type ProcessFailure =
+  | { readonly kind: 'spawn'; readonly errno: string; readonly detail: string }
+  | { readonly kind: 'network'; readonly detail: string }
+  | { readonly kind: 'exit'; readonly detail: string };
+
+/**
+ * Sorts a failed `execFileSync`. A process that never started, such as `ENOENT`, `EPERM` or
+ * `EACCES`, says nothing about the network. Only a timeout, or a git exit whose stderr shows a
+ * resolve or connect failure, means GitHub cannot be reached.
+ */
+export function classifyProcessFailure(error: unknown): ProcessFailure {
+  const failure: { code?: unknown; status?: unknown; signal?: unknown; stderr?: unknown; message?: unknown } =
+    typeof error === 'object' && error !== null ? error : {};
+  const stderr = String(failure.stderr ?? '').trim();
+  const detail = stderr || String(failure.message ?? error);
+  if (failure.status == null && failure.signal == null) {
+    return { kind: 'spawn', errno: String(failure.code ?? 'unknown'), detail: String(failure.message ?? error) };
+  }
+  if (failure.code === 'ETIMEDOUT' || UNREACHABLE.test(stderr)) return { kind: 'network', detail };
+  return { kind: 'exit', detail };
+}
+
+function spawnError(binary: string, failure: { readonly errno: string; readonly detail: string }): Error {
+  return new Error(`could not start ${binary} (${failure.errno}) to read action tags: ${failure.detail}`);
+}
+
+export function createGitHubTags(
+  run: RunFile = (file, args, options) => execFileSync(file, args, options),
+): GitHubTags {
+  return {
+    probe(repository) {
+      try {
+        return String(
+          run('git', ['ls-remote', '--tags', tagsUrl(repository)], {
+            encoding: 'utf-8',
+            env: GIT_ENV,
+            timeout: PROBE_TIMEOUT_MS,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            maxBuffer: 64 * 1024 * 1024,
+          }),
+        );
+      } catch (error) {
+        const failure = classifyProcessFailure(error);
+        if (failure.kind === 'spawn') throw spawnError('git', failure);
+        if (failure.kind === 'network') return undefined;
+        throw new Error(`git ls-remote --tags ${tagsUrl(repository)} failed: ${failure.detail}`);
+      }
+    },
+
+    listAll(repositories) {
+      const outputs = new Map<string, string>();
+      if (repositories.length === 0) return outputs;
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cdkactions-tags-'));
+      try {
+        try {
+          run(
+            'sh',
+            [
+              '-c',
+              'dir=$1; shift; i=0; for repo in "$@"; do ' +
+                '( git ls-remote --tags "https://github.com/$repo" > "$dir/$i.out" 2> "$dir/$i.err"; echo $? > "$dir/$i.status" ) & ' +
+                'i=$((i+1)); done; wait',
+              'sh',
+              dir,
+              ...repositories,
+            ],
+            { env: GIT_ENV, timeout: LIST_TIMEOUT_MS, stdio: 'ignore' },
+          );
+        } catch (error) {
+          const failure = classifyProcessFailure(error);
+          if (failure.kind === 'spawn') throw spawnError('sh', failure);
+          throw new Error(`reading the tags of ${repositories.join(', ')} failed: ${failure.detail}`);
         }
-        outputs.set(repository, fs.readFileSync(path.join(dir, `${index}.out`), 'utf-8'));
-      });
-      return outputs;
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  },
-};
+        repositories.forEach((repository, index) => {
+          const status = fs.readFileSync(path.join(dir, `${index}.status`), 'utf-8').trim();
+          if (status !== '0') {
+            const stderr = fs.readFileSync(path.join(dir, `${index}.err`), 'utf-8').trim();
+            throw new Error(`git ls-remote --tags ${tagsUrl(repository)} failed: ${stderr}`);
+          }
+          outputs.set(repository, fs.readFileSync(path.join(dir, `${index}.out`), 'utf-8'));
+        });
+        return outputs;
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  };
+}
+
+export const gitHubTags: GitHubTags = createGitHubTags();
 
 /**
  * Checks that each versioned pin's tag points at its SHA, reading every repository once. The first

@@ -135,7 +135,7 @@ A tag such as `@v7` can be moved by whoever controls the action's repository. `.
 
 `App.synth()` checks every pin that carries a version: it reads the action repository's tags with `git ls-remote --tags https://github.com/<owner>/<repo>`, peeling annotated tags through `^{}`, and fails unless the tag points at the pinned SHA. The error names the action, the SHA, the version and where the tag points now; a failure on a pin nobody changed means the tag moved after review. Each repository is read once per synth, the rest in parallel after the first answers. A pin without a version is not checked.
 
-- When GitHub cannot be reached, a local synth prints one warning naming the unverified pins and goes on.
+- When GitHub cannot be reached, a local synth prints one warning naming the unverified pins and goes on. Only a timeout or a git exit that shows a resolve or connect failure counts as unreachable; a `git` or `sh` that cannot start, such as `ENOENT` or `EPERM`, fails the synth everywhere and names the binary and the errno.
 - Under GitHub Actions (`GITHUB_ACTIONS=true`), an unreachable GitHub fails the synth. CI never skips the check, and a runner that cannot reach GitHub is broken anyway.
 - A read that fails after GitHub answered fails the synth everywhere, so a flaky network cannot leave the check half done.
 
